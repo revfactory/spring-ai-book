@@ -32,7 +32,7 @@ VectorStore API와 Retrieval-Augmented Generation(RAG) 지원 덕분에 ChromaDB
 12. **데이터 보안·비용 관리**
 13. **Observability와 로깅**
 
-## Part V : AI 에이전트 설계와 구현
+### Part V : AI 에이전트 설계와 구현
 
 14. **추론 모델 이해와 설계** 
 15. **Model Context Protocol(MCP) 활용 전략**
