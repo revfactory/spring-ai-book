@@ -9,51 +9,51 @@ VectorStore API와 Retrieval-Augmented Generation(RAG) 지원 덕분에 ChromaDB
 
 ### Part I  AI와 Spring AI 개요
 
-1. **AI 트렌드와 핵심 개념**
-2. **Spring AI의 탄생 배경과 목표**
-3. **개발 환경 설정** — Java 21, Spring Boot 3.3, Spring AI 1.0.0-M6
+1. **[AI 트렌드와 핵심 개념](Part_I_AI_and_Spring_AI_Overview/01_AI_Trends_and_Key_Concepts.md)**
+2. **[Spring AI의 탄생 배경과 목표](Part_I_AI_and_Spring_AI_Overview/02_Spring_AI_Background_and_Goals.md)**
+3. **[개발 환경 설정](Part_I_AI_and_Spring_AI_Overview/03_Development_Environment_Setup.md)** — Java 21, Spring Boot 3.3, Spring AI 1.0.0-M6
 
 ### Part II  Spring AI 기초 다지기
 
-4. **Spring AI 아키텍처** — Provider, Model, Template, Client, Message
-5. **첫 번째 프로젝트: Chat Model 연동** (OpenAI·Anthropic)
+4. **[Spring AI 아키텍처](Part_II_Spring_AI_Fundamentals/04_Spring_AI_Architecture.md)** — Provider, Model, Template, Client, Message
+5. **[첫 번째 프로젝트: Chat Model 연동](Part_II_Spring_AI_Fundamentals/05_First_Project_Chat_Model_Integration.md)** (OpenAI·Anthropic)
 6. **Embedding과 벡터 스토어 기본**
 
 ### Part III  고급 기능 집중 탐구
 
-7. **Retrieval-Augmented Generation(RAG) 패턴 구현**
-8. **Function Calling & `@Tool` 어노테이션**
-9. **멀티모달 AI** — 이미지·음성 모델 통합
-10. **스트리밍 응답과 비동기 처리**
+7. **[Retrieval-Augmented Generation(RAG) 패턴 구현](Part_III_Advanced_Features/07_RAG_Pattern_Implementation.md)**
+8. **[Function Calling & `@Tool` 어노테이션](Part_III_Advanced_Features/08_Function_Calling_and_Tool_Annotation.md)**
+9. **[멀티모달 AI](Part_III_Advanced_Features/09_Multimodal_AI_Integration.md)** — 이미지·음성 모델 통합
+10. **[스트리밍 응답과 비동기 처리](Part_III_Advanced_Features/10_Streaming_Responses_and_Async_Processing.md)**
 
 ### Part IV  품질·보안·관측성
 
-11. **AI 애플리케이션 테스트 전략** — Mock LLM, 녹화·재생
-12. **데이터 보안·비용 관리**
-13. **Observability와 로깅**
+11. **[AI 애플리케이션 테스트 전략](Part_IV_Quality_Security_Observability/11_AI_Application_Testing_Strategy.md)** — Mock LLM, 녹화·재생
+12. **[데이터 보안·비용 관리](Part_IV_Quality_Security_Observability/12_Data_Security_Cost_Management.md)**
+13. **[Observability와 로깅](Part_IV_Quality_Security_Observability/13_Observability_and_Logging.md)**
 
 ### Part V : AI 에이전트 설계와 구현
 
-14. **추론 모델 이해와 설계** 
-15. **Model Context Protocol(MCP) 활용 전략**
-16. **A2A(Agent-to-Agent) 프로토콜** 
-17. **Spring AI Agent API** 
-18. **에이전트 체인 & 워크플로 구축**
-19. **에이전트 평가·디버깅·모니터링**
+14. **[추론 모델 이해와 설계](Part_V_AI_Agent_Design_and_Implementation/14_AI_Agent_Fundamentals.md)** 
+15. **[Model Context Protocol(MCP) 활용 전략](Part_V_AI_Agent_Design_and_Implementation/15_Building_Agents_with_Spring_AI.md)**
+16. **[A2A(Agent-to-Agent) 프로토콜](Part_V_AI_Agent_Design_and_Implementation/16_A2A_Agent_to_Agent_Protocol.md)** 
+17. **[Spring AI Agent API](Part_V_AI_Agent_Design_and_Implementation/17_Spring_AI_Agent_API.md)** 
+18. **[에이전트 체인 & 워크플로 구축](Part_V_AI_Agent_Design_and_Implementation/18_Agent_Chains_and_Workflows.md)**
+19. **[에이전트 평가·디버깅·모니터링](Part_V_AI_Agent_Design_and_Implementation/19_Agent_Evaluation_Debugging_Monitoring.md)**
 
 
 ### Part VI  실전 프로젝트 케이스스터디
 
-20. **고객 지원 챗봇 구축**
-21. **문서 Q\&A 검색 서비스(RAG)**
-22. **이미지 생성 웹서비스**
-23. **음성 비서 API**
+20. **[고객 지원 챗봇 구축](Part_VI_Practical_Projects_Case_Studies/20_Customer_Support_Chatbot.md)**
+21. **[문서 Q\&A 검색 서비스(RAG)](Part_VI_Practical_Projects_Case_Studies/21_Document_QA_Search_Service.md)**
+22. **[이미지 생성 웹서비스](Part_VI_Practical_Projects_Case_Studies/22_Image_Generation_Web_Service.md)**
+23. **[음성 비서 API](Part_VI_Practical_Projects_Case_Studies/23_Voice_Assistant_API.md)**
 
 ### Part VII  부록
 
-A. **AI 윤리와 책임 있는 AI 개발**
-B. **주요 프로바이더 설정 가이드**
-C. **Spring AI 커뮤니티 참여와 기여 방법**
+A. **[AI 윤리와 책임 있는 AI 개발](Part_VII_Appendices/A_AI_Ethics_and_Responsible_AI_Development.md)**
+B. **[주요 프로바이더 설정 가이드](Part_VII_Appendices/B_Provider_Configuration_Guide.md)**
+C. **[Spring AI 커뮤니티 참여와 기여 방법](Part_VII_Appendices/C_Community_Participation_and_Contribution.md)**
 
 [1]: https://spring.io/blog/2025/02/14/spring-ai-1-0-0-m6-released "Spring AI 1.0.0 M6 Released"
 [2]: https://galaxy.ai/youtube-summarizer/exploring-the-new-features-of-spring-ai-m6-and-the-mcp-protocol-cE1h-rC2o2U "Exploring the New Features of Spring AI M6 and the mCP Protocol"
