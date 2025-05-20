@@ -59,9 +59,9 @@ Java와 Spring Boot의 기본 지식이 있는 개발자라면 누구나 이 책
 
 ### Part VII : 부록
 
-- A. AI 윤리와 책임 있는 AI 개발
-- B. 주요 프로바이더 설정 가이드
-- C. Spring AI 커뮤니티 참여와 기여 방법
+- [A. AI 윤리와 책임 있는 AI 개발](Part_VII_Appendices/A_AI_Ethics_and_Responsible_AI_Development.md)
+- [B. 주요 프로바이더 설정 가이드](Part_VII_Appendices/B_Provider_Configuration_Guide.md)
+- [C. Spring AI 커뮤니티 참여와 기여 방법](Part_VII_Appendices/C_Community_Participation_and_Contribution.md)
 
 ## 저자 소개
 
