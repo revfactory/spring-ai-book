@@ -1,55 +1,86 @@
-# 멀티모달 AI — 이미지·음성 모델 통합
+# 멀티모달 AI — 이미지·음성·비디오 모델 통합
 
 ## 개요
 
-최신 AI 모델은 텍스트뿐만 아니라 이미지, 오디오, 비디오와 같은 다양한 데이터 타입을 처리할 수 있는 멀티모달 능력을 갖추게 되었습니다. Spring AI는 이러한 멀티모달 AI 모델을 자바 애플리케이션에 쉽게 통합할 수 있는 기능을 제공합니다.
+최신 AI 모델은 텍스트뿐만 아니라 이미지, 오디오, 비디오와 같은 다양한 데이터 타입을 처리할 수 있는 멀티모달 능력을 갖추게 되었습니다. Spring AI 1.0.0 GA는 통합된 Message API와 Media 지원을 통해 이러한 멀티모달 AI 모델을 자바 애플리케이션에 쉽게 통합할 수 있는 기능을 제공합니다.
 
-이 장에서는 Spring AI를 사용하여 이미지 생성 및 이해, 음성 인식 및 합성과 같은 멀티모달 기능을 구현하는 방법을 알아보겠습니다. 텍스트를 이미지로 변환하는 DALL-E와 같은 모델을 통합하고, GPT-4 Vision이나 Claude 3와 같은 모델을 사용하여 이미지를 이해하는 기능을 구현하는 방법을 살펴볼 것입니다.
+이 장에서는 Spring AI를 사용하여 이미지 생성 및 이해, 음성 입출력, 비디오 처리와 같은 멀티모달 기능을 구현하는 방법을 알아보겠습니다. OpenAI의 GPT-4o, Anthropic의 Claude 3, Google의 Gemini 1.5와 같은 최신 멀티모달 모델을 통합하는 방법을 살펴볼 것입니다.
 
 ## 멀티모달 AI 개념 이해하기
 
 ### 멀티모달 AI란?
 
-멀티모달 AI는 텍스트, 이미지, 오디오, 비디오 등 다양한 형태(모달리티)의 데이터를 이해하고 처리할 수 있는 인공지능 시스템을 말합니다. 이러한 시스템은 여러 감각 채널을 통합하여 더 풍부하고 맥락에 맞는 이해와 응답을 생성할 수 있습니다.
+멀티모달 AI는 텍스트, 이미지, 오디오, 비디오 등 다양한 형태(모달리티)의 데이터를 동시에 이해하고 처리할 수 있는 인공지능 시스템을 말합니다. 인간이 자연스럽게 여러 감각을 통해 정보를 처리하는 것처럼, 멀티모달 LLM은 여러 데이터 형식을 통합하여 더 풍부하고 맥락에 맞는 이해와 응답을 생성할 수 있습니다.
+
+> "All things that are naturally connected ought to be taught in combination" - John Amos Comenius, "Orbis Sensualium Pictus", 1658
 
 멀티모달 AI의 주요 기능은 다음과 같습니다:
 
 1. **크로스모달 이해**: 여러 모달리티 간의 관계를 이해하고 연관짓는 능력
 2. **다양한 입력 처리**: 다양한 형식의 데이터를 입력으로 받아들일 수 있는 능력
 3. **통합된 표현 학습**: 서로 다른 형식의 데이터를 공통된 표현 공간에서 처리하는 능력
-4. **다양한 출력 생성**: 텍스트, 이미지, 오디오 등 다양한 형식의 출력을 생성하는 능력
+4. **컨텍스트 통합**: 여러 모달리티의 정보를 결합하여 더 정확한 이해와 응답 생성
 
 ### 주요 멀티모달 AI 모델 유형
 
-Spring AI에서 통합할 수 있는 주요 멀티모달 AI 모델 유형은 다음과 같습니다:
+Spring AI 1.0.0 GA에서 지원하는 주요 멀티모달 AI 모델은 다음과 같습니다:
 
-1. **텍스트와 이미지 통합 모델**
-   - 이미지 생성 모델 (Text-to-Image): DALL-E, Stable Diffusion, Midjourney
-   - 이미지 이해 모델 (Image Understanding): GPT-4 Vision, Claude 3, Gemini
+1. **멀티모달 언어 모델 (Vision + Text + Audio)**
+   - OpenAI GPT-4o, GPT-4o-mini (이미지, 텍스트, 오디오)
+   - Anthropic Claude 3 (Opus, Sonnet, Haiku) - 이미지, 텍스트
+   - Google Vertex AI Gemini 1.5 (Pro, Flash) - 이미지, 텍스트, 비디오
+   - AWS Bedrock Converse API - 통합 멀티모달 지원
+   - Mistral AI Pixtral - 이미지, 텍스트
+   - Ollama (LLaVA, BakLLaVA, Llama 3.2) - 이미지, 텍스트
 
-2. **오디오 관련 모델**
-   - 음성 인식 모델 (Speech-to-Text): Whisper
-   - 텍스트 음성 변환 모델 (Text-to-Speech): ElevenLabs, Amazon Polly
+2. **전용 이미지 생성 모델**
+   - OpenAI DALL-E 3
+   - Azure OpenAI Image Generation
+   - Stability AI (Stable Diffusion)
+   - QianFan Image Generation
+   - ZhiPuAI Image Generation
 
-3. **멀티모달 임베딩 모델**
-   - CLIP: 텍스트와 이미지의 공통 임베딩 생성
-   - 통합 임베딩 모델: 다양한 형식의 데이터에 대한 통합 벡터 표현 생성
+3. **오디오 처리 모델**
+   - OpenAI Whisper (Speech-to-Text)
+   - OpenAI TTS (Text-to-Speech)
+   - Azure OpenAI Audio Transcription
+   - GPT-4o-audio-preview (오디오 입출력)
 
-## 이미지 생성 모델 통합하기
+## Spring AI 멀티모달 API
 
-Spring AI는 텍스트 설명을 기반으로 이미지를 생성하는 다양한 모델을 지원합니다. 여기서는 OpenAI의 DALL-E를 통합하는 방법을 알아보겠습니다.
+### Message API와 Media 지원
 
-### OpenAI DALL-E 통합 구현
+Spring AI 1.0.0 GA는 멀티모달 지원을 위해 통합된 Message API를 제공합니다. UserMessage의 `content` 필드는 텍스트 입력에 사용되며, 선택적 `media` 필드를 통해 이미지, 오디오, 비디오와 같은 추가 콘텐츠를 포함할 수 있습니다.
 
-#### 의존성 설정
+```java
+var imageResource = new ClassPathResource("/multimodal.test.png");
+
+var userMessage = new UserMessage(
+    "Explain what do you see in this picture?", // content
+    new Media(MimeTypeUtils.IMAGE_PNG, imageResource)); // media
+
+ChatResponse response = chatModel.call(new Prompt(userMessage));
+```
+
+또는 fluent ChatClient API를 사용할 수 있습니다:
+
+```java
+String response = ChatClient.create(chatModel).prompt()
+    .user(u -> u.text("Explain what do you see on this picture?")
+                .media(MimeTypeUtils.IMAGE_PNG, new ClassPathResource("/multimodal.test.png")))
+    .call()
+    .content();
+```
+
+### 의존성 설정
 
 먼저 필요한 의존성을 추가합니다:
 
 ```kotlin
 // Gradle - build.gradle.kts
 dependencies {
-    implementation("org.springframework.ai:spring-ai-openai-spring-boot-starter:1.0.0-M6")
-    // 추가 의존성 생략
+    implementation("org.springframework.ai:spring-ai-openai-spring-boot-starter")
+    // BOM을 사용하여 버전 관리
 }
 ```
 
@@ -58,7 +89,6 @@ dependencies {
 <dependency>
     <groupId>org.springframework.ai</groupId>
     <artifactId>spring-ai-openai-spring-boot-starter</artifactId>
-    <version>1.0.0-M6</version>
 </dependency>
 ```
 
@@ -342,15 +372,13 @@ public class StableDiffusionService {
 }
 ```
 
-## 이미지 이해 모델 통합하기
+## 이미지 처리 (Vision)
 
-최신 AI 모델은 이미지를 이해하고 분석하는 능력을 갖추고 있습니다. Spring AI를 사용하여 GPT-4 Vision이나 Claude 3와 같은 이미지 이해 모델을 통합해 보겠습니다.
+### OpenAI GPT-4o Vision 통합
 
-### OpenAI GPT-4 Vision 통합하기
+OpenAI의 GPT-4o 모델은 텍스트와 이미지를 함께 처리할 수 있는 강력한 비전 기능을 제공합니다.
 
-#### 의존성 및 구성
-
-앞서 설정한 OpenAI 의존성과 설정을 사용하면서 추가 설정이 필요합니다:
+#### 환경 설정
 
 ```yaml
 spring:
@@ -359,7 +387,7 @@ spring:
       api-key: ${OPENAI_API_KEY}
       chat:
         options:
-          model: gpt-4-vision-preview
+          model: gpt-4o  # 또는 gpt-4o-mini
           max-tokens: 1000
 ```
 
@@ -368,49 +396,56 @@ spring:
 ```java
 package com.example.multimodal.service;
 
-import org.springframework.ai.chat.ChatClient;
-import org.springframework.ai.chat.ChatResponse;
-import org.springframework.ai.chat.messages.AssistantMessage;
-import org.springframework.ai.chat.messages.Media;
-import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.ai.model.Media;
+import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.util.MimeTypeUtils;
 
 import java.io.IOException;
-import java.util.List;
 
 @Service
 public class ImageUnderstandingService {
 
-    private final ChatClient chatClient;
+    private final ChatModel chatModel;
 
-    public ImageUnderstandingService(@Qualifier("openAiChatClient") ChatClient chatClient) {
-        this.chatClient = chatClient;
+    @Autowired
+    public ImageUnderstandingService(ChatModel chatModel) {
+        this.chatModel = chatModel;
     }
 
-    public String analyzeImage(MultipartFile imageFile, String question) throws IOException {
-        // 이미지 미디어 객체 생성
-        Media imageMedia = Media.of(
-            imageFile.getInputStream().readAllBytes(),
-            Media.Type.PNG, // 또는 적절한 이미지 유형 (JPEG, GIF 등)
-            imageFile.getOriginalFilename()
-        );
+    public String analyzeImage(Resource imageResource, String question) throws IOException {
+        // 이미지와 함께 사용자 메시지 생성
+        var userMessage = new UserMessage(question,
+                new Media(MimeTypeUtils.IMAGE_PNG, imageResource));
 
-        // 사용자 메시지 생성 (이미지 포함)
-        UserMessage userMessage = UserMessage.builder()
-            .content(question)
-            .media(List.of(imageMedia))
-            .build();
-
-        // 프롬프트 생성 및 AI 호출
-        Prompt prompt = new Prompt(userMessage);
-        ChatResponse response = chatClient.call(prompt);
+        // GPT-4o 모델로 프롬프트 생성 및 호출
+        ChatResponse response = chatModel.call(new Prompt(userMessage,
+                OpenAiChatOptions.builder()
+                    .model(OpenAiApi.ChatModel.GPT_4_O.getValue())
+                    .build()));
 
         // 응답 추출
+        return response.getResult().getOutput().getContent();
+    }
+
+    public String analyzeImageFromUrl(String imageUrl, String question) {
+        // URL 기반 이미지 분석
+        var userMessage = new UserMessage(question,
+                new Media(MimeTypeUtils.IMAGE_PNG, 
+                    URI.create(imageUrl)));
+
+        ChatResponse response = chatModel.call(new Prompt(userMessage,
+                OpenAiChatOptions.builder()
+                    .model(OpenAiApi.ChatModel.GPT_4_O.getValue())
+                    .build()));
+
         return response.getResult().getOutput().getContent();
     }
 
@@ -563,17 +598,16 @@ public class ImageUnderstandingController {
 }
 ```
 
-### Anthropic Claude 3 통합하기
+### Anthropic Claude 3 Vision
 
-Claude 3 Opus와 Sonnet은 이미지 이해 능력이 뛰어난 멀티모달 모델입니다. Spring AI에서 Claude 3를 통합하는 방법을 알아보겠습니다.
+Claude 3 시리즈(Opus, Sonnet, Haiku)는 뛰어난 이미지 이해 능력을 제공합니다.
 
 #### 의존성 및 구성
 
 ```kotlin
 // Gradle - build.gradle.kts
 dependencies {
-    implementation("org.springframework.ai:spring-ai-anthropic-spring-boot-starter:1.0.0-M6")
-    // 추가 의존성 생략
+    implementation("org.springframework.ai:spring-ai-anthropic-spring-boot-starter")
 }
 ```
 
@@ -585,24 +619,23 @@ spring:
       api-key: ${ANTHROPIC_API_KEY}
       chat:
         options:
-          model: claude-3-opus-20240229
+          model: claude-3-opus-20240229  # 또는 claude-3-sonnet, claude-3-haiku
           max-tokens: 1000
 ```
 
-#### Claude 이미지 이해 서비스
+#### Claude Vision 서비스 구현
 
 ```java
 package com.example.multimodal.service;
 
-import org.springframework.ai.chat.ChatClient;
-import org.springframework.ai.chat.messages.Media;
-import org.springframework.ai.chat.messages.Message;
-import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.anthropic.AnthropicChatModel;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.ai.model.Media;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.util.MimeTypeUtils;
 
 import java.io.IOException;
 import java.util.List;
@@ -610,35 +643,21 @@ import java.util.List;
 @Service
 public class ClaudeVisionService {
 
-    private final ChatClient claudeChatClient;
+    private final AnthropicChatModel anthropicChatModel;
 
-    public ClaudeVisionService(@Qualifier("anthropicChatClient") ChatClient claudeChatClient) {
-        this.claudeChatClient = claudeChatClient;
+    @Autowired
+    public ClaudeVisionService(AnthropicChatModel anthropicChatModel) {
+        this.anthropicChatModel = anthropicChatModel;
     }
 
-    public String analyzeImageWithClaude(Resource imageResource, String question) throws IOException {
-        // 이미지 미디어 객체 생성
-        Media imageMedia = Media.of(
-            imageResource.getInputStream().readAllBytes(),
-            Media.Type.PNG,
-            imageResource.getFilename()
-        );
-
-        // 시스템 프롬프트 설정
-        SystemMessage systemMessage = new SystemMessage(
-            "You are a helpful AI vision assistant that can analyze images. " +
-            "Provide detailed and accurate descriptions of what you see in the image."
-        );
-
-        // 사용자 메시지 생성 (이미지 포함)
-        UserMessage userMessage = UserMessage.builder()
-            .content(question)
-            .media(List.of(imageMedia))
-            .build();
+    public String analyzeImageWithClaude(Resource imageResource, String question) {
+        // 이미지와 함께 사용자 메시지 생성
+        var userMessage = new UserMessage(question,
+                new Media(MimeTypeUtils.IMAGE_PNG, imageResource));
 
         // 프롬프트 생성 및 AI 호출
-        Prompt prompt = new Prompt(List.of(systemMessage, userMessage));
-        return claudeChatClient.call(prompt).getResult().getOutput().getContent();
+        var response = anthropicChatModel.call(new Prompt(userMessage));
+        return response.getResult().getOutput().getContent();
     }
 
     public String compareImages(Resource image1, Resource image2, String question) throws IOException {
@@ -674,33 +693,41 @@ public class ClaudeVisionService {
 }
 ```
 
-## 오디오 모델 통합하기
+## 오디오 처리
 
-Spring AI는 음성 인식(Speech-to-Text)과 텍스트 음성 변환(Text-to-Speech) 기능도 지원합니다. OpenAI Whisper를 사용한 음성 인식과 ElevenLabs를 사용한 텍스트 음성 변환을 통합해 보겠습니다.
+### 오디오 입력 (Speech-to-Text)
 
-### 음성 인식(Speech-to-Text) 구현
+OpenAI의 gpt-4o-audio-preview 모델은 오디오 입력을 직접 처리할 수 있습니다.
 
-#### 의존성 및 구성
+```java
+var audioResource = new ClassPathResource("speech1.mp3");
 
-```kotlin
-// Gradle - build.gradle.kts
-dependencies {
-    implementation("org.springframework.ai:spring-ai-openai-spring-boot-starter:1.0.0-M6")
-    // 추가 의존성 생략
-}
+var userMessage = new UserMessage("What is this recording about?",
+        List.of(new Media(MimeTypeUtils.parseMimeType("audio/mp3"), audioResource)));
+
+ChatResponse response = chatModel.call(new Prompt(List.of(userMessage),
+        OpenAiChatOptions.builder()
+            .model(OpenAiApi.ChatModel.GPT_4_O_AUDIO_PREVIEW)
+            .build()));
 ```
 
-```yaml
-# application.yml
-spring:
-  ai:
-    openai:
-      api-key: ${OPENAI_API_KEY}
-      audio:
-        options:
-          model: whisper-1
-          temperature: 0
-          response-format: text
+### 오디오 출력 (Text with Audio)
+
+gpt-4o-audio-preview 모델은 텍스트와 함께 오디오 응답을 생성할 수 있습니다:
+
+```java
+var userMessage = new UserMessage("Tell me joke about Spring Framework");
+
+ChatResponse response = chatModel.call(new Prompt(List.of(userMessage),
+        OpenAiChatOptions.builder()
+            .model(OpenAiApi.ChatModel.GPT_4_O_AUDIO_PREVIEW)
+            .outputModalities(List.of("text", "audio"))
+            .outputAudio(new AudioParameters(Voice.ALLOY, AudioResponseFormat.WAV))
+            .build()));
+
+String text = response.getResult().getOutput().getContent(); // 오디오 transcript
+byte[] waveAudio = response.getResult().getOutput().getMedia()
+    .get(0).getDataAsByteArray(); // 오디오 데이터
 ```
 
 #### 음성 인식 서비스 구현
@@ -1945,10 +1972,214 @@ public class PrivacyUtils {
 }
 ```
 
+## 이미지 생성 모델
+
+Spring AI는 ImageModel API를 통해 다양한 이미지 생성 모델을 지원합니다.
+
+### OpenAI DALL-E 3 통합
+
+```java
+@Service
+public class ImageGenerationService {
+    
+    private final ImageModel imageModel;
+    
+    @Autowired
+    public ImageGenerationService(ImageModel imageModel) {
+        this.imageModel = imageModel;
+    }
+    
+    public Image generateImage(String prompt) {
+        ImagePrompt imagePrompt = new ImagePrompt(prompt);
+        ImageResponse response = imageModel.call(imagePrompt);
+        return response.getResult();
+    }
+    
+    public Image generateImageWithOptions(String prompt) {
+        OpenAiImageOptions options = OpenAiImageOptions.builder()
+            .withSize("1024x1024")
+            .withQuality("hd")
+            .withModel("dall-e-3")
+            .withStyle("natural")
+            .build();
+            
+        ImagePrompt imagePrompt = new ImagePrompt(prompt, options);
+        ImageResponse response = imageModel.call(imagePrompt);
+        return response.getResult();
+    }
+}
+```
+
+## 멀티모달 모델별 특징
+
+### Google Vertex AI Gemini
+
+Gemini 1.5 Pro와 Flash 모델은 이미지, 텍스트, 비디오를 처리할 수 있습니다:
+
+```java
+// 이미지와 텍스트
+var userMessage = new UserMessage("Analyze this chart and explain the trends",
+    new Media(MimeTypeUtils.IMAGE_PNG, chartResource));
+
+// 비디오 분석 (Gemini 특화 기능)
+var videoMessage = new UserMessage("Summarize this video",
+    new Media(MimeTypeUtils.parseMimeType("video/mp4"), videoResource));
+```
+
+### AWS Bedrock Converse
+
+Bedrock Converse API는 여러 모델에 대한 통합 멀티모달 인터페이스를 제공합니다:
+
+```java
+@Service 
+public class BedrockMultimodalService {
+    
+    private final BedrockConverseApi converseApi;
+    
+    public String analyzeWithBedrock(Resource image, String prompt) {
+        var userMessage = new UserMessage(prompt,
+            new Media(MimeTypeUtils.IMAGE_JPEG, image));
+            
+        // Claude 3, Llama 3.2 등 다양한 모델 사용 가능
+        var response = converseApi.converse(new Prompt(userMessage));
+        return response.getResult().getOutput().getContent();
+    }
+}
+```
+
+## 실용적인 멀티모달 애플리케이션 예제
+
+### 문서 분석 서비스
+
+```java
+@Service
+public class DocumentAnalysisService {
+    
+    private final ChatModel chatModel;
+    
+    public DocumentAnalysis analyzeDocument(List<Resource> documentPages) {
+        // 여러 페이지 이미지를 한 번에 분석
+        List<Media> mediaList = documentPages.stream()
+            .map(page -> new Media(MimeTypeUtils.IMAGE_PNG, page))
+            .collect(Collectors.toList());
+            
+        var userMessage = new UserMessage(
+            "Extract all text, tables, and key information from these document pages",
+            mediaList);
+            
+        var response = chatModel.call(new Prompt(userMessage));
+        
+        return parseDocumentAnalysis(response.getResult().getOutput().getContent());
+    }
+}
+```
+
+### 실시간 비디오 설명 서비스
+
+```java
+@RestController
+public class VideoDescriptionController {
+    
+    private final ChatModel geminiModel;
+    
+    @PostMapping("/describe-video")
+    public Flux<String> describeVideo(@RequestParam("video") MultipartFile video) {
+        var videoResource = new InputStreamResource(video.getInputStream());
+        
+        var userMessage = new UserMessage(
+            "Provide a real-time narration of this video for visually impaired users",
+            new Media(MimeTypeUtils.parseMimeType("video/mp4"), videoResource));
+            
+        // 스트리밍 응답으로 실시간 설명 제공
+        return geminiModel.stream(new Prompt(userMessage))
+            .map(response -> response.getResult().getOutput().getContent());
+    }
+}
+```
+
+## 성능 최적화 및 모범 사례
+
+### 1. 미디어 크기 최적화
+
+```java
+@Component
+public class MediaOptimizer {
+    
+    public byte[] optimizeImage(byte[] imageData, int maxWidth, int maxHeight) {
+        // 이미지 리사이징 로직
+        BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageData));
+        
+        // 종횡비 유지하며 크기 조정
+        double scale = Math.min(
+            (double) maxWidth / image.getWidth(),
+            (double) maxHeight / image.getHeight()
+        );
+        
+        if (scale < 1.0) {
+            int newWidth = (int) (image.getWidth() * scale);
+            int newHeight = (int) (image.getHeight() * scale);
+            
+            BufferedImage resized = new BufferedImage(
+                newWidth, newHeight, BufferedImage.TYPE_INT_RGB);
+            // 리사이징 수행
+            
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(resized, "jpg", baos);
+            return baos.toByteArray();
+        }
+        
+        return imageData;
+    }
+}
+```
+
+### 2. 캐싱 전략
+
+```java
+@Service
+public class CachedMultimodalService {
+    
+    @Cacheable(value = "multimodal-analysis", 
+               key = "#mediaHash + '-' + #prompt")
+    public String analyzeWithCache(String mediaHash, String prompt, Resource media) {
+        var userMessage = new UserMessage(prompt,
+            new Media(MimeTypeUtils.IMAGE_PNG, media));
+            
+        var response = chatModel.call(new Prompt(userMessage));
+        return response.getResult().getOutput().getContent();
+    }
+}
+```
+
+### 3. 에러 처리 및 폴백
+
+```java
+@Service
+public class ResilientMultimodalService {
+    
+    private final ChatModel primaryModel;
+    private final ChatModel fallbackModel;
+    
+    public String analyzeWithFallback(Resource image, String prompt) {
+        try {
+            return analyzeWithModel(primaryModel, image, prompt);
+        } catch (Exception e) {
+            log.warn("Primary model failed, using fallback", e);
+            return analyzeWithModel(fallbackModel, image, prompt);
+        }
+    }
+}
+```
+
 ## 결론
 
-이 장에서는 Spring AI를 사용하여 멀티모달 AI 기능을 자바 애플리케이션에 통합하는 방법을 살펴보았습니다. 이미지 생성 및 이해, 음성 인식 및 합성과 같은 주요 멀티모달 기능을 구현하는 방법과 이를 활용한 실제 애플리케이션 사례를 알아보았습니다.
+Spring AI 1.0.0 GA의 멀티모달 지원은 통합된 Message API와 Media 타입을 통해 다양한 AI 모델의 멀티모달 기능을 쉽게 활용할 수 있게 해줍니다. OpenAI GPT-4o, Anthropic Claude 3, Google Gemini 등 최신 모델들의 비전, 오디오, 비디오 처리 능력을 자바 애플리케이션에 원활하게 통합할 수 있습니다.
 
-Spring AI의 멀티모달 지원은 점점 확장되고 있으며, 다양한 AI 모델 및 프로바이더를 통합하여 풍부한 사용자 경험을 제공하는 애플리케이션을 구축할 수 있게 해줍니다. 최적화, 캐싱, 비동기 처리 및 보안과 같은 고려사항을 적용하여 안정적이고 효율적인 멀티모달 AI 애플리케이션을 구현할 수 있습니다.
+주요 특징:
+- 통합된 Media API로 일관된 멀티모달 처리
+- 다양한 MIME 타입 지원 (이미지, 오디오, 비디오)
+- Resource 기반 및 URL 기반 미디어 입력
+- 여러 모달리티의 동시 처리 지원
+- 스트리밍 응답 지원 (일부 모델)
 
-다음 장에서는 Spring AI의 스트리밍 응답과 비동기 처리에 대해 자세히 알아보겠습니다. 이러한 기능은 대화형 AI와 멀티모달 AI 애플리케이션에서 특히 중요한 역할을 합니다.
+다음 장에서는 Spring AI의 스트리밍 응답과 비동기 처리에 대해 자세히 알아보겠습니다.
