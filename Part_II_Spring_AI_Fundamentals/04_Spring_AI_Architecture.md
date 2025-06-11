@@ -2,7 +2,9 @@
 
 ## 개요
 
-Spring AI는 개발자가 다양한 AI 프로바이더와 모델을 일관된 방식으로 사용할 수 있도록 설계된 추상화 계층을 제공합니다. 이 장에서는 Spring AI의 아키텍처와 핵심 구성 요소를 살펴봅니다. Provider, Model, Template, Client, Message 등의 개념을 이해하고, 이들이 어떻게 함께 작동하는지 알아보겠습니다.
+Spring AI는 개발자가 다양한 AI 프로바이더와 모델을 일관된 방식으로 사용할 수 있도록 설계된 추상화 계층을 제공합니다. 이 장에서는 Spring AI 1.0.0 GA의 아키텍처와 핵심 구성 요소를 살펴봅니다. 
+
+Spring AI의 핵심 철학은 "엔터프라이즈 데이터 및 API를 AI 모델과 연결"하는 근본적인 과제를 해결하는 것입니다. 이를 위해 Generic Model API, ChatClient, Advisors API 등의 핵심 추상화와 20개 이상의 AI 모델 프로바이더 지원을 제공합니다.
 
 ## 아키텍처 개요
 
@@ -67,6 +69,24 @@ Spring AI는 다음과 같은 다양한 유형의 AI 모델을 지원합니다:
 5. **Model-Specific Options**: 특정 모델에만 적용되는 고유한 옵션
 
 이러한 옵션은 일반적으로 각 모델의 `Options` 클래스를 통해 구성되며, 빌더 패턴을 통해 쉽게 사용할 수 있습니다.
+
+## Generic Model API
+
+### 핵심 인터페이스
+
+Spring AI의 모든 AI 모델은 Generic Model API를 기반으로 구축되어 일관성 있는 패턴을 제공합니다:
+
+```java
+public interface Model<TReq extends ModelRequest<?>, TRes extends ModelResponse<?>> {
+    TRes call(TReq request);
+}
+
+public interface StreamingModel<TReq extends ModelRequest<?>, TResChunk extends ModelResponse<?>> {
+    Flux<TResChunk> stream(TReq request);
+}
+```
+
+이러한 제네릭 인터페이스는 다양한 AI 모델 구현체들이 공통된 계약을 따르도록 보장합니다.
 
 ## Template
 
@@ -159,8 +179,48 @@ Spring AI는 AI 모델 호출을 포함한 코드의 테스트를 위한 강력�
 1. **MockChatClient**: AI 모델의 응답을 모의하기 위한 클라이언트
 2. **녹화/재생 메커니즘**: AI 모델 호출을 녹화하고 재생하여 테스트의 재현성을 높이고 비용을 절감
 3. **테스트 유틸리티**: 프롬프트와 응답을 쉽게 검증하기 위한 유틸리티
+4. **AI 모델 평가**: 생성된 콘텐츠를 평가하고 환각 반응으로부터 보호하는 유틸리티
 
 이러한 테스트 도구는 AI 기반 애플리케이션의 안정성과 테스트 가능성을 크게 향상시킵니다.
+
+### 관찰가능성 (Observability)
+
+Spring AI는 AI 관련 작업에 대한 통찰력을 제공하는 관찰가능성 기능을 내장하고 있습니다:
+
+1. **메트릭 수집**: AI 모델 호출에 대한 성능 메트릭
+2. **추적(Tracing)**: 요청 흐름을 추적하여 문제 진단
+3. **로깅**: 구조화된 로그를 통한 디버깅 지원
+4. **Advisor 체인 모니터링**: Advisor 실행 과정 추적
+
+### Chat Memory
+
+Spring AI는 대화형 AI 애플리케이션을 위한 메모리 관리 기능을 제공합니다:
+
+1. **MessageWindowChatMemory**: 지정된 크기의 메시지 윈도우 유지
+2. **ChatMemoryRepository**: 다양한 저장소 구현 (InMemory, JDBC, Cassandra, Neo4j)
+3. **VectorStoreChatMemoryAdvisor**: 벡터 스토어를 활용한 효율적인 메모리 검색
+
+### 구조화된 출력 (Structured Output)
+
+AI 모델의 출력을 Java 객체로 자동 매핑하는 기능을 제공합니다:
+
+```java
+record ActorFilms(String actor, List<String> movies) {}
+
+ActorFilms actorFilms = chatClient.prompt()
+    .user("Generate the filmography for Tom Hanks.")
+    .call()
+    .entity(ActorFilms.class);
+```
+
+### ETL 파이프라인
+
+문서 수집과 처리를 위한 ETL(Extract, Transform, Load) 프레임워크를 제공합니다:
+
+1. **문서 로더**: 다양한 소스에서 문서 로드 (PDF, TXT, JSON 등)
+2. **문서 변환기**: 문서를 청크로 분할하고 메타데이터 추가
+3. **문서 작성기**: 벡터 스토어에 문서 저장
+4. **파이프라인 조합**: 로더, 변환기, 작성기를 연결하여 ETL 파이프라인 구성
 
 ## 스프링 부트 자동 구성
 
