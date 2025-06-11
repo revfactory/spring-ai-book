@@ -2,52 +2,52 @@
 
 ## 개요
 
-AI 애플리케이션은 복잡한 특성으로 인해 전통적인 소프트웨어보다 관측성(Observability)과 로깅이 더욱 중요합니다. Spring AI 기반 애플리케이션에서는 AI 모델 호출, 사용자 입력, 생성된 응답, 오류 상황 등을 체계적으로 추적하고 분석해야 합니다. 이 장에서는 Spring AI 애플리케이션의 관측성과 로깅을 효과적으로 구현하는 방법을 살펴보고, Spring 생태계의 도구를 활용하여 AI 애플리케이션을 모니터링하고 디버깅하는 방법을 알아보겠습니다.
+AI 애플리케이션은 복잡한 특성으로 인해 전통적인 소프트웨어보다 관측성(Observability)과 로깅이 더욱 중요합니다. Spring AI 1.0.0 GA는 Spring 생태계의 observability 기능을 기반으로 AI 작업에 대한 포괄적인 인사이트를 제공합니다. 이 장에서는 Spring AI의 내장된 observability 기능과 GenAI 호환성 표준을 활용하여 AI 애플리케이션을 효과적으로 모니터링하고 디버깅하는 방법을 살펴보겠습니다.
 
-## 관측성의 핵심 개념
+## Spring AI Observability 개요
 
-### 관측성이란?
+Spring AI 1.0.0 GA는 다음 핵심 컴포넌트에 대한 관측성을 제공합니다:
 
-관측성(Observability)은 시스템의 내부 상태를 외부에서 관찰할 수 있는 능력을 의미합니다. 관측성이 높은 시스템은 시스템 동작에 대한 충분한 정보를 제공하여, 어떤 문제가 발생했을 때 그 원인을 쉽게 추적하고 해결할 수 있게 합니다.
+- **ChatClient** (Advisor 포함)
+- **ChatModel**, **EmbeddingModel**, **ImageModel**
+- **VectorStore**
+- **Tool Calling**
 
-관측성은 세 가지 핵심 구성 요소로 이루어집니다:
+### GenAI 호환성 표준
 
-1. **로그(Logs)**: 시스템에서 발생하는 이벤트의 시간순 기록
-2. **메트릭(Metrics)**: 시스템 성능과 동작을 수치로 표현한 데이터
-3. **추적(Traces)**: 요청이 시스템을 통과하는 경로와 각 단계에서 소요되는 시간 정보
+Spring AI는 OpenTelemetry의 GenAI semantic conventions를 따라 일관된 관측성 데이터를 제공합니다:
 
-### AI 애플리케이션의 관측성 과제
-
-AI 애플리케이션, 특히 LLM을 사용하는 애플리케이션은 다음과 같은 고유한 관측성 과제가 있습니다:
-
-1. **비결정적 동작**: 동일한 입력에도 다양한 출력이 생성될 수 있어 디버깅이 어려움
-2. **블랙박스 모델**: 모델 내부 작동 방식의 불투명성으로 결과 이해가 어려움
-3. **외부 API 의존성**: 제3자 서비스 장애나 지연에 취약함
-4. **토큰 사용량과 비용**: API 호출 비용 추적의 복잡성
-5. **응답 품질 측정**: 생성된 응답의 질적 평가가 어려움
-6. **프롬프트 버전 관리**: 프롬프트 변경 추적과 성능 영향 측정의 필요성
-
-이러한 과제를 해결하기 위해 Spring AI 애플리케이션에서 관측성을 체계적으로 구현해야 합니다.
-
-## Spring Boot Actuator를 통한 기본 관측성
-
-Spring Boot Actuator는 Spring 애플리케이션의 모니터링과 관리를 위한 기능을 제공합니다. Spring AI 애플리케이션에서 Actuator를 활용하는 방법을 살펴보겠습니다.
-
-### Actuator 설정
-
-먼저, 필요한 의존성을 추가합니다:
-
-```kotlin
-// Gradle (build.gradle.kts)
-dependencies {
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
-    implementation("io.micrometer:micrometer-registry-prometheus") // Prometheus 지원
-}
+```yaml
+# 주요 GenAI 표준 속성
+gen_ai.operation.name: "chat_completions"
+gen_ai.system: "openai"
+gen_ai.request.model: "gpt-4"
+gen_ai.response.model: "gpt-4-0613"
+gen_ai.usage.input_tokens: 150
+gen_ai.usage.output_tokens: 75
+gen_ai.usage.total_tokens: 225
 ```
 
+### 관측성 구성 요소
+
+1. **메트릭(Metrics)**: 토큰 사용량, 응답 시간, 오류율 등
+2. **추적(Traces)**: AI 요청의 전체 실행 경로
+3. **로깅(Logging)**: 프롬프트, 응답, 오류 등의 구조화된 로그
+4. **메타데이터(Metadata)**: 사용량, 요금 제한 등의 AI 제공업체별 정보
+
+## Spring AI Observability 설정
+
+### 기본 의존성 설정
+
+Spring AI 관측성 기능을 활용하기 위한 의존성을 추가합니다:
+
 ```xml
-<!-- Maven (pom.xml) -->
+<!-- Maven -->
 <dependencies>
+    <dependency>
+        <groupId>org.springframework.ai</groupId>
+        <artifactId>spring-ai-starter-model-openai</artifactId>
+    </dependency>
     <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-actuator</artifactId>
@@ -56,17 +56,60 @@ dependencies {
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-registry-prometheus</artifactId>
     </dependency>
+    <dependency>
+        <groupId>io.micrometer</groupId>
+        <artifactId>micrometer-tracing-bridge-otel</artifactId>
+    </dependency>
 </dependencies>
 ```
 
-다음으로, `application.yml` 파일에 Actuator 설정을 추가합니다:
+```kotlin
+// Gradle
+dependencies {
+    implementation("org.springframework.ai:spring-ai-starter-model-openai")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("io.micrometer:micrometer-registry-prometheus")
+    implementation("io.micrometer:micrometer-tracing-bridge-otel")
+}
+```
+
+### Observability 구성
+
+`application.yml`에서 Spring AI 관측성 기능을 구성합니다:
 
 ```yaml
+spring:
+  ai:
+    # ChatClient 관측성 설정
+    chat:
+      client:
+        observations:
+          log-prompt: false  # 프롬프트 로깅 (민감 정보 주의)
+      observations:
+        log-prompt: false     # 모델 프롬프트 로깅
+        log-completion: false # 응답 로깅
+        include-error-logging: true
+    
+    # 이미지 모델 관측성
+    image:
+      observations:
+        log-prompt: false
+    
+    # 벡터 스토어 관측성
+    vectorstore:
+      observations:
+        log-query-response: false
+    
+    # 도구 호출 관측성
+    tools:
+      observations:
+        include-content: false  # 도구 인수/결과 로깅
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics,prometheus,traces
   endpoint:
     health:
       show-details: always
@@ -76,27 +119,71 @@ management:
     export:
       prometheus:
         enabled: true
-  info:
-    env:
-      enabled: true
-    java:
-      enabled: true
-    os:
-      enabled: true
+  tracing:
+    sampling:
+      probability: 1.0  # 개발 환경에서는 모든 트레이스 샘플링
 ```
 
-### AI 관련 건강 지표(Health Indicators) 구현
+## ChatClient Observability
 
-Spring AI 서비스의 건강 상태를 모니터링하기 위한 커스텀 건강 지표를 구현합니다:
+### ChatClient 관측성 개요
+
+ChatClient의 `call()` 및 `stream()` 작업에 대한 관측성 데이터가 자동으로 수집됩니다:
+
+#### Low Cardinality Keys (메트릭용)
+```yaml
+gen_ai.operation.name: "framework"
+gen_ai.system: "spring_ai"
+spring.ai.chat.client.stream: "false"  # 스트리밍 여부
+spring.ai.kind: "chat_client"
+```
+
+#### High Cardinality Keys (트레이스용)
+```yaml
+gen_ai.prompt: "사용자 프롬프트 내용"  # 선택적
+spring.ai.chat.client.advisors: ["advisor1", "advisor2"]
+spring.ai.chat.client.conversation.id: "conv-123"
+spring.ai.chat.client.tool.names: ["weather_tool", "calculator_tool"]
+```
+
+### ChatClient 관측성 활용 예제
 
 ```java
-import org.springframework.ai.chat.ChatClient;
-import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.boot.actuate.health.Health;
-import org.springframework.boot.actuate.health.HealthIndicator;
-import org.springframework.stereotype.Component;
+@Service
+public class ObservableChatService {
 
+    private final ChatClient chatClient;
+    private final MeterRegistry meterRegistry;
+    
+    public ObservableChatService(ChatClient.Builder builder, MeterRegistry meterRegistry) {
+        this.chatClient = builder.build();
+        this.meterRegistry = meterRegistry;
+    }
+    
+    public String processQuery(String userInput) {
+        // ChatClient는 자동으로 관측성 데이터를 생성
+        ChatResponse response = chatClient.prompt()
+            .user(userInput)
+            .call()
+            .chatResponse();
+        
+        // 사용량 메타데이터 추출
+        Usage usage = response.getMetadata().getUsage();
+        
+        // 커스텀 메트릭 추가
+        meterRegistry.counter("chat.requests.processed").increment();
+        meterRegistry.summary("chat.tokens.total").record(usage.getTotalTokens());
+        
+        return response.getResult().getOutput().getContent();
+    }
+}
+```
+
+### AI 서비스 건강 지표
+
+Spring AI 서비스의 건강 상태를 모니터링하는 커스텀 건강 지표:
+
+```java
 @Component
 public class AiServiceHealthIndicator implements HealthIndicator {
 
@@ -109,485 +196,873 @@ public class AiServiceHealthIndicator implements HealthIndicator {
     @Override
     public Health health() {
         try {
-            // 간단한 프롬프트로 AI 서비스 연결 확인
-            Prompt testPrompt = new Prompt(new UserMessage("test"));
-            long startTime = System.currentTimeMillis();
-            chatClient.call(testPrompt);
-            long responseTime = System.currentTimeMillis() - startTime;
+            Timer.Sample sample = Timer.start();
+            
+            String response = chatClient.prompt()
+                .user("health check")
+                .call()
+                .content();
+            
+            long responseTime = sample.stop(Timer.builder("ai.health.check")
+                .register(Metrics.globalRegistry))
+                .toMillis();
             
             return Health.up()
-                    .withDetail("status", "AI 서비스 연결 정상")
-                    .withDetail("responseTime", responseTime + "ms")
-                    .build();
+                .withDetail("status", "AI service available")
+                .withDetail("responseTime", responseTime + "ms")
+                .withDetail("provider", "openai")
+                .build();
         } catch (Exception e) {
             return Health.down()
-                    .withDetail("status", "AI 서비스 연결 실패")
-                    .withDetail("error", e.getMessage())
-                    .build();
+                .withDetail("status", "AI service unavailable")
+                .withDetail("error", e.getMessage())
+                .withDetail("errorType", e.getClass().getSimpleName())
+                .build();
         }
     }
 }
 ```
 
-이 건강 지표는 `/actuator/health` 엔드포인트를 통해 AI 서비스의 연결 상태를 확인할 수 있게 해줍니다.
+## ChatModel Observability
+
+### ChatModel 관측성 표준
+
+ChatModel 호출에 대한 GenAI 표준 메트릭과 트레이스가 자동으로 수집됩니다:
+
+#### 표준 메트릭
+- `gen_ai.client.token.usage`: 토큰 사용량 측정
+- `gen_ai.client.operation`: 작업 실행 시간
+
+#### 관측성 키
+```yaml
+# Low Cardinality (메트릭용)
+gen_ai.operation.name: "chat_completions"
+gen_ai.system: "openai"
+gen_ai.request.model: "gpt-4"
+gen_ai.response.model: "gpt-4-0613"
+
+# High Cardinality (트레이스용)
+gen_ai.request.frequency_penalty: 0.0
+gen_ai.request.max_tokens: 1000
+gen_ai.request.temperature: 0.7
+gen_ai.response.finish_reasons: ["stop"]
+gen_ai.usage.input_tokens: 150
+gen_ai.usage.output_tokens: 75
+gen_ai.usage.total_tokens: 225
+gen_ai.prompt: "사용자 프롬프트"  # 선택적
+gen_ai.completion: "AI 응답"      # 선택적
+```
+
+### ChatModel 사용량 추적
+
+```java
+@Service
+public class ChatModelUsageTracker {
+
+    private final ChatModel chatModel;
+    private final MeterRegistry meterRegistry;
+    
+    public ChatModelUsageTracker(ChatModel chatModel, MeterRegistry meterRegistry) {
+        this.chatModel = chatModel;
+        this.meterRegistry = meterRegistry;
+    }
+    
+    public String generateResponse(String prompt) {
+        ChatResponse response = chatModel.call(new Prompt(prompt));
+        
+        // Usage 메타데이터 추출
+        Usage usage = response.getMetadata().getUsage();
+        
+        // 상세 사용량 추적 (OpenAI 네이티브 사용량)
+        if (usage.getNativeUsage() instanceof org.springframework.ai.openai.api.OpenAiApi.Usage nativeUsage) {
+            // 캐시된 토큰 (비용 절감)
+            int cachedTokens = nativeUsage.promptTokensDetails().cachedTokens();
+            meterRegistry.counter("ai.tokens.cached").increment(cachedTokens);
+            
+            // 추론 토큰 (o1 모델용)
+            int reasoningTokens = nativeUsage.completionTokenDetails().reasoningTokens();
+            meterRegistry.counter("ai.tokens.reasoning").increment(reasoningTokens);
+            
+            // 오디오 토큰
+            int audioTokens = nativeUsage.promptTokensDetails().audioTokens() + 
+                            nativeUsage.completionTokenDetails().audioTokens();
+            meterRegistry.counter("ai.tokens.audio").increment(audioTokens);
+        }
+        
+        // 비용 계산 및 추적
+        double estimatedCost = calculateCost(usage);
+        meterRegistry.summary("ai.cost.estimated").record(estimatedCost);
+        
+        return response.getResult().getOutput().getContent();
+    }
+    
+    private double calculateCost(Usage usage) {
+        // GPT-4 가격 기준 (예시)
+        double inputCost = usage.getPromptTokens() * 0.03 / 1000;
+        double outputCost = usage.getCompletionTokens() * 0.06 / 1000;
+        return inputCost + outputCost;
+    }
+}
+```
 
 ## 커스텀 메트릭 수집
 
-Spring AI 애플리케이션의 성능과 동작을 모니터링하기 위한 커스텀 메트릭을 정의하고 수집하는 방법을 알아보겠습니다.
+### AI 특화 메트릭 정의
 
-### Micrometer를 사용한 메트릭 정의
-
-Micrometer는 다양한 모니터링 시스템(Prometheus, Datadog 등)을 지원하는 메트릭 파사드(facade)입니다. Spring Boot는 기본적으로 Micrometer를 통합하고 있어 쉽게 커스텀 메트릭을 정의할 수 있습니다.
+Spring AI의 자동 관측성 기능과 함께 비즈니스 특화 메트릭을 추가할 수 있습니다:
 
 ```java
-import io.micrometer.core.instrument.*;
-import org.springframework.ai.chat.ChatClient;
-import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.stereotype.Service;
+@Component
+public class AIMetricsCollector {
 
-import java.util.concurrent.TimeUnit;
-
-@Service
-public class MetricsAiService {
-
-    private final ChatClient chatClient;
     private final MeterRegistry meterRegistry;
     
-    // 메트릭 정의
-    private final Counter aiRequestCounter;
-    private final Counter aiErrorCounter;
-    private final Timer aiResponseTimer;
-    private final DistributionSummary tokenUsageSummary;
+    // 비즈니스 메트릭
+    private final Counter conversationCounter;
+    private final Counter qualityFeedbackCounter;
+    private final Timer responseQualityTimer;
+    private final DistributionSummary promptLengthSummary;
     
-    public MetricsAiService(ChatClient chatClient, MeterRegistry meterRegistry) {
-        this.chatClient = chatClient;
+    public AIMetricsCollector(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
         
-        // 요청 카운터 설정
-        this.aiRequestCounter = Counter.builder("ai.requests")
-                .description("Number of AI model requests")
+        this.conversationCounter = Counter.builder("ai.conversations")
+                .description("Number of AI conversations")
                 .register(meterRegistry);
         
-        // 오류 카운터 설정
-        this.aiErrorCounter = Counter.builder("ai.errors")
-                .description("Number of AI model errors")
+        this.qualityFeedbackCounter = Counter.builder("ai.feedback")
+                .description("User feedback on AI responses")
                 .register(meterRegistry);
         
-        // 응답 시간 타이머 설정
-        this.aiResponseTimer = Timer.builder("ai.response.time")
-                .description("AI model response time")
+        this.responseQualityTimer = Timer.builder("ai.quality.evaluation")
+                .description("Time spent evaluating response quality")
                 .register(meterRegistry);
         
-        // 토큰 사용량 분포 요약 설정
-        this.tokenUsageSummary = DistributionSummary.builder("ai.token.usage")
-                .description("AI model token usage")
-                .baseUnit("tokens")
+        this.promptLengthSummary = DistributionSummary.builder("ai.prompt.length")
+                .description("Length of user prompts")
+                .baseUnit("characters")
                 .register(meterRegistry);
     }
     
-    public String generateResponse(Prompt prompt) {
-        // 요청 카운터 증가
-        aiRequestCounter.increment();
+    // 대화 시작 추적
+    public void trackConversationStart(String userId, String conversationType) {
+        conversationCounter.increment(
+            Tags.of(
+                Tag.of("user_id", userId),
+                Tag.of("type", conversationType)
+            )
+        );
+    }
+    
+    // 사용자 피드백 추적
+    public void trackUserFeedback(String responseId, boolean helpful, String reason) {
+        qualityFeedbackCounter.increment(
+            Tags.of(
+                Tag.of("response_id", responseId),
+                Tag.of("helpful", String.valueOf(helpful)),
+                Tag.of("reason", reason != null ? reason : "none")
+            )
+        );
+    }
+    
+    // 프롬프트 길이 추적
+    public void trackPromptLength(String prompt) {
+        promptLengthSummary.record(prompt.length());
+    }
+    
+    // 응답 품질 평가 시간 측정
+    public Timer.Sample startQualityEvaluation() {
+        return Timer.start(meterRegistry);
+    }
+    
+    public void stopQualityEvaluation(Timer.Sample sample, double qualityScore) {
+        sample.stop(responseQualityTimer);
         
-        try {
-            // 응답 시간 측정
-            return aiResponseTimer.record(() -> {
-                var response = chatClient.call(prompt);
+        // 품질 점수도 기록
+        meterRegistry.gauge("ai.response.quality.score", qualityScore);
+    }
+    
+    // 모델별 성능 추적
+    public void trackModelPerformance(String modelName, long responseTimeMs, int tokenCount) {
+        Tags tags = Tags.of(
+            Tag.of("model", modelName)
+        );
+        
+        meterRegistry.timer("ai.model.response.time", tags)
+                .record(responseTimeMs, TimeUnit.MILLISECONDS);
+        
+        meterRegistry.summary("ai.model.token.efficiency", tags)
+                .record((double) tokenCount / responseTimeMs * 1000); // tokens per second
+    }
+}
+```
+
+### 멀티모델 관측성
+
+여러 AI 모델을 사용하는 환경에서 모델별 성능을 비교하고 최적화할 수 있습니다:
+
+```java
+@Service
+public class MultiModelObservabilityService {
+
+    private final List<ChatModel> chatModels;
+    private final MeterRegistry meterRegistry;
+    
+    public MultiModelObservabilityService(List<ChatModel> chatModels, MeterRegistry meterRegistry) {
+        this.chatModels = chatModels;
+        this.meterRegistry = meterRegistry;
+    }
+    
+    public String processWithBestModel(String prompt) {
+        String bestResponse = null;
+        double bestScore = 0.0;
+        
+        for (ChatModel model : chatModels) {
+            String modelName = getModelName(model);
+            Timer.Sample sample = Timer.start(meterRegistry);
+            
+            try {
+                ChatResponse response = model.call(new Prompt(prompt));
+                String content = response.getResult().getOutput().getContent();
                 
-                // 토큰 사용량 기록 (OpenAI만 가능, 다른 제공자는 응답에서 이 정보를 제공하지 않을 수 있음)
-                var usage = response.getMetadata().get("usage");
-                if (usage instanceof Map) {
-                    Map<String, Object> usageMap = (Map<String, Object>) usage;
-                    int totalTokens = (int) usageMap.getOrDefault("total_tokens", 0);
-                    tokenUsageSummary.record(totalTokens);
-                    
-                    // 프롬프트 및 완성 토큰 개별 기록
-                    recordTokenUsage("prompt", (int) usageMap.getOrDefault("prompt_tokens", 0));
-                    recordTokenUsage("completion", (int) usageMap.getOrDefault("completion_tokens", 0));
+                // 응답 시간 측정
+                sample.stop(meterRegistry.timer("ai.model.response.time", "model", modelName));
+                
+                // 토큰 효율성 계산
+                Usage usage = response.getMetadata().getUsage();
+                double efficiency = (double) usage.getCompletionTokens() / usage.getPromptTokens();
+                meterRegistry.gauge("ai.model.efficiency", Tags.of("model", modelName), efficiency);
+                
+                // 간단한 품질 평가 (실제로는 더 정교한 평가 필요)
+                double qualityScore = evaluateQuality(content, prompt);
+                meterRegistry.gauge("ai.model.quality", Tags.of("model", modelName), qualityScore);
+                
+                if (qualityScore > bestScore) {
+                    bestScore = qualityScore;
+                    bestResponse = content;
                 }
                 
-                return response.getResult().getOutput().getContent();
-            });
-        } catch (Exception e) {
-            // 오류 카운터 증가
-            aiErrorCounter.increment();
+            } catch (Exception e) {
+                meterRegistry.counter("ai.model.errors", "model", modelName, "error", e.getClass().getSimpleName()).increment();
+            }
+        }
+        
+        return bestResponse;
+    }
+    
+    private String getModelName(ChatModel model) {
+        return model.getClass().getSimpleName();
+    }
+    
+    private double evaluateQuality(String response, String prompt) {
+        // 간단한 품질 평가 로직
+        if (response.length() < 10) return 0.1;
+        if (response.toLowerCase().contains("error") || response.toLowerCase().contains("sorry")) return 0.3;
+        return Math.min(1.0, response.length() / 100.0); // 길이 기반 간단 평가
+    }
+}
+```
+
+## VectorStore Observability
+
+### VectorStore 관측성 표준
+
+VectorStore 작업에 대한 관측성 데이터가 자동으로 수집됩니다:
+
+#### 관측성 키
+```yaml
+# Low Cardinality
+db.operation.name: "query"  # add, delete, query
+db.system: "pg_vector"      # 벡터 DB 유형
+spring.ai.kind: "vector_store"
+
+# High Cardinality
+db.collection.name: "documents"
+db.namespace: "knowledge_base"
+db.vector.dimension_count: 1536
+db.vector.query.top_k: 5
+db.vector.query.similarity_threshold: 0.7
+db.vector.query.content: "사용자 쿼리 내용"  # 선택적
+db.vector.query.response.documents: "검색된 문서들"  # 선택적
+```
+
+### RAG 시스템 관측성
+
+```java
+@Service
+public class ObservableRAGService {
+
+    private final VectorStore vectorStore;
+    private final ChatClient chatClient;
+    private final MeterRegistry meterRegistry;
+    
+    public ObservableRAGService(VectorStore vectorStore, ChatClient chatClient, MeterRegistry meterRegistry) {
+        this.vectorStore = vectorStore;
+        this.chatClient = chatClient;
+        this.meterRegistry = meterRegistry;
+    }
+    
+    public String processRAGQuery(String query) {
+        Timer.Sample ragTimer = Timer.start(meterRegistry);
+        
+        try {
+            // 1. 벡터 검색 (자동 관측성)
+            List<Document> relevantDocs = vectorStore.similaritySearch(
+                SearchRequest.query(query).withTopK(5).withSimilarityThreshold(0.7)
+            );
             
-            // 오류 유형별 카운터 증가
-            Tag errorTypeTag = Tag.of("error.type", e.getClass().getSimpleName());
-            meterRegistry.counter("ai.errors", Tags.of(errorTypeTag)).increment();
+            // 검색 결과 메트릭
+            meterRegistry.summary("rag.retrieval.documents.count").record(relevantDocs.size());
+            
+            if (!relevantDocs.isEmpty()) {
+                double avgSimilarity = relevantDocs.stream()
+                    .mapToDouble(doc -> (Double) doc.getMetadata().getOrDefault("similarity", 0.0))
+                    .average().orElse(0.0);
+                meterRegistry.gauge("rag.retrieval.similarity.avg", avgSimilarity);
+            }
+            
+            // 2. 컨텍스트 구성
+            String context = relevantDocs.stream()
+                .map(Document::getContent)
+                .collect(Collectors.joining("\n\n"));
+            
+            // 3. ChatClient 호출 (자동 관측성)
+            String response = chatClient.prompt()
+                .system("다음 컨텍스트를 바탕으로 답변하세요: " + context)
+                .user(query)
+                .call()
+                .content();
+            
+            // RAG 전체 시간 측정
+            ragTimer.stop(meterRegistry.timer("rag.total.time"));
+            
+            // 성공 카운터
+            meterRegistry.counter("rag.requests.success").increment();
+            
+            return response;
+            
+        } catch (Exception e) {
+            ragTimer.stop(meterRegistry.timer("rag.total.time", "status", "error"));
+            meterRegistry.counter("rag.requests.error", "error", e.getClass().getSimpleName()).increment();
+            throw e;
+        }
+    }
+}
+```
+
+## Tool Calling Observability
+
+### Tool 호출 관측성
+
+Tool 호출에 대한 자동 관측성:
+
+```yaml
+# Low Cardinality
+gen_ai.operation.name: "framework"
+gen_ai.system: "spring_ai"
+spring.ai.kind: "tool_call"
+spring.ai.tool.definition.name: "weather_tool"
+
+# High Cardinality
+spring.ai.tool.definition.description: "Get current weather"
+spring.ai.tool.definition.schema: "{...}"
+spring.ai.tool.call.arguments: "{\"location\":\"Seoul\"}"  # 선택적
+spring.ai.tool.call.result: "{\"temperature\":25}"        # 선택적
+```
+
+### Tool 성능 모니터링
+
+```java
+@Component
+public class ObservableWeatherTool implements Function<WeatherRequest, WeatherResponse> {
+
+    private final WeatherService weatherService;
+    private final MeterRegistry meterRegistry;
+    
+    public ObservableWeatherTool(WeatherService weatherService, MeterRegistry meterRegistry) {
+        this.weatherService = weatherService;
+        this.meterRegistry = meterRegistry;
+    }
+    
+    @Override
+    public WeatherResponse apply(WeatherRequest request) {
+        Timer.Sample sample = Timer.start(meterRegistry);
+        
+        try {
+            WeatherResponse response = weatherService.getCurrentWeather(request.location());
+            
+            // 성공 메트릭
+            sample.stop(meterRegistry.timer("tool.weather.execution.time", "status", "success"));
+            meterRegistry.counter("tool.weather.calls", "status", "success").increment();
+            
+            return response;
+            
+        } catch (Exception e) {
+            // 실패 메트릭
+            sample.stop(meterRegistry.timer("tool.weather.execution.time", "status", "error"));
+            meterRegistry.counter("tool.weather.calls", "status", "error", "error", e.getClass().getSimpleName()).increment();
             
             throw e;
         }
     }
     
-    private void recordTokenUsage(String type, int tokens) {
-        meterRegistry.summary("ai.token.usage.detailed", Tags.of(Tag.of("type", type)))
-                .record(tokens);
-    }
-}
-```
-
-### 비즈니스 메트릭 추적
-
-AI 애플리케이션에 중요한 비즈니스 메트릭을 추적하는 방법도 알아보겠습니다:
-
-```java
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Tag;
-import io.micrometer.core.instrument.Timer;
-import org.springframework.stereotype.Component;
-
-import java.util.concurrent.TimeUnit;
-
-@Component
-public class BusinessMetricsCollector {
-
-    private final MeterRegistry meterRegistry;
-    
-    public BusinessMetricsCollector(MeterRegistry meterRegistry) {
-        this.meterRegistry = meterRegistry;
-    }
-    
-    // 쿼리 주제별 요청 추적
-    public void trackQueryByTopic(String topic) {
-        meterRegistry.counter("ai.query.topic", "topic", topic).increment();
-    }
-    
-    // 응답 품질 추적
-    public void trackResponseQuality(String quality) {
-        // quality: "excellent", "good", "fair", "poor"
-        meterRegistry.counter("ai.response.quality", "quality", quality).increment();
-    }
-    
-    // 사용자 피드백 추적
-    public void trackUserFeedback(boolean helpful) {
-        meterRegistry.counter("ai.user.feedback", "helpful", String.valueOf(helpful)).increment();
-    }
-    
-    // 응답 생성 시간 측정
-    public Timer.Sample startResponseGenerationTimer() {
-        return Timer.start(meterRegistry);
-    }
-    
-    public void stopResponseGenerationTimer(Timer.Sample sample, String modelType) {
-        sample.stop(meterRegistry.timer("ai.response.generation.time", "model", modelType));
-    }
-    
-    // 비용 추적
-    public void trackCost(double cost, String modelType) {
-        meterRegistry.gauge("ai.cost", Tag.of("model", modelType), cost);
-    }
-    
-    // 검색 정확도 추적 (RAG 시스템용)
-    public void trackRetrievalAccuracy(double accuracy) {
-        meterRegistry.summary("ai.retrieval.accuracy").record(accuracy);
-    }
+    record WeatherRequest(String location) {}
+    record WeatherResponse(String location, double temperature, String condition) {}
 }
 ```
 
 ## 구조화된 로깅 전략
 
-효과적인 로깅은 AI 애플리케이션 디버깅과 모니터링에 필수적입니다. 구조화된 로깅 전략을 구현하는 방법을 알아보겠습니다.
+### Spring AI 로깅 구성
 
-### 로깅 프레임워크 설정
+Spring AI 1.0.0은 트레이싱 인식 로깅을 지원합니다:
 
-Spring Boot는 기본적으로 SLF4J와 Logback을 지원합니다. 구조화된 로깅을 위해 Logback 설정을 JSON 형식으로 변경해 보겠습니다:
+```yaml
+# application.yml - 로깅 구성
+logging:
+  level:
+    org.springframework.ai: INFO
+    # 상세 디버깅이 필요한 경우
+    org.springframework.ai.chat: DEBUG
+    org.springframework.ai.vectorstore: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"
+
+spring:
+  ai:
+    # 프롬프트 및 응답 로깅 (주의: 민감 정보 포함 가능)
+    chat:
+      observations:
+        log-prompt: false
+        log-completion: false
+        include-error-logging: true
+```
+
+### 구조화된 JSON 로깅
 
 ```xml
 <!-- logback-spring.xml -->
 <configuration>
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <!-- JSON 형식 로깅을 위한 인코더 -->
-        </encoder>
-    </appender>
+    <springProfile name="!local">
+        <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeContext>true</includeContext>
+                <includeMdc>true</includeMdc>
+                <customFields>{"service":"ai-application"}</customFields>
+                <fieldNames>
+                    <timestamp>@timestamp</timestamp>
+                    <message>message</message>
+                    <level>level</level>
+                    <thread>thread</thread>
+                    <logger>logger</logger>
+                </fieldNames>
+            </encoder>
+        </appender>
+    </springProfile>
     
-    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/application.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>logs/application.%d{yyyy-MM-dd}.log</fileNamePattern>
-            <maxHistory>30</maxHistory>
-        </rollingPolicy>
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <!-- JSON 형식 로깅을 위한 인코더 -->
-        </encoder>
-    </appender>
-    
-    <!-- Spring AI 관련 로그 레벨 설정 -->
-    <logger name="org.springframework.ai" level="INFO" />
-    
-    <!-- 애플리케이션 로그 레벨 설정 -->
-    <logger name="com.example.aiapp" level="DEBUG" />
+    <springProfile name="local">
+        <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n</pattern>
+            </encoder>
+        </appender>
+    </springProfile>
     
     <root level="INFO">
-        <appender-ref ref="CONSOLE" />
-        <appender-ref ref="FILE" />
+        <appender-ref ref="STDOUT"/>
     </root>
 </configuration>
 ```
 
-필요한 의존성을 추가합니다:
-
-```kotlin
-// Gradle (build.gradle.kts)
-dependencies {
-    implementation("net.logstash.logback:logstash-logback-encoder:7.2")
-}
-```
-
-```xml
-<!-- Maven (pom.xml) -->
-<dependency>
-    <groupId>net.logstash.logback</groupId>
-    <artifactId>logstash-logback-encoder</artifactId>
-    <version>7.2</version>
-</dependency>
-```
-
-### AI 상호작용 로깅
-
-AI 모델과의 상호작용을 체계적으로 로깅하는 방법을 살펴보겠습니다:
+### 민감 정보 마스킹
 
 ```java
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.ai.chat.ChatClient;
-import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.chat.messages.Message;
-import org.springframework.stereotype.Service;
+@Component
+public class AIContentMasker {
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-@Service
-public class LoggingAiService {
-
-    private static final Logger logger = LoggerFactory.getLogger(LoggingAiService.class);
-    private final ChatClient chatClient;
-    private final ObjectMapper objectMapper;
+    private static final List<Pattern> SENSITIVE_PATTERNS = List.of(
+        Pattern.compile("\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b"), // 이메일
+        Pattern.compile("\\b\\d{3}-\\d{2}-\\d{4}\\b"),                              // SSN
+        Pattern.compile("\\b\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}\\b"),     // 신용카드
+        Pattern.compile("\\b\\d{3}-\\d{3}-\\d{4}\\b")                              // 전화번호
+    );
     
-    public LoggingAiService(ChatClient chatClient, ObjectMapper objectMapper) {
-        this.chatClient = chatClient;
-        this.objectMapper = objectMapper;
-    }
-    
-    public String generateResponse(Prompt prompt, String userId) {
-        // 고유 요청 ID 생성
-        String requestId = UUID.randomUUID().toString();
-        
-        try {
-            // 요청 로깅
-            logRequest(requestId, prompt, userId);
-            
-            // AI 호출
-            long startTime = System.currentTimeMillis();
-            var response = chatClient.call(prompt);
-            long duration = System.currentTimeMillis() - startTime;
-            
-            // 응답 로깅
-            String responseContent = response.getResult().getOutput().getContent();
-            logResponse(requestId, responseContent, duration, response.getMetadata(), userId);
-            
-            return responseContent;
-        } catch (Exception e) {
-            // 오류 로깅
-            logError(requestId, e, userId);
-            throw e;
-        }
-    }
-    
-    private void logRequest(String requestId, Prompt prompt, String userId) {
-        Map<String, Object> logData = new HashMap<>();
-        logData.put("event", "ai_request");
-        logData.put("requestId", requestId);
-        logData.put("userId", userId);
-        logData.put("messageCount", prompt.getMessages().size());
-        
-        // 메시지 내용 추출 (민감 정보 필터링 필요)
-        String messages = prompt.getMessages().stream()
-                .map(Message::getContent)
-                .collect(Collectors.joining("\n---\n"));
-        logData.put("messages", maskSensitiveInfo(messages));
-        
-        logger.info("AI Request: {}", serializeLogData(logData));
-    }
-    
-    private void logResponse(String requestId, String responseContent, long duration, 
-                             Map<String, Object> metadata, String userId) {
-        Map<String, Object> logData = new HashMap<>();
-        logData.put("event", "ai_response");
-        logData.put("requestId", requestId);
-        logData.put("userId", userId);
-        logData.put("duration_ms", duration);
-        
-        // 토큰 사용량 추출 (가능한 경우)
-        if (metadata.containsKey("usage")) {
-            logData.put("tokenUsage", metadata.get("usage"));
+    public String maskSensitiveContent(String content) {
+        if (content == null || content.isEmpty()) {
+            return content;
         }
         
-        // 응답 내용 (민감 정보 필터링 필요)
-        logData.put("response", maskSensitiveInfo(responseContent));
+        String masked = content;
         
-        logger.info("AI Response: {}", serializeLogData(logData));
-    }
-    
-    private void logError(String requestId, Exception e, String userId) {
-        Map<String, Object> logData = new HashMap<>();
-        logData.put("event", "ai_error");
-        logData.put("requestId", requestId);
-        logData.put("userId", userId);
-        logData.put("errorType", e.getClass().getSimpleName());
-        logData.put("errorMessage", e.getMessage());
-        
-        logger.error("AI Error: {}", serializeLogData(logData), e);
-    }
-    
-    private String maskSensitiveInfo(String text) {
-        // 민감 정보 마스킹 로직 구현
-        // 예: 이메일, 전화번호, 신용카드 번호 등
-        return text;
-    }
-    
-    private String serializeLogData(Map<String, Object> logData) {
-        try {
-            return objectMapper.writeValueAsString(logData);
-        } catch (Exception e) {
-            logger.warn("Failed to serialize log data", e);
-            return logData.toString();
-        }
-    }
-}
-```
-
-### 프롬프트 및 응답 로깅 주의사항
-
-AI 상호작용을 로깅할 때는 다음 주의사항을 고려해야 합니다:
-
-1. **개인 식별 정보(PII) 마스킹**: 이메일, 전화번호, 주소 등을 마스킹하여 로깅
-2. **법규 준수**: GDPR, HIPAA 등 관련 규정 준수
-3. **로그 수준 최적화**: 중요 정보만 적절한 로그 수준으로 기록
-4. **로그 보관 정책**: 필요한 기간 동안만 로그 보관
-5. **로그 접근 제한**: 로그에 대한 접근 권한 제한
-
-민감한 정보를 마스킹하는 유틸리티 클래스 예제:
-
-```java
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-public class SensitiveDataMasker {
-
-    private static final Pattern EMAIL_PATTERN = 
-            Pattern.compile("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}");
-    private static final Pattern PHONE_PATTERN = 
-            Pattern.compile("(\\+\\d{1,3}[- ]?)?\\d{3}[- ]?\\d{3,4}[- ]?\\d{4}");
-    private static final Pattern CREDIT_CARD_PATTERN = 
-            Pattern.compile("\\d{4}[- ]?\\d{4}[- ]?\\d{4}[- ]?\\d{4}");
-    private static final Pattern SSN_PATTERN = 
-            Pattern.compile("\\d{3}[-]\\d{2}[-]\\d{4}");
-
-    public static String maskSensitiveData(String text) {
-        if (text == null || text.isEmpty()) {
-            return text;
-        }
-        
-        String masked = text;
-        
-        // 이메일 마스킹
-        Matcher emailMatcher = EMAIL_PATTERN.matcher(masked);
-        while (emailMatcher.find()) {
-            String email = emailMatcher.group();
-            String maskedEmail = maskEmail(email);
-            masked = masked.replace(email, maskedEmail);
-        }
-        
-        // 전화번호 마스킹
-        Matcher phoneMatcher = PHONE_PATTERN.matcher(masked);
-        while (phoneMatcher.find()) {
-            String phone = phoneMatcher.group();
-            masked = masked.replace(phone, "PHONE-***-***-****");
-        }
-        
-        // 신용카드 번호 마스킹
-        Matcher ccMatcher = CREDIT_CARD_PATTERN.matcher(masked);
-        while (ccMatcher.find()) {
-            String cc = ccMatcher.group();
-            masked = masked.replace(cc, "CC-****-****-****-****");
-        }
-        
-        // 주민등록번호/SSN 마스킹
-        Matcher ssnMatcher = SSN_PATTERN.matcher(masked);
-        while (ssnMatcher.find()) {
-            String ssn = ssnMatcher.group();
-            masked = masked.replace(ssn, "SSN-***-**-****");
+        for (Pattern pattern : SENSITIVE_PATTERNS) {
+            masked = pattern.matcher(masked).replaceAll("[MASKED]");
         }
         
         return masked;
     }
     
-    private static String maskEmail(String email) {
-        int atIndex = email.indexOf('@');
-        if (atIndex <= 1) {
-            return "***@" + email.substring(atIndex + 1);
+    public String maskPromptForLogging(String prompt) {
+        // 프롬프트 로깅시 추가 마스킹
+        String masked = maskSensitiveContent(prompt);
+        
+        // 길이 제한 (로그 크기 제어)
+        if (masked.length() > 1000) {
+            masked = masked.substring(0, 1000) + "... [TRUNCATED]";
         }
         
-        String username = email.substring(0, atIndex);
-        String domain = email.substring(atIndex);
+        return masked;
+    }
+}
+```
+
+### AI 상호작용 추적 로깅
+
+Spring AI의 내장 관측성과 함께 비즈니스 로직을 추가한 포괄적인 로깅 서비스:
+
+```java
+@Service
+public class AIInteractionLogger {
+
+    private static final Logger logger = LoggerFactory.getLogger(AIInteractionLogger.class);
+    private final AIContentMasker contentMasker;
+    private final MeterRegistry meterRegistry;
+    
+    public AIInteractionLogger(AIContentMasker contentMasker, MeterRegistry meterRegistry) {
+        this.contentMasker = contentMasker;
+        this.meterRegistry = meterRegistry;
+    }
+    
+    public String processWithLogging(String userInput, String userId, String sessionId) {
+        String requestId = UUID.randomUUID().toString();
         
-        int visibleChars = Math.min(3, username.length());
-        return username.substring(0, visibleChars) + "***" + domain;
+        // MDC에 컨텍스트 정보 설정
+        try (MDCCloseable mdcCloseable = MDC.putCloseable("requestId", requestId)) {
+            MDC.put("userId", userId);
+            MDC.put("sessionId", sessionId);
+            
+            Timer.Sample sample = Timer.start(meterRegistry);
+            
+            try {
+                // 요청 로깅
+                logger.info("AI request received", 
+                    kv("prompt_length", userInput.length()),
+                    kv("masked_prompt", contentMasker.maskPromptForLogging(userInput)));
+                
+                // ChatClient 호출 (자동 관측성 수집)
+                ChatResponse response = chatClient.prompt()
+                    .user(userInput)
+                    .call()
+                    .chatResponse();
+                
+                String responseContent = response.getResult().getOutput().getContent();
+                Usage usage = response.getMetadata().getUsage();
+                
+                // 응답 로깅
+                logger.info("AI response generated",
+                    kv("response_length", responseContent.length()),
+                    kv("prompt_tokens", usage.getPromptTokens()),
+                    kv("completion_tokens", usage.getCompletionTokens()),
+                    kv("total_tokens", usage.getTotalTokens()),
+                    kv("masked_response", contentMasker.maskSensitiveContent(
+                        responseContent.substring(0, Math.min(200, responseContent.length()))
+                    )));
+                
+                // 시간 측정
+                sample.stop(meterRegistry.timer("ai.interaction.duration"));
+                
+                // 성공 카운터
+                meterRegistry.counter("ai.interactions", "status", "success").increment();
+                
+                return responseContent;
+                
+            } catch (Exception e) {
+                // 오류 로깅
+                logger.error("AI request failed",
+                    kv("error_type", e.getClass().getSimpleName()),
+                    kv("error_message", e.getMessage()));
+                
+                sample.stop(meterRegistry.timer("ai.interaction.duration", "status", "error"));
+                meterRegistry.counter("ai.interactions", "status", "error", "error_type", e.getClass().getSimpleName()).increment();
+                
+                throw e;
+            } finally {
+                MDC.remove("userId");
+                MDC.remove("sessionId");
+            }
+        }
+    }
+    
+    // Structured logging helper
+    private static KeyValue kv(String key, Object value) {
+        return KeyValue.of(key, value);
     }
 }
 ```
 
 ## 분산 추적 구현
 
-분산 시스템에서 요청 흐름을 추적하기 위해 Spring Cloud Sleuth와 Zipkin을 활용한 분산 추적을 구현하는 방법을 알아보겠습니다.
+### Spring AI 자동 추적
 
-### Spring Cloud Sleuth 설정
+Spring AI 1.0.0은 자동으로 OpenTelemetry 호환 추적을 제공합니다:
 
-먼저, 필요한 의존성을 추가합니다:
+```yaml
+# application.yml - 추적 구성
+management:
+  tracing:
+    sampling:
+      probability: 1.0  # 모든 요청 추적
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+  otlp:
+    tracing:
+      endpoint: http://localhost:4318/v1/traces
 
-```kotlin
-// Gradle (build.gradle.kts)
-dependencies {
-    implementation("org.springframework.cloud:spring-cloud-starter-sleuth")
-    implementation("org.springframework.cloud:spring-cloud-sleuth-zipkin")
+spring:
+  ai:
+    # AI 작업에 대한 상세 추적 정보 포함
+    chat:
+      observations:
+        log-prompt: false    # 프롬프트를 스팬에 포함
+        log-completion: false # 응답을 스팬에 포함
+```
+
+### 커스텀 스팬 추가
+
+```java
+@Service
+public class TracedAIWorkflowService {
+
+    private final ChatClient chatClient;
+    private final VectorStore vectorStore;
+    private final Tracer tracer;
+    
+    public TracedAIWorkflowService(ChatClient chatClient, VectorStore vectorStore, Tracer tracer) {
+        this.chatClient = chatClient;
+        this.vectorStore = vectorStore;
+        this.tracer = tracer;
+    }
+    
+    public String processComplexWorkflow(String userQuery) {
+        // 전체 워크플로우 스팬
+        Span workflowSpan = tracer.nextSpan().name("ai-complex-workflow");
+        
+        try (Tracer.SpanInScope ws = tracer.withSpanInScope(workflowSpan.start())) {
+            workflowSpan.tag("workflow.type", "rag-with-analysis");
+            workflowSpan.tag("user.query.length", String.valueOf(userQuery.length()));
+            
+            // 1. 질문 분석 스팬
+            String intent = analyzeUserIntent(userQuery);
+            
+            // 2. 컨텍스트 검색 스팬 (자동 추적)
+            List<Document> context = vectorStore.similaritySearch(
+                SearchRequest.query(userQuery).withTopK(5)
+            );
+            
+            // 3. 응답 생성 스팬 (자동 추적)
+            String response = chatClient.prompt()
+                .system("컨텍스트: " + formatContext(context))
+                .user(userQuery)
+                .call()
+                .content();
+            
+            // 4. 후처리 스팬
+            String finalResponse = postProcessResponse(response, intent);
+            
+            workflowSpan.tag("workflow.status", "success");
+            workflowSpan.tag("response.length", String.valueOf(finalResponse.length()));
+            
+            return finalResponse;
+            
+        } catch (Exception e) {
+            workflowSpan.tag("error", e.getClass().getSimpleName());
+            throw e;
+        } finally {
+            workflowSpan.end();
+        }
+    }
+    
+    private String analyzeUserIntent(String query) {
+        Span intentSpan = tracer.nextSpan().name("analyze-user-intent");
+        
+        try (Tracer.SpanInScope is = tracer.withSpanInScope(intentSpan.start())) {
+            intentSpan.tag("query.language", detectLanguage(query));
+            
+            // 의도 분석 로직
+            String intent = performIntentAnalysis(query);
+            
+            intentSpan.tag("detected.intent", intent);
+            return intent;
+            
+        } finally {
+            intentSpan.end();
+        }
+    }
+    
+    private String postProcessResponse(String response, String intent) {
+        Span postProcessSpan = tracer.nextSpan().name("post-process-response");
+        
+        try (Tracer.SpanInScope ps = tracer.withSpanInScope(postProcessSpan.start())) {
+            postProcessSpan.tag("intent", intent);
+            postProcessSpan.tag("original.length", String.valueOf(response.length()));
+            
+            // 의도에 따른 후처리
+            String processed = switch (intent) {
+                case "question" -> addSourceReferences(response);
+                case "summarize" -> formatSummary(response);
+                case "analyze" -> addAnalysisStructure(response);
+                default -> response;
+            };
+            
+            postProcessSpan.tag("processed.length", String.valueOf(processed.length()));
+            return processed;
+            
+        } finally {
+            postProcessSpan.end();
+        }
+    }
+    
+    // Helper methods
+    private String detectLanguage(String text) { return "ko"; }
+    private String performIntentAnalysis(String query) { return "question"; }
+    private String formatContext(List<Document> docs) { return ""; }
+    private String addSourceReferences(String response) { return response; }
+    private String formatSummary(String response) { return response; }
+    private String addAnalysisStructure(String response) { return response; }
 }
 ```
 
-```xml
-<!-- Maven (pom.xml) -->
-<dependencies>
-    <dependency>
-        <groupId>org.springframework.cloud</groupId>
-        <artifactId>spring-cloud-starter-sleuth</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework.cloud</groupId>
-        <artifactId>spring-cloud-sleuth-zipkin</artifactId>
-    </dependency>
-</dependencies>
+## AI 메타데이터 추적
+
+### Usage 메타데이터 활용
+
+Spring AI 1.0.0의 향상된 Usage API를 활용한 상세 비용 및 사용량 추적:
+
+```java
+@Service
+public class AIUsageTrackingService {
+
+    private final ChatModel chatModel;
+    private final MeterRegistry meterRegistry;
+    private final CostCalculator costCalculator;
+    
+    public AIUsageTrackingService(ChatModel chatModel, MeterRegistry meterRegistry, CostCalculator costCalculator) {
+        this.chatModel = chatModel;
+        this.meterRegistry = meterRegistry;
+        this.costCalculator = costCalculator;
+    }
+    
+    public String processWithDetailedTracking(String prompt) {
+        ChatResponse response = chatModel.call(new Prompt(prompt));
+        Usage usage = response.getMetadata().getUsage();
+        
+        // 기본 사용량 추적
+        trackBasicUsage(usage);
+        
+        // 네이티브 사용량 추적 (OpenAI 예시)
+        if (usage.getNativeUsage() instanceof org.springframework.ai.openai.api.OpenAiApi.Usage nativeUsage) {
+            trackDetailedUsage(nativeUsage);
+        }
+        
+        return response.getResult().getOutput().getContent();
+    }
+    
+    private void trackBasicUsage(Usage usage) {
+        // 기본 토큰 메트릭
+        meterRegistry.counter("ai.tokens.prompt").increment(usage.getPromptTokens());
+        meterRegistry.counter("ai.tokens.completion").increment(usage.getCompletionTokens());
+        meterRegistry.counter("ai.tokens.total").increment(usage.getTotalTokens());
+        
+        // 기본 비용 계산
+        double basicCost = costCalculator.calculateBasicCost(usage);
+        meterRegistry.summary("ai.cost.basic").record(basicCost);
+    }
+    
+    private void trackDetailedUsage(org.springframework.ai.openai.api.OpenAiApi.Usage nativeUsage) {
+        // 캐시된 토큰 (비용 절감)
+        int cachedTokens = nativeUsage.promptTokensDetails().cachedTokens();
+        if (cachedTokens > 0) {
+            meterRegistry.counter("ai.tokens.cached").increment(cachedTokens);
+            double cachedSavings = costCalculator.calculateCachedSavings(cachedTokens);
+            meterRegistry.summary("ai.cost.savings.cached").record(cachedSavings);
+        }
+        
+        // 추론 토큰 (o1 모델용)
+        int reasoningTokens = nativeUsage.completionTokenDetails().reasoningTokens();
+        if (reasoningTokens > 0) {
+            meterRegistry.counter("ai.tokens.reasoning").increment(reasoningTokens);
+            double reasoningCost = costCalculator.calculateReasoningCost(reasoningTokens);
+            meterRegistry.summary("ai.cost.reasoning").record(reasoningCost);
+        }
+        
+        // 오디오 토큰
+        int audioPromptTokens = nativeUsage.promptTokensDetails().audioTokens();
+        int audioCompletionTokens = nativeUsage.completionTokenDetails().audioTokens();
+        if (audioPromptTokens > 0 || audioCompletionTokens > 0) {
+            meterRegistry.counter("ai.tokens.audio.prompt").increment(audioPromptTokens);
+            meterRegistry.counter("ai.tokens.audio.completion").increment(audioCompletionTokens);
+            
+            double audioCost = costCalculator.calculateAudioCost(audioPromptTokens, audioCompletionTokens);
+            meterRegistry.summary("ai.cost.audio").record(audioCost);
+        }
+        
+        // 예측 토큰 (speculative decoding)
+        int acceptedTokens = nativeUsage.completionTokenDetails().acceptedPredictionTokens();
+        int rejectedTokens = nativeUsage.completionTokenDetails().rejectedPredictionTokens();
+        if (acceptedTokens > 0 || rejectedTokens > 0) {
+            meterRegistry.counter("ai.tokens.prediction.accepted").increment(acceptedTokens);
+            meterRegistry.counter("ai.tokens.prediction.rejected").increment(rejectedTokens);
+            
+            double predictionEfficiency = (double) acceptedTokens / (acceptedTokens + rejectedTokens);
+            meterRegistry.gauge("ai.prediction.efficiency", predictionEfficiency);
+        }
+        
+        // 전체 상세 비용
+        double totalDetailedCost = costCalculator.calculateDetailedCost(nativeUsage);
+        meterRegistry.summary("ai.cost.detailed.total").record(totalDetailedCost);
+    }
+}
+
+@Component
+public class CostCalculator {
+    
+    // 2024년 OpenAI 가격 기준
+    private static final double GPT4_INPUT_COST_PER_1K = 0.03;
+    private static final double GPT4_OUTPUT_COST_PER_1K = 0.06;
+    private static final double REASONING_COST_PER_1K = 0.15;  // o1 모델
+    private static final double AUDIO_COST_PER_1K = 0.006;
+    
+    public double calculateBasicCost(Usage usage) {
+        return (usage.getPromptTokens() * GPT4_INPUT_COST_PER_1K + 
+                usage.getCompletionTokens() * GPT4_OUTPUT_COST_PER_1K) / 1000;
+    }
+    
+    public double calculateDetailedCost(org.springframework.ai.openai.api.OpenAiApi.Usage nativeUsage) {
+        double inputCost = (nativeUsage.promptTokens() - nativeUsage.promptTokensDetails().cachedTokens()) 
+                          * GPT4_INPUT_COST_PER_1K / 1000;
+        double outputCost = nativeUsage.completionTokens() * GPT4_OUTPUT_COST_PER_1K / 1000;
+        double reasoningCost = nativeUsage.completionTokenDetails().reasoningTokens() * REASONING_COST_PER_1K / 1000;
+        double audioCost = (nativeUsage.promptTokensDetails().audioTokens() + 
+                           nativeUsage.completionTokenDetails().audioTokens()) * AUDIO_COST_PER_1K / 1000;
+        
+        return inputCost + outputCost + reasoningCost + audioCost;
+    }
+    
+    public double calculateCachedSavings(int cachedTokens) {
+        return cachedTokens * GPT4_INPUT_COST_PER_1K / 1000;
+    }
+    
+    public double calculateReasoningCost(int reasoningTokens) {
+        return reasoningTokens * REASONING_COST_PER_1K / 1000;
+    }
+    
+    public double calculateAudioCost(int promptAudioTokens, int completionAudioTokens) {
+        return (promptAudioTokens + completionAudioTokens) * AUDIO_COST_PER_1K / 1000;
+    }
+}
 ```
 
-다음으로, `application.yml` 파일에 Sleuth와 Zipkin 설정을 추가합니다:
-
-```yaml
-spring:
-  application:
-    name: ai-application
-  sleuth:
-    sampler:
-      probability: 1.0  # 개발 환경에서는 모든 트레이스 샘플링
-  zipkin:
-    base-url: http://localhost:9411
-```
-
-### AI 서비스 추적
+### Rate Limit 모니터링
 
 AI 서비스 호출을 추적하는 방법을 살펴보겠습니다:
 
