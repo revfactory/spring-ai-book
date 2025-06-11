@@ -6,7 +6,8 @@
       "Bash(git add:*)",
       "Bash(git push:*)",
       "Bash(git restore:*)",
-      "WebFetch(domain:spring.io)"
+      "WebFetch(domain:spring.io)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   },
