@@ -8,8 +8,8 @@
 
 이 프로젝트를 진행하기 위해 다음과 같은 준비가 필요합니다:
 
-1. Java 21 설치
-2. Spring Boot 3.3.x 지원 개발 환경
+1. Java 17 이상 (Java 21 권장)
+2. Spring Boot 3.4.x 지원 개발 환경
 3. IDE (IntelliJ IDEA, Eclipse, VS Code 등)
 4. OpenAI API 키 (해당 프로바이더 사용 시)
 5. Anthropic API 키 (해당 프로바이더 사용 시)
@@ -22,54 +22,61 @@
 
 첫 번째 스텝은 Spring Boot 프로젝트를 생성하는 것입니다. Spring Initializr(https://start.spring.io/)를 사용하여 다음 옵션으로 프로젝트를 생성합니다:
 
-- **프로젝트**: Gradle - Kotlin / Maven 중 선택
+- **프로젝트**: Gradle - Groovy / Maven 중 선택
 - **언어**: Java
-- **Spring Boot**: 3.3.x
+- **Spring Boot**: 3.4.x
 - **그룹**: com.example
 - **아티팩트**: spring-ai-chat
 - **이름**: spring-ai-chat
 - **설명**: Spring AI Chat Demo
 - **패키지 이름**: com.example.springaichat
 - **패키징**: Jar
-- **Java**: 21
+- **Java**: 17 이상 (21 권장)
 
 의존성을 추가합니다:
 - Spring Web
-- Spring Boot DevTools
+- Spring Boot DevTools  
+- AI Models에서 원하는 모델 선택:
+  - OpenAI
+  - Anthropic
 - Lombok (선택사항)
 
 ### Spring AI 의존성 추가
 
 생성된 프로젝트에 Spring AI 관련 의존성을 추가합니다. 이 예제에서는 OpenAI와 Anthropic 모델을 모두 사용하겠습니다.
 
-#### Gradle (build.gradle.kts)
+#### Gradle (build.gradle)
 
-```kotlin
+```gradle
 repositories {
     mavenCentral()
-    maven { url = uri("https://repo.spring.io/milestone") }
 }
 
 dependencies {
-    implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("org.springframework.ai:spring-ai-openai-spring-boot-starter:1.0.0-M6")
-    implementation("org.springframework.ai:spring-ai-anthropic-spring-boot-starter:1.0.0-M6")
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.springframework.ai:spring-ai-test:1.0.0-M6")
+    implementation platform('org.springframework.ai:spring-ai-bom:1.0.0')
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter'
+    implementation 'org.springframework.ai:spring-ai-anthropic-spring-boot-starter'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.ai:spring-ai-test'
 }
 ```
 
 #### Maven (pom.xml)
 
 ```xml
-<repositories>
-    <repository>
-        <id>spring-milestones</id>
-        <n>Spring Milestones</n>
-        <url>https://repo.spring.io/milestone</url>
-    </repository>
-</repositories>
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-bom</artifactId>
+            <version>1.0.0</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
 
 <dependencies>
     <dependency>
@@ -79,12 +86,10 @@ dependencies {
     <dependency>
         <groupId>org.springframework.ai</groupId>
         <artifactId>spring-ai-openai-spring-boot-starter</artifactId>
-        <version>1.0.0-M6</version>
     </dependency>
     <dependency>
         <groupId>org.springframework.ai</groupId>
         <artifactId>spring-ai-anthropic-spring-boot-starter</artifactId>
-        <version>1.0.0-M6</version>
     </dependency>
     <dependency>
         <groupId>org.springframework.boot</groupId>
@@ -100,7 +105,6 @@ dependencies {
     <dependency>
         <groupId>org.springframework.ai</groupId>
         <artifactId>spring-ai-test</artifactId>
-        <version>1.0.0-M6</version>
         <scope>test</scope>
     </dependency>
 </dependencies>
@@ -113,17 +117,23 @@ dependencies {
 ```yaml
 spring:
   ai:
+    # 다중 모델 사용 시 ChatClient.Builder 자동 구성 비활성화
+    chat:
+      client:
+        enabled: false
+    
     openai:
       api-key: ${OPENAI_API_KEY}
       chat:
         options:
           model: gpt-4o
           temperature: 0.7
+    
     anthropic:
       api-key: ${ANTHROPIC_API_KEY}
       chat:
         options:
-          model: claude-3-opus-20240229
+          model: claude-3-5-sonnet-20241022
           temperature: 0.7
 
 logging:
@@ -334,9 +344,54 @@ curl -X POST http://localhost:8080/api/chat \
 -d '{"message":"What are the benefits of using Spring AI?", "provider":"openai"}'
 ```
 
+## Advisors를 활용한 고급 기능
+
+Spring AI 1.0.0 GA의 Advisors API를 사용하여 AI 상호작용을 향상시킬 수 있습니다. Advisors는 프롬프트를 수정하고, 응답을 변환하며, 다양한 패턴을 구현할 수 있습니다.
+
+### SimpleLoggerAdvisor 사용
+
+요청과 응답을 로깅하는 간단한 Advisor를 추가해봅시다:
+
+```java
+package com.example.springaichat.service;
+
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Service;
+
+@Service
+public class ChatServiceWithLogging {
+
+    private final ChatClient chatClient;
+
+    public ChatServiceWithLogging(@Qualifier("openAiChatModel") ChatModel chatModel) {
+        this.chatClient = ChatClient.builder(chatModel)
+            .defaultAdvisors(new SimpleLoggerAdvisor())
+            .build();
+    }
+
+    public String chat(String message) {
+        return chatClient.prompt()
+            .user(message)
+            .call()
+            .content();
+    }
+}
+```
+
+application.yml에 로깅 레벨을 추가합니다:
+
+```yaml
+logging:
+  level:
+    org.springframework.ai.chat.client.advisor: DEBUG
+```
+
 ## 프롬프트 템플릿 개선
 
-이제 더 복잡한 프롬프트 템플릿을 사용하여 응답을 공타화해보겠습니다. 템플릿 파일을 외부에서 관리하고 로드하는 방법을 살펴봅니다.
+이제 더 복잡한 프롬프트 템플릿을 사용하여 응답을 구조화해보겠습니다. 템플릿 파일을 외부에서 관리하고 로드하는 방법을 살펴봅니다.
 
 ### 템플릿 파일 생성
 
@@ -468,7 +523,33 @@ public class ChatController {
 
 ## 메시지 히스토리 구현
 
-이번에는 사용자와 AI 사이의 대화 기록을 유지하는 기능을 추가해봅니다. 대화 기록을 유지하면 AI가 이전 문맥을 기억하고 연속적인 대화를 할 수 있습니다.
+이번에는 Spring AI 1.0.0 GA의 Chat Memory 기능을 활용하여 대화 기록을 유지하는 기능을 추가해봅니다. 대화 기록을 유지하면 AI가 이전 문맥을 기억하고 연속적인 대화를 할 수 있습니다.
+
+### Chat Memory 설정
+
+Spring AI는 MessageWindowChatMemory를 통해 대화 기록을 관리합니다:
+
+```java
+package com.example.springaichat.config;
+
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
+import org.springframework.ai.chat.memory.MessageWindowChatMemory;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class ChatMemoryConfig {
+    
+    @Bean
+    public ChatMemory chatMemory() {
+        return new MessageWindowChatMemory(
+            new InMemoryChatMemoryRepository(),
+            20  // 최대 20개의 메시지 저장
+        );
+    }
+}
+```
 
 ### 대화 세션 모델 추가
 
@@ -568,100 +649,76 @@ public class SessionService {
 
 ### 서비스 및 API 업데이트
 
-채팅 서비스를 업데이트하여 대화 기록을 사용하도록 변경합니다:
+ChatMemory를 활용하여 채팅 서비스를 업데이트합니다:
 
 ```java
 package com.example.springaichat.service;
 
-import com.example.springaichat.model.ChatMessage;
 import com.example.springaichat.model.ChatResponse;
-import com.example.springaichat.model.ChatSession;
-import org.springframework.ai.chat.ChatClient;
-import org.springframework.ai.chat.messages.AssistantMessage;
-import org.springframework.ai.chat.messages.Message;
-import org.springframework.ai.chat.messages.SystemMessage;
-import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+
+import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY;
 
 @Service
 public class ChatService {
 
     private final ChatClient openAiChatClient;
     private final ChatClient anthropicChatClient;
-    private final ResourceLoader resourceLoader;
-    private final SessionService sessionService;
+    private final ChatMemory chatMemory;
 
     public ChatService(
-            @Qualifier("openAiChatClient") ChatClient openAiChatClient,
-            @Qualifier("anthropicChatClient") ChatClient anthropicChatClient,
-            ResourceLoader resourceLoader,
-            SessionService sessionService) {
-        this.openAiChatClient = openAiChatClient;
-        this.anthropicChatClient = anthropicChatClient;
-        this.resourceLoader = resourceLoader;
-        this.sessionService = sessionService;
+            @Qualifier("openAiChatModel") ChatModel openAiChatModel,
+            @Qualifier("anthropicChatModel") ChatModel anthropicChatModel,
+            ChatMemory chatMemory) {
+        
+        this.chatMemory = chatMemory;
+        
+        // MessageChatMemoryAdvisor를 사용하여 ChatClient 생성
+        this.openAiChatClient = ChatClient.builder(openAiChatModel)
+            .defaultSystem("You are a helpful assistant specialized in {domain}. " +
+                          "Your name is {name} and you were created by {company}.")
+            .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
+            .build();
+            
+        this.anthropicChatClient = ChatClient.builder(anthropicChatModel)
+            .defaultSystem("You are a helpful assistant specialized in {domain}. " +
+                          "Your name is {name} and you were created by {company}.")
+            .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
+            .build();
     }
 
-    public ChatResponse chat(String message, String provider, String sessionId) throws IOException {
-        ChatSession session = sessionService.getOrCreateSession(sessionId, provider);
-        
-        Resource promptResource = resourceLoader.getResource("classpath:prompts/system-message.st");
-        String promptTemplate = new String(promptResource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-        
-        Map<String, Object> parameters = Map.of(
-            "domain", "Spring Boot and AI",
-            "name", provider.equals("openai") ? "GPT Assistant" : "Claude Assistant",
-            "company", provider.equals("openai") ? "OpenAI" : "Anthropic"
-        );
-        
-        // 시스템 메시지 생성
-        SystemMessage systemMessage = new SystemMessage(promptTemplate.formatted(parameters));
-        
-        // 기존 대화 기록을 바탕으로 메시지 리스트 구성
-        List<Message> messages = new ArrayList<>();
-        messages.add(systemMessage);
-        
-        for (ChatMessage chatMessage : session.getMessages()) {
-            if ("user".equals(chatMessage.getRole())) {
-                messages.add(new UserMessage(chatMessage.getContent()));
-            } else if ("assistant".equals(chatMessage.getRole())) {
-                messages.add(new AssistantMessage(chatMessage.getContent()));
-            }
-        }
-        
-        // 현재 사용자 메시지 추가
-        messages.add(new UserMessage(message));
-        
-        // 프롬프트 생성
-        Prompt prompt = new Prompt(messages);
-        
+    public ChatResponse chat(String message, String provider, String conversationId) {
         ChatClient selectedClient = 
             provider.equals("openai") ? openAiChatClient : anthropicChatClient;
+            
+        String name = provider.equals("openai") ? "GPT Assistant" : "Claude Assistant";
+        String company = provider.equals("openai") ? "OpenAI" : "Anthropic";
         
         Instant start = Instant.now();
-        org.springframework.ai.chat.ChatResponse aiResponse = selectedClient.call(prompt);
-        Instant end = Instant.now();
         
-        String responseContent = aiResponse.getResult().getOutput().getContent();
+        // Advisor를 통해 대화 기록을 자동으로 관리
+        String content = selectedClient.prompt()
+            .system(s -> s
+                .param("domain", "Spring Boot and AI")
+                .param("name", name)
+                .param("company", company))
+            .user(message)
+            .advisors(a -> a.param(CHAT_MEMORY_CONVERSATION_ID_KEY, conversationId))
+            .call()
+            .content();
+            
+        Instant end = Instant.now();
         long processingTime = Duration.between(start, end).toMillis();
         
-        // 대화 세션에 메시지 추가
-        sessionService.addMessageToSession(sessionId, "user", message);
-        sessionService.addMessageToSession(sessionId, "assistant", responseContent);
-        
-        return new ChatResponse(responseContent, provider, processingTime);
+        return new ChatResponse(content, provider, processingTime);
     }
 }
 ```
@@ -749,13 +806,13 @@ public class ChatController {
 
 ## 스트리밍 응답 구현
 
-이제 스트리밍 응답을 구현해보겠습니다. 아래 코드를 추가하여 Spring WebFlux를 사용한 스트리밍 응답을 제공합니다:
+이제 스트맍 응답을 구현해보겠습니다. Spring AI 1.0.0 GA는 기본적으로 스트리밍을 지원하므로 추가 의존성 없이 구현할 수 있습니다. 단, 스트리밍 기능을 사용하려면 Spring WebFlux가 필요합니다:
 
 추가 의존성을 추가합니다:
 
-```kotlin
-// Gradle (build.gradle.kts)
-implementation("org.springframework.boot:spring-boot-starter-webflux")
+```gradle
+// Gradle (build.gradle)
+implementation 'org.springframework.boot:spring-boot-starter-webflux'
 ```
 
 ```xml
@@ -805,46 +862,30 @@ public class StreamResponse {
 
 ```java
 // ChatService 클래스에 아래 메서드 추가
-public Flux<StreamResponse> streamChat(String message, String provider, String sessionId) throws IOException {
+public Flux<StreamResponse> streamChat(String message, String provider, String sessionId) {
     ChatSession session = sessionService.getOrCreateSession(sessionId, provider);
-    
-    Resource promptResource = resourceLoader.getResource("classpath:prompts/system-message.st");
-    String promptTemplate = new String(promptResource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-    
-    Map<String, Object> parameters = Map.of(
-        "domain", "Spring Boot and AI",
-        "name", provider.equals("openai") ? "GPT Assistant" : "Claude Assistant",
-        "company", provider.equals("openai") ? "OpenAI" : "Anthropic"
-    );
-    
-    SystemMessage systemMessage = new SystemMessage(promptTemplate.formatted(parameters));
-    
-    List<Message> messages = new ArrayList<>();
-    messages.add(systemMessage);
-    
-    for (ChatMessage chatMessage : session.getMessages()) {
-        if ("user".equals(chatMessage.getRole())) {
-            messages.add(new UserMessage(chatMessage.getContent()));
-        } else if ("assistant".equals(chatMessage.getRole())) {
-            messages.add(new AssistantMessage(chatMessage.getContent()));
-        }
-    }
-    
-    messages.add(new UserMessage(message));
-    
-    Prompt prompt = new Prompt(messages);
     
     ChatClient selectedClient = 
         provider.equals("openai") ? openAiChatClient : anthropicChatClient;
+        
+    String name = provider.equals("openai") ? "GPT Assistant" : "Claude Assistant";
+    String company = provider.equals("openai") ? "OpenAI" : "Anthropic";
     
     // 사용자 메시지 기록
     sessionService.addMessageToSession(sessionId, "user", message);
     
     StringBuilder fullResponseBuilder = new StringBuilder();
     
-    return selectedClient.stream(prompt)
-        .map(response -> {
-            String content = response.getResult().getOutput().getContent();
+    // Spring AI 1.0.0 GA의 새로운 스트리밍 API 사용
+    return selectedClient.prompt()
+        .system(s -> s
+            .param("domain", "Spring Boot and AI")
+            .param("name", name)
+            .param("company", company))
+        .user(message)
+        .stream()
+        .content()
+        .map(content -> {
             fullResponseBuilder.append(content);
             return new StreamResponse(content, false);
         })
@@ -1225,13 +1266,17 @@ public class WebController {
 
 ## 결론
 
-이 장에서는 Spring AI를 사용하여 채팅 모델을 연동하는 처음부터 끝까지의 과정을 살펴보았습니다. OpenAI와 Anthropic를 연동하는 기본 채팅 애플리케이션을 구현하고, 대화 기록을 관리하고 스트리밍 응답을 제공하는 기능도 추가했습니다.
+이 장에서는 Spring AI 1.0.0 GA를 사용하여 채팅 모델을 연동하는 처음부터 끝까지의 과정을 살펴보았습니다. OpenAI와 Anthropic를 연동하는 기본 채팅 애플리케이션을 구현하고, 대화 기록을 관리하고 스트리밍 응답을 제공하는 기능도 추가했습니다.
 
-이를 통해 Spring AI의 다음과 같은 주요 기능을 활용해보았습니다:
+이를 통해 Spring AI 1.0.0 GA의 다음과 같은 주요 기능을 활용해보았습니다:
 
-1. **여러 프로바이더 통합**: OpenAI와 Anthropic 모델을 동시에 사용하며 각 프로바이더 간의 전환을 쉽게 구현
-2. **프롬프트 템플릿**: 외부 템플릿 파일을 활용한 구조화된 프롬프트 생성
-3. **메시지 히스토리**: 대화 기록을 유지하여 연속적인 상호작용 지원
-4. **스트리밍 응답**: Spring WebFlux를 활용하여 실시간 응답 제공
+1. **ChatClient Fluent API**: 유창한 API를 통한 직관적인 AI 상호작용 구현
+2. **다중 모델 지원**: OpenAI와 Anthropic 모델을 동시에 사용하며 각 프로바이더 간의 전환을 쉽게 구현
+3. **Advisors API**: SimpleLoggerAdvisor와 MessageChatMemoryAdvisor를 활용한 기능 확장
+4. **Chat Memory**: Spring AI의 내장 메모리 관리 기능으로 대화 기록 유지
+5. **스트리밍 응답**: 기본 제공되는 스트리밍 API로 실시간 응답 제공
+6. **프롬프트 템플릿**: 파라미터화된 템플릿을 통한 동적 프롬프트 생성
+
+Spring AI 1.0.0 GA는 프로덕션 환경에서 안정적으로 사용할 수 있는 성숙한 프레임워크로, 20개 이상의 AI 모델 프로바이더를 지원하며 엔터프라이즈급 AI 애플리케이션 개발을 위한 완전한 기능을 제공합니다.
 
 다음 장에서는 Embedding과 벡터 스토어를 활용하여 더 고급 AI 기능을 구현하는 방법에 대해 알아보겠습니다.
