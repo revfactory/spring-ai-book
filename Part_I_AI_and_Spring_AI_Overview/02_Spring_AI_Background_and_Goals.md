@@ -87,9 +87,26 @@ Spring AI는 다음과 같은 포괄적인 기능 세트를 제공합니다:
 
 Spring AI는 실험적인 프로젝트로 시작되어 빠르게 성장했습니다. 초기에는 기본적인 OpenAI 모델 통합과 벡터 스토어 지원에 초점을 맞추었지만, 커뮤니티의 적극적인 피드백과 기여를 통해 지원하는 모델과 기능이 크게 확장되었습니다.
 
-### 1.0 릴리스를 향한 여정
+### 1.0 정식 릴리스 달성
 
-2025년 현재, Spring AI는 1.0.0 Milestone 6(M6) 버전에 도달했으며, Maven Central에서 사용할 수 있습니다. 이 버전은 프로덕션 환경에서의 사용을 목표로 안정성과 성능이 크게 개선되었습니다. Spring Boot 3.4.x를 지원하며, Spring Boot 3.5.x가 릴리스되면 이를 지원할 예정입니다.
+2025년 5월 20일, Spring AI는 드디어 1.0.0 정식 버전(GA - General Availability)을 릴리스했습니다. 이는 여러 마일스톤(M1-M8)과 릴리스 후보(RC1)를 거쳐 달성한 중요한 이정표입니다. 1.0.0 정식 버전은 프로덕션 환경에서의 안정적인 사용을 보장하며, Maven Central에서 바로 사용할 수 있습니다.
+
+#### 1.0.0 GA의 핵심 특징
+
+1. **ChatClient - 핵심 API**: Spring AI의 중심에는 ChatClient가 있으며, 이는 AI 모델과 상호작용하기 위한 주요 인터페이스로서 포터블하고 사용하기 쉬운 API입니다. Anthropic부터 ZhiPu까지 20개의 AI 모델 호출을 지원합니다.
+
+2. **증강된 LLM(Augmented LLM) 개념**: 기본 모델 상호작용에 다음과 같은 기능을 추가합니다:
+   - 데이터 검색(Data Retrieval)
+   - 대화 메모리(Conversational Memory)
+   - 도구 호출(Tool Calling)
+   
+   이러한 기능을 통해 사용자의 데이터와 외부 API를 모델의 추론 프로세스에 직접 통합할 수 있습니다.
+
+3. **커뮤니티 기여와 파트너십**: Microsoft Azure, AWS, Cloud Foundry, Elastic, Redis, MongoDB 등 다양한 파트너들이 Spring AI 1.0 GA 릴리스를 축하하며 관련 블로그와 비디오를 공유했습니다.
+
+4. **새로운 로고**: Spring AI는 새로운 로고를 공개했으며, 이는 Spring IO 컨퍼런스 주최자 Sergi Almar와 디자이너 Jorge Rigabert의 작품입니다.
+
+Spring Boot 3.4.x를 지원하며, Spring Boot 3.5.x가 릴리스되면 이를 지원할 예정입니다.
 
 ## Spring 생태계 내에서의 위치
 
@@ -108,6 +125,10 @@ Spring Data의 리포지토리 패턴과 트랜잭션 관리는 Spring AI의 벡
 ### Spring AI BOM (Bill of Materials)
 
 Spring AI는 의존성 관리를 간소화하기 위해 BOM을 제공합니다. 이를 통해 Spring AI의 모든 의존성 버전을 일관되게 관리할 수 있으며, Spring Boot의 BOM과 함께 사용할 수 있습니다.
+
+### 마이그레이션 지원
+
+Spring AI 1.0.0 GA로의 업그레이드 프로세스는 OpenRewrite 레시피를 사용하여 자동화할 수 있습니다. 이 레시피는 이 버전에 필요한 많은 코드 변경 사항을 적용하는 데 도움을 줍니다. Arconia Spring AI Migrations에서 레시피와 사용 지침을 확인할 수 있습니다.
 
 ## 사용 사례
 

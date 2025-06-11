@@ -2,7 +2,7 @@
 
 ## 개요
 
-Spring AI 프로젝트를 시작하기 위해서는 적절한 개발 환경 설정이 필요합니다. 이 장에서는 Java 17 이상(권장: Java 21), Spring Boot 3.4.x, Spring AI 1.0.0-SNAPSHOT를 기반으로 하는 개발 환경을 구축하는 방법을 단계별로 설명합니다. 또한 다양한 AI 모델 프로바이더와의 연동을 위한 API 키 설정 방법도 함께 알아봅니다.
+Spring AI 프로젝트를 시작하기 위해서는 적절한 개발 환경 설정이 필요합니다. 이 장에서는 Java 17 이상(권장: Java 21), Spring Boot 3.4.x, Spring AI 1.0.0을 기반으로 하는 개발 환경을 구축하는 방법을 단계별로 설명합니다. 또한 다양한 AI 모델 프로바이더와의 연동을 위한 API 키 설정 방법도 함께 알아봅니다.
 
 ## 필수 소프트웨어 요구사항
 
@@ -113,20 +113,20 @@ spring init --build=gradle --java-version=21 --boot-version=3.4.0 \
 
 ### Spring AI BOM (Bill of Materials) 사용
 
-Spring AI는 의존성 관리를 간소화하기 위해 BOM을 제공합니다. 1.0.0-M6부터는 Maven Central에서 사용할 수 있으며, 스냅샷 버전을 사용하려면 추가 리포지토리 설정이 필요합니다.
+Spring AI는 의존성 관리를 간소화하기 위해 BOM을 제공합니다. Spring AI 1.0.0 정식 버전은 Maven Central에서 바로 사용할 수 있으며, 스냅샷 버전이나 밀스톤 버전을 사용하려면 추가 리포지토리 설정이 필요합니다.
 
 ### Gradle에 Spring AI 의존성 추가
 
 프로젝트의 build.gradle 파일에 다음 내용을 추가합니다:
 
-#### 정식 릴리스 버전 (1.0.0-M6 이상)
+#### 정식 릴리스 버전 (1.0.0)
 ```gradle
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    implementation platform("org.springframework.ai:spring-ai-bom:1.0.0-M6")
+    implementation platform("org.springframework.ai:spring-ai-bom:1.0.0")
     
     // OpenAI 모델 사용 시
     implementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter'
@@ -163,14 +163,14 @@ dependencies {
 
 pom.xml 파일에 다음 내용을 추가합니다:
 
-#### 정식 릴리스 버전 (1.0.0-M6 이상)
+#### 정식 릴리스 버전 (1.0.0)
 ```xml
 <dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-bom</artifactId>
-            <version>1.0.0-M6</version>
+            <version>1.0.0</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -502,15 +502,41 @@ dependencies {
 - **오류 메시지**: "Rate limit exceeded" 또는 "You exceeded your current quota"
 - **해결 방법**: AI 프로바이더의 사용량 제한을 확인하고, 필요한 경우 사용량 계획을 업그레이드합니다.
 
+## 마이그레이션 가이드
+
+### 기존 프로젝트 업그레이드
+
+기존 Spring AI 프로젝트를 1.0.0 GA로 업그레이드하는 경우, OpenRewrite 레시피를 사용하여 자동화할 수 있습니다:
+
+1. **OpenRewrite 플러그인 추가**:
+   ```gradle
+   plugins {
+       id("org.openrewrite.rewrite") version "6.8.0"
+   }
+   ```
+
+2. **레시피 적용**:
+   ```bash
+   ./gradlew rewriteRun
+   ```
+
+이 레시피는 다음과 같은 변경 사항을 자동으로 적용합니다:
+- 패키지 이름 변경
+- API 메서드 시그니처 업데이트
+- 더 이상 사용되지 않는 클래스와 메서드 교체
+
+자세한 내용은 Arconia Spring AI Migrations 문서를 참조하세요.
+
 ## 결론
 
-이 장에서는 Spring AI 프로젝트 개발을 위한 환경 설정 방법을 살펴보았습니다. Java 17 이상(권장: Java 21), Spring Boot 3.4.x, Spring AI 1.0.0-SNAPSHOT를 기반으로 하는 개발 환경을 구축하고, 다양한 AI 모델 프로바이더와의 연동을 설정하는 방법을 단계별로 알아보았습니다.
+이 장에서는 Spring AI 프로젝트 개발을 위한 환경 설정 방법을 살펴보았습니다. Java 17 이상(권장: Java 21), Spring Boot 3.4.x, Spring AI 1.0.0을 기반으로 하는 개발 환경을 구축하고, 다양한 AI 모델 프로바이더와의 연동을 설정하는 방법을 단계별로 알아보았습니다.
 
-주요 변경사항:
+주요 특징:
+- Spring AI 1.0.0 정식 버전(2025년 5월 20일 릴리스) Maven Central에서 바로 사용 가능
 - Spring Boot 3.4.x 지원 (3.5.x 릴리스 시 지원 예정)
 - Spring AI BOM을 통한 의존성 관리 간소화
-- 1.0.0-M6부터 Maven Central에서 사용 가능
 - Docker Compose와 Testcontainers 통합 지원
 - Spring Initializr에서 AI Models와 Vector Stores 직접 선택 가능
+- OpenRewrite를 통한 자동 마이그레이션 지원
 
 기본 설정이 완료되었으므로, 다음 장에서는 Spring AI의 아키텍처와 핵심 구성 요소에 대해 자세히 살펴보겠습니다.
