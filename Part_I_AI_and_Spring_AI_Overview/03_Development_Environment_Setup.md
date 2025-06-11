@@ -2,13 +2,13 @@
 
 ## 개요
 
-Spring AI 프로젝트를 시작하기 위해서는 적절한 개발 환경 설정이 필요합니다. 이 장에서는 Java 21, Spring Boot 3.3, Spring AI 1.0.0-M6를 기반으로 하는 개발 환경을 구축하는 방법을 단계별로 설명합니다. 또한 다양한 AI 모델 프로바이더와의 연동을 위한 API 키 설정 방법도 함께 알아봅니다.
+Spring AI 프로젝트를 시작하기 위해서는 적절한 개발 환경 설정이 필요합니다. 이 장에서는 Java 17 이상(권장: Java 21), Spring Boot 3.4.x, Spring AI 1.0.0-SNAPSHOT를 기반으로 하는 개발 환경을 구축하는 방법을 단계별로 설명합니다. 또한 다양한 AI 모델 프로바이더와의 연동을 위한 API 키 설정 방법도 함께 알아봅니다.
 
 ## 필수 소프트웨어 요구사항
 
-### Java 21 설치
+### Java 17 이상 설치
 
-Spring AI 1.0.0-M6는 Java 17 이상을 요구하지만, 최신 기능과 성능 향상을 위해 Java 21을 권장합니다. Java 21은 LTS(Long-Term Support) 버전으로, 가상 스레드(Virtual Threads)와 같은 새로운 기능을 제공합니다.
+Spring AI는 Java 17 이상을 요구합니다. 최신 기능과 성능 향상을 위해 Java 21(LTS)을 권장합니다. Java 21은 가상 스레드(Virtual Threads)와 같은 새로운 기능을 제공합니다.
 
 #### Windows에서 설치
 
@@ -75,16 +75,15 @@ Spring AI 개발을 위해 IDE(통합 개발 환경)를 설정합니다. 권장�
 
 1. [Spring Initializr 웹사이트](https://start.spring.io/)를 방문합니다.
 2. 다음과 같이 프로젝트 설정을 구성합니다:
-   - Project: Gradle Project
+   - Project: Gradle Project 또는 Maven Project
    - Language: Java
-   - Spring Boot: 3.3.x
+   - Spring Boot: 3.4.x (Spring AI는 3.4.x를 지원하며, 3.5.x 릴리스 시 지원 예정)
    - Project Metadata: 자신의 프로젝트에 맞게 설정
    - Packaging: Jar
-   - Java: 21
-3. 의존성 추가:
-   - Spring Web
-   - Spring Boot DevTools
-   - Lombok (선택 사항)
+   - Java: 17 이상 (21 권장)
+3. AI Models와 Vector Stores 선택:
+   - 원하는 AI 모델 (OpenAI, Anthropic, Ollama 등)
+   - 필요한 경우 Vector Store (PostgreSQL/PGVector, Chroma 등)
 4. 'Generate' 버튼을 클릭하여 프로젝트를 다운로드합니다.
 
 ### 명령줄에서 생성
@@ -92,7 +91,7 @@ Spring AI 개발을 위해 IDE(통합 개발 환경)를 설정합니다. 권장�
 다음 명령을 사용하여 Spring Boot 프로젝트를 생성할 수도 있습니다:
 
 ```bash
-spring init --build=gradle --java-version=21 --boot-version=3.3.0 \
+spring init --build=gradle --java-version=21 --boot-version=3.4.0 \
   --dependencies=web,devtools --name=spring-ai-demo spring-ai-demo
 ```
 
@@ -112,31 +111,51 @@ spring init --build=gradle --java-version=21 --boot-version=3.3.0 \
 
 ## Spring AI 의존성 추가
 
+### Spring AI BOM (Bill of Materials) 사용
+
+Spring AI는 의존성 관리를 간소화하기 위해 BOM을 제공합니다. 1.0.0-M6부터는 Maven Central에서 사용할 수 있으며, 스냅샷 버전을 사용하려면 추가 리포지토리 설정이 필요합니다.
+
 ### Gradle에 Spring AI 의존성 추가
 
 프로젝트의 build.gradle 파일에 다음 내용을 추가합니다:
 
+#### 정식 릴리스 버전 (1.0.0-M6 이상)
+```gradle
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation platform("org.springframework.ai:spring-ai-bom:1.0.0-M6")
+    
+    // OpenAI 모델 사용 시
+    implementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter'
+    
+    // Anthropic Claude 모델 사용 시
+    implementation 'org.springframework.ai:spring-ai-anthropic-spring-boot-starter'
+    
+    // 벡터 스토어 (선택적)
+    implementation 'org.springframework.ai:spring-ai-pgvector-store-spring-boot-starter'
+}
+```
+
+#### 스냅샷 버전
 ```gradle
 repositories {
     mavenCentral()
     maven { url 'https://repo.spring.io/milestone' }
+    maven { url 'https://repo.spring.io/snapshot' }
+    maven {
+        name = 'Central Portal Snapshots'
+        url = 'https://central.sonatype.com/repository/maven-snapshots/'
+    }
 }
 
 dependencies {
-    // Spring AI 기본 의존성
-    implementation 'org.springframework.ai:spring-ai-core:1.0.0-M6'
+    implementation platform("org.springframework.ai:spring-ai-bom:1.0.0-SNAPSHOT")
     
-    // OpenAI 모델 사용 시
-    implementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter:1.0.0-M6'
-    
-    // Anthropic Claude 모델 사용 시
-    implementation 'org.springframework.ai:spring-ai-anthropic-spring-boot-starter:1.0.0-M6'
-    
-    // 벡터 스토어 (선택적)
-    implementation 'org.springframework.ai:spring-ai-pgvector-store-spring-boot-starter:1.0.0-M6'
-    
-    // 테스트 도구
-    testImplementation 'org.springframework.ai:spring-ai-test:1.0.0-M6'
+    // 원하는 모듈 추가
+    implementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter'
 }
 ```
 
@@ -144,52 +163,80 @@ dependencies {
 
 pom.xml 파일에 다음 내용을 추가합니다:
 
+#### 정식 릴리스 버전 (1.0.0-M6 이상)
 ```xml
-<repositories>
-    <repository>
-        <id>spring-milestones</id>
-        <name>Spring Milestones</name>
-        <url>https://repo.spring.io/milestone</url>
-    </repository>
-</repositories>
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-bom</artifactId>
+            <version>1.0.0-M6</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
 
 <dependencies>
-    <!-- Spring AI 기본 의존성 -->
-    <dependency>
-        <groupId>org.springframework.ai</groupId>
-        <artifactId>spring-ai-core</artifactId>
-        <version>1.0.0-M6</version>
-    </dependency>
-    
     <!-- OpenAI 모델 사용 시 -->
     <dependency>
         <groupId>org.springframework.ai</groupId>
         <artifactId>spring-ai-openai-spring-boot-starter</artifactId>
-        <version>1.0.0-M6</version>
     </dependency>
     
     <!-- Anthropic Claude 모델 사용 시 -->
     <dependency>
         <groupId>org.springframework.ai</groupId>
         <artifactId>spring-ai-anthropic-spring-boot-starter</artifactId>
-        <version>1.0.0-M6</version>
-    </dependency>
-    
-    <!-- 벡터 스토어 (선택적) -->
-    <dependency>
-        <groupId>org.springframework.ai</groupId>
-        <artifactId>spring-ai-pgvector-store-spring-boot-starter</artifactId>
-        <version>1.0.0-M6</version>
-    </dependency>
-    
-    <!-- 테스트 도구 -->
-    <dependency>
-        <groupId>org.springframework.ai</groupId>
-        <artifactId>spring-ai-test</artifactId>
-        <version>1.0.0-M6</version>
-        <scope>test</scope>
     </dependency>
 </dependencies>
+```
+
+#### 스냅샷 버전
+```xml
+<repositories>
+    <repository>
+        <id>spring-snapshots</id>
+        <name>Spring Snapshots</name>
+        <url>https://repo.spring.io/snapshot</url>
+        <releases>
+            <enabled>false</enabled>
+        </releases>
+    </repository>
+    <repository>
+        <name>Central Portal Snapshots</name>
+        <id>central-portal-snapshots</id>
+        <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+        <releases>
+            <enabled>false</enabled>
+        </releases>
+        <snapshots>
+            <enabled>true</enabled>
+        </snapshots>
+    </repository>
+</repositories>
+
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-bom</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+```
+
+**주의사항**: Maven 미러 설정이 있는 경우, Spring 스냅샷 리포지토리 접근을 위해 `mirrorOf` 설정을 다음과 같이 수정해야 합니다:
+
+```xml
+<mirror>
+    <id>my-mirror</id>
+    <mirrorOf>*,!spring-snapshots,!central-portal-snapshots</mirrorOf>
+    <url>https://my-company-repository.com/maven</url>
+</mirror>
 ```
 
 ## AI 모델 프로바이더 설정
@@ -394,6 +441,45 @@ public class AiController {
 
 3. AI 응답이 올바르게 반환되는지 확인합니다.
 
+## 개발 환경 향상을 위한 추가 도구
+
+### Docker Compose 통합
+
+Spring AI는 Docker Compose를 통해 실행되는 모델 서비스나 벡터 스토어와의 연결을 자동으로 설정할 수 있습니다:
+
+```gradle
+dependencies {
+    implementation 'org.springframework.ai:spring-ai-spring-boot-docker-compose'
+}
+```
+
+지원되는 서비스:
+- Ollama (로컬 LLM)
+- Chroma (벡터 데이터베이스)
+- MongoDB Atlas Local
+- OpenSearch
+- Qdrant
+- Weaviate
+- Typesense
+
+### Testcontainers 통합
+
+테스트 환경에서 Testcontainers를 사용하여 AI 서비스를 자동으로 프로비저닝할 수 있습니다:
+
+```gradle
+dependencies {
+    testImplementation 'org.springframework.ai:spring-ai-spring-boot-testcontainers'
+}
+```
+
+지원되는 컨테이너:
+- OllamaContainer
+- ChromaDBContainer
+- MilvusContainer
+- QdrantContainer
+- WeaviateContainer
+- 기타 벡터 데이터베이스 컨테이너
+
 ## 문제 해결
 
 ### API 키 오류
@@ -418,6 +504,13 @@ public class AiController {
 
 ## 결론
 
-이 장에서는 Spring AI 프로젝트 개발을 위한 환경 설정 방법을 살펴보았습니다. Java 21, Spring Boot 3.3, Spring AI 1.0.0-M6를 기반으로 하는 개발 환경을 구축하고, 다양한 AI 모델 프로바이더와의 연동을 설정하는 방법을 단계별로 알아보았습니다.
+이 장에서는 Spring AI 프로젝트 개발을 위한 환경 설정 방법을 살펴보았습니다. Java 17 이상(권장: Java 21), Spring Boot 3.4.x, Spring AI 1.0.0-SNAPSHOT를 기반으로 하는 개발 환경을 구축하고, 다양한 AI 모델 프로바이더와의 연동을 설정하는 방법을 단계별로 알아보았습니다.
+
+주요 변경사항:
+- Spring Boot 3.4.x 지원 (3.5.x 릴리스 시 지원 예정)
+- Spring AI BOM을 통한 의존성 관리 간소화
+- 1.0.0-M6부터 Maven Central에서 사용 가능
+- Docker Compose와 Testcontainers 통합 지원
+- Spring Initializr에서 AI Models와 Vector Stores 직접 선택 가능
 
 기본 설정이 완료되었으므로, 다음 장에서는 Spring AI의 아키텍처와 핵심 구성 요소에 대해 자세히 살펴보겠습니다.
