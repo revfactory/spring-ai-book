@@ -2,8 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(mkdir:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(git restore:*)",
+      "WebFetch(domain:spring.io)"
     ],
     "deny": []
-  }
+  },
+  "enableAllProjectMcpServers": false
 }
