@@ -1,257 +1,397 @@
 # 15. Spring AI를 활용한 에이전트 구축
 
-## 15.1 Spring AI 에이전트 프레임워크 개요
+## 15.1 Spring AI 1.0.0 GA 에이전트 구축 개요
 
-Spring AI는 LLM 기반 AI 에이전트를 쉽게 개발할 수 있는 포괄적인 프레임워크를 제공합니다. 이 프레임워크는 Spring 생태계의 핵심 원칙과 패턴을 활용하여 견고하고 확장 가능한 에이전트 애플리케이션 구축을 지원합니다.
+Spring AI 1.0.0 GA는 현대적이고 실용적인 AI 에이전트 구축을 위한 포괄적인 도구와 패턴을 제공합니다. ChatClient API, Advisors, Tools, MCP(Model Context Protocol) 통합을 통해 엔터프라이즈급 에이전트 시스템을 손쉽게 구축할 수 있습니다.
 
-### 15.1.1 에이전트 프레임워크 아키텍처
+### 15.1.1 Spring AI 에이전트 구축의 핵심 구성 요소
 
-Spring AI 에이전트 프레임워크는 다음과 같은 핵심 구성 요소로 이루어져 있습니다:
+Spring AI 1.0.0 GA의 에이전트 구축은 다음 핵심 요소들로 구성됩니다:
 
-- **Agent**: 사용자 요청을 처리하고 적절한 도구를 선택하여 작업을 수행하는 중앙 컴포넌트
-- **Tool**: 에이전트가 특정 작업을 수행하기 위해 활용하는 기능 단위
-- **Prompt**: 에이전트의 동작을 정의하는 지시문
-- **Memory**: 대화 맥락과 상태를 유지하는 저장소
-- **Input/Output Processors**: 입력과 출력을 처리하는 컴포넌트
+- **ChatClient**: 통합된 대화형 AI 인터페이스와 빌더 패턴
+- **Advisors**: 재사용 가능한 AI 상호작용 패턴 캡슐화
+- **Tools**: 외부 시스템과의 통합을 위한 도구 호출 메커니즘
+- **Memory**: 대화 맥락과 상태 관리를 위한 메모리 시스템
+- **Observability**: 내장된 메트릭, 추적, 로깅 기능
+- **MCP Integration**: 표준화된 모델-컨텍스트 프로토콜 지원
 
-이러한 구성 요소들이 함께 작동하여 에이전트의 인지-추론-행동 사이클을 구현합니다.
+이러한 구성 요소들이 유기적으로 연결되어 강력하고 확장 가능한 AI 에이전트를 구현합니다.
 
-### 15.1.2 에이전트 인터페이스 및 구현체
+### 15.1.2 Spring AI 1.0.0 GA의 새로운 접근법
 
-Spring AI는 에이전트 개발을 위한 다양한 인터페이스와 구현체를 제공합니다:
+Spring AI 1.0.0 GA는 전통적인 Agent 인터페이스 대신 **ChatClient 중심의 컴포지션 패턴**을 채택했습니다:
 
 ```java
-public interface Agent {
-    AgentResponse execute(AgentRequest request);
-    AgentResponse execute(AgentRequest request, AgentOptions options);
-}
+// ChatClient 빌더 패턴을 통한 에이전트 구성
+ChatClient chatClient = ChatClient.builder(chatModel)
+    .defaultAdvisors(
+        MessageChatMemoryAdvisor.builder(chatMemory).build(),
+        QuestionAnswerAdvisor.builder(vectorStore).build()
+    )
+    .defaultTools("weatherTool", "calculatorTool")
+    .build();
 ```
 
-주요 에이전트 구현체:
+**주요 구축 패턴:**
 
-- **SimpleAgent**: 기본적인 단일 요청-응답 에이전트
-- **ConversationalAgent**: 대화 맥락을 유지하는 에이전트
-- **ToolAwareAgent**: 다양한 도구를 활용할 수 있는 에이전트
-- **ReActAgent**: ReAct(Reasoning and Acting) 패턴을 구현한 에이전트
+- **Advisor-based Architecture**: 재사용 가능한 AI 패턴을 Advisor로 캡슐화
+- **Tool Integration**: 선언적 도구 정의와 동적 해결
+- **Memory Management**: 다양한 메모리 전략 지원 (InMemory, Vector, Database)
+- **Observability First**: 모든 구성 요소에 내장된 관측성
 
-### 15.1.3 의존성 설정
+### 15.1.3 Spring AI 1.0.0 GA 의존성 설정
 
-Spring AI 에이전트 기능을 활용하기 위한 Maven 의존성 설정:
+Spring AI 1.0.0 GA 에이전트 구축을 위한 최신 의존성 설정:
 
 ```xml
 <dependencies>
-    <!-- Spring AI Core -->
+    <!-- Core Spring AI Starter -->
     <dependency>
         <groupId>org.springframework.ai</groupId>
-        <artifactId>spring-ai-core</artifactId>
-        <version>${spring-ai.version}</version>
+        <artifactId>spring-ai-starter-model-openai</artifactId>
     </dependency>
     
-    <!-- Spring AI Agents -->
+    <!-- 벡터 스토어 (RAG용) -->
     <dependency>
         <groupId>org.springframework.ai</groupId>
-        <artifactId>spring-ai-agents</artifactId>
-        <version>${spring-ai.version}</version>
+        <artifactId>spring-ai-starter-vectorstore-pgvector</artifactId>
     </dependency>
     
-    <!-- LLM Provider (예: OpenAI) -->
+    <!-- MCP 클라이언트 지원 -->
     <dependency>
         <groupId>org.springframework.ai</groupId>
-        <artifactId>spring-ai-openai</artifactId>
-        <version>${spring-ai.version}</version>
+        <artifactId>spring-ai-starter-mcp-client</artifactId>
     </dependency>
     
-    <!-- Spring Boot -->
+    <!-- 관측성 지원 -->
     <dependency>
         <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-web</artifactId>
+        <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    
+    <!-- Web 지원 -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-webflux</artifactId>
     </dependency>
 </dependencies>
 ```
 
-## 15.2 첫 번째 에이전트 구현하기
+```properties
+# application.yml 기본 설정
+spring:
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: gpt-4
+          temperature: 0.7
+    
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,traces
+```
 
-### 15.2.1 기본 에이전트 설정
+## 15.2 ChatClient를 활용한 에이전트 구현
 
-간단한 에이전트를 구현하기 위한 기본 설정부터 시작해 보겠습니다:
+### 15.2.1 ChatClient 기반 에이전트 설정
+
+Spring AI 1.0.0 GA에서는 ChatClient를 중심으로 한 에이전트 구성이 표준입니다:
 
 ```java
 @Configuration
 public class AgentConfig {
 
     @Bean
-    public ChatClient chatClient(OpenAiApi openAiApi) {
-        return new OpenAiChatClient(openAiApi);
+    public ChatClient simpleChatClient(ChatModel chatModel) {
+        return ChatClient.builder(chatModel)
+            .defaultSystem("당신은 도움을 주는 AI 어시스턴트입니다. 사용자의 질문에 명확하고 정확하게 답변해 주세요.")
+            .build();
     }
     
     @Bean
-    public Agent simpleAgent(ChatClient chatClient) {
-        String systemPrompt = "당신은 도움을 주는 AI 어시스턴트입니다. 사용자의 질문에 명확하고 정확하게 답변해 주세요.";
-        
-        return AgentBuilder.builder()
-            .chatClient(chatClient)
-            .systemPrompt(systemPrompt)
+    public ChatClient advancedAgent(ChatModel chatModel, 
+                                   InMemoryChatMemory chatMemory,
+                                   VectorStore vectorStore) {
+        return ChatClient.builder(chatModel)
+            .defaultSystem("당신은 고급 기능을 갖춘 AI 어시스턴트입니다.")
+            .defaultAdvisors(
+                MessageChatMemoryAdvisor.builder(chatMemory).build(),
+                QuestionAnswerAdvisor.builder(vectorStore).build()
+            )
             .build();
     }
 }
 ```
 
-### 15.2.2 에이전트 컨트롤러 구현
+### 15.2.2 ChatClient 에이전트 컨트롤러 구현
 
-에이전트와 상호작용하기 위한 REST API 컨트롤러:
+ChatClient를 활용한 현대적인 REST API 컨트롤러 구현:
 
 ```java
 @RestController
 @RequestMapping("/api/agent")
-public class AgentController {
+public class ChatClientAgentController {
 
-    private final Agent agent;
+    private final ChatClient chatClient;
     
-    public AgentController(Agent agent) {
-        this.agent = agent;
+    public ChatClientAgentController(ChatClient chatClient) {
+        this.chatClient = chatClient;
     }
     
     @PostMapping("/chat")
     public ResponseEntity<Map<String, String>> chat(@RequestBody Map<String, String> request) {
         String userInput = request.get("message");
         
-        AgentRequest agentRequest = AgentRequest.builder()
-            .message(userInput)
-            .build();
-            
-        AgentResponse response = agent.execute(agentRequest);
+        String response = chatClient.prompt()
+            .user(userInput)
+            .call()
+            .content();
         
         Map<String, String> responseBody = new HashMap<>();
-        responseBody.put("response", response.getText());
+        responseBody.put("response", response);
+        
+        return ResponseEntity.ok(responseBody);
+    }
+    
+    @PostMapping("/stream")
+    public Flux<ServerSentEvent<String>> streamChat(@RequestBody Map<String, String> request) {
+        String userInput = request.get("message");
+        
+        return chatClient.prompt()
+            .user(userInput)
+            .stream()
+            .content()
+            .map(chunk -> ServerSentEvent.builder(chunk).build());
+    }
+    
+    @PostMapping("/chat-with-memory")
+    public ResponseEntity<Map<String, String>> chatWithMemory(
+            @RequestHeader("User-ID") String userId,
+            @RequestBody Map<String, String> request) {
+        
+        String userInput = request.get("message");
+        
+        String response = chatClient.prompt()
+            .user(userInput)
+            .advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, userId))
+            .call()
+            .content();
+        
+        Map<String, String> responseBody = new HashMap<>();
+        responseBody.put("response", response);
         
         return ResponseEntity.ok(responseBody);
     }
 }
 ```
 
-### 15.2.3 에이전트 테스트
+### 15.2.3 ChatClient 에이전트 테스트
 
-구현한 에이전트를 테스트하는 방법:
+ChatClient를 활용한 테스트 구현:
 
 ```java
 @SpringBootTest
-class SimpleAgentTest {
+class ChatClientAgentTest {
 
     @Autowired
-    private Agent agent;
+    private ChatClient chatClient;
     
     @Test
-    void testSimpleAgent() {
+    void testSimpleChatClient() {
         // Given
-        String userInput = "Spring AI란 무엇인가요?";
-        AgentRequest request = AgentRequest.builder()
-            .message(userInput)
-            .build();
+        String userInput = "Spring AI 1.0.0 GA의 주요 특징은 무엇인가요?";
             
         // When
-        AgentResponse response = agent.execute(request);
+        String response = chatClient.prompt()
+            .user(userInput)
+            .call()
+            .content();
         
         // Then
-        assertNotNull(response);
-        assertFalse(response.getText().isEmpty());
-        System.out.println("Agent Response: " + response.getText());
+        assertThat(response).isNotEmpty();
+        assertThat(response).containsIgnoringCase("Spring AI");
+        System.out.println("Agent Response: " + response);
+    }
+    
+    @Test
+    void testStreamingResponse() {
+        // Given
+        String userInput = "AI 에이전트의 장점을 설명해 주세요.";
+        
+        // When
+        Flux<String> responseStream = chatClient.prompt()
+            .user(userInput)
+            .stream()
+            .content();
+        
+        // Then
+        StepVerifier.create(responseStream)
+            .expectNextMatches(chunk -> !chunk.isEmpty())
+            .thenCancel()
+            .verify();
+    }
+    
+    @Test
+    void testChatClientWithAdvisors() {
+        // Given
+        String userInput = "이전 대화 내용을 기억하나요?";
+        String conversationId = "test-conversation-123";
+        
+        // When
+        String response = chatClient.prompt()
+            .user(userInput)
+            .advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, conversationId))
+            .call()
+            .content();
+        
+        // Then
+        assertThat(response).isNotEmpty();
+        System.out.println("Memory-enabled response: " + response);
     }
 }
 ```
 
-## 15.3 도구 사용 에이전트 개발
+## 15.3 Spring AI 1.0.0 GA 도구 사용 에이전트 개발
 
-### 15.3.1 도구(Tool) 인터페이스 이해하기
+### 15.3.1 Spring AI 1.0.0 GA 도구(Tool) 시스템 이해하기
 
-Spring AI의 Tool 인터페이스는 에이전트가 외부 시스템과 상호작용하기 위한 방법을 정의합니다:
+Spring AI 1.0.0 GA의 도구 시스템은 `@Tool` 어노테이션과 `ToolCallback` 인터페이스를 중심으로 합니다:
 
 ```java
-public interface Tool {
-    String getName();
-    String getDescription();
-    Object execute(Map<String, Object> parameters);
-    ToolParameterDefinition getParameterDefinition();
+// @Tool 어노테이션을 사용한 선언적 도구 정의
+class WeatherTools {
+    
+    @Tool(description = "현재 날씨 정보를 제공합니다. 도시 이름을 입력하면 해당 도시의 날씨를 알려줍니다.")
+    public String getCurrentWeather(@ToolParam(description = "날씨 정보를 조회할 도시 이름") String city) {
+        // 실제 날씨 API 호출 로직
+        return "서울의 현재 날씨: 맑음, 기온 22°C";
+    }
+    
+    @Tool(description = "날씨 예보 정보를 제공합니다.")
+    public String getWeatherForecast(
+            @ToolParam(description = "예보를 조회할 도시") String city,
+            @ToolParam(description = "예보 일수 (1-7일)", required = false) Integer days) {
+        int forecastDays = days != null ? days : 3;
+        return String.format("%s의 %d일 예보: 대체로 맑음", city, forecastDays);
+    }
 }
 ```
 
-Tool 인터페이스의 주요 구성 요소:
-- **getName()**: 도구의 고유 이름을 반환
-- **getDescription()**: 도구의 기능 설명을 반환
-- **execute()**: 도구의 실제 기능을 실행
-- **getParameterDefinition()**: 도구가 필요로 하는 매개변수 정의를 반환
+**주요 도구 시스템 특징:**
+- **@Tool 어노테이션**: 메서드를 도구로 자동 등록
+- **@ToolParam**: 매개변수에 대한 상세 정보 제공
+- **자동 JSON 스키마 생성**: 매개변수 타입에서 자동으로 스키마 생성
+- **동적 도구 해결**: 빈 이름으로 도구를 동적으로 해결
 
-### 15.3.2 사용자 정의 도구 구현
+### 15.3.2 @Tool 어노테이션을 활용한 도구 구현
 
-날씨 정보를 제공하는 커스텀 도구 구현 예시:
+다양한 도구를 @Tool 어노테이션으로 구현하는 방법:
 
 ```java
 @Component
-public class WeatherTool implements Tool {
+public class BusinessTools {
 
     private final WeatherService weatherService;
+    private final DatabaseService databaseService;
     
-    public WeatherTool(WeatherService weatherService) {
+    public BusinessTools(WeatherService weatherService, DatabaseService databaseService) {
         this.weatherService = weatherService;
+        this.databaseService = databaseService;
     }
     
-    @Override
-    public String getName() {
-        return "weather";
+    @Tool(description = "현재 날씨 정보를 조회합니다")
+    public WeatherInfo getCurrentWeather(
+            @ToolParam(description = "날씨를 조회할 도시 이름") String city) {
+        return weatherService.getWeatherForCity(city);
     }
     
-    @Override
-    public String getDescription() {
-        return "현재 날씨 정보를 제공합니다. 도시 이름을 입력하면 해당 도시의 날씨를 알려줍니다.";
+    @Tool(description = "고객 정보를 조회합니다")
+    public CustomerInfo getCustomerInfo(
+            @ToolParam(description = "고객 ID") Long customerId) {
+        return databaseService.findCustomerById(customerId);
     }
     
-    @Override
-    public Object execute(Map<String, Object> parameters) {
-        String city = (String) parameters.get("city");
-        if (city == null || city.isBlank()) {
-            throw new IllegalArgumentException("도시 이름이 필요합니다.");
-        }
-        
-        WeatherInfo weatherInfo = weatherService.getWeatherForCity(city);
-        
-        Map<String, Object> result = new HashMap<>();
-        result.put("temperature", weatherInfo.getTemperature());
-        result.put("condition", weatherInfo.getCondition());
-        result.put("humidity", weatherInfo.getHumidity());
-        
-        return result;
+    @Tool(description = "이메일을 전송합니다")
+    public String sendEmail(
+            @ToolParam(description = "수신자 이메일") String to,
+            @ToolParam(description = "이메일 제목") String subject,
+            @ToolParam(description = "이메일 본문") String body) {
+        // 이메일 전송 로직
+        return "이메일이 성공적으로 전송되었습니다.";
     }
     
-    @Override
-    public ToolParameterDefinition getParameterDefinition() {
-        return ToolParameterDefinition.builder()
-            .addParameter("city", ParameterType.STRING, "날씨 정보를 조회할 도시 이름")
-            .build();
+    @Tool(description = "복잡한 데이터 분석을 수행합니다", returnDirect = true)
+    public AnalysisResult performAnalysis(
+            @ToolParam(description = "분석할 데이터 ID") String dataId,
+            @ToolParam(description = "분석 유형", required = false) String analysisType) {
+        // 복잡한 분석 로직
+        return new AnalysisResult(dataId, analysisType);
     }
 }
 ```
 
-### 15.3.3 도구를 활용하는 에이전트 구성
+### 15.3.3 ChatClient에 도구를 통합하는 방법
 
-여러 도구를 사용하는 에이전트 구성 예시:
+ChatClient에 도구를 통합하는 다양한 방법:
 
 ```java
 @Configuration
-public class ToolAwareAgentConfig {
+public class ToolAwareChatClientConfig {
 
     @Bean
-    public Agent toolAwareAgent(ChatClient chatClient, List<Tool> tools) {
-        String systemPrompt = """
-            당신은 도움을 주는 AI 어시스턴트입니다.
-            사용자의 요청을 이해하고 적절한 도구를 활용하여 정확한 정보를 제공해 주세요.
-            사용자가 요청한 작업을 수행하기 위해 필요한 도구를 선택하고 활용하세요.
-            도구를 사용할 때는 필요한 매개변수를 정확히 제공해야 합니다.
-            """;
-        
-        return AgentBuilder.builder()
-            .chatClient(chatClient)
-            .systemPrompt(systemPrompt)
-            .tools(tools)
+    public ChatClient toolEnabledChatClient(ChatModel chatModel, BusinessTools businessTools) {
+        return ChatClient.builder(chatModel)
+            .defaultSystem("""
+                당신은 도구를 활용할 수 있는 AI 어시스턴트입니다.
+                사용자의 요청을 이해하고 적절한 도구를 선택하여 정확한 정보를 제공하세요.
+                도구 사용 시 필요한 매개변수를 정확히 제공하고, 결과를 이해하기 쉽게 설명하세요.
+                """)
+            .defaultTools(businessTools) // 기본 도구 설정
             .build();
+    }
+    
+    @Bean
+    public ChatClient dynamicToolChatClient(ChatModel chatModel) {
+        return ChatClient.builder(chatModel)
+            .defaultSystem("동적 도구 해결을 지원하는 AI 어시스턴트입니다.")
+            .defaultTools("getCurrentWeather", "getCustomerInfo", "sendEmail") // 도구 이름으로 동적 해결
+            .build();
+    }
+}
+
+@Service
+public class ToolEnabledAgentService {
+    
+    private final ChatClient chatClient;
+    
+    public ToolEnabledAgentService(ChatClient chatClient) {
+        this.chatClient = chatClient;
+    }
+    
+    public String processRequest(String userInput) {
+        return chatClient.prompt()
+            .user(userInput)
+            .call()
+            .content();
+    }
+    
+    public String processWithSpecificTools(String userInput, Object... tools) {
+        return chatClient.prompt()
+            .user(userInput)
+            .tools(tools) // 런타임에 특정 도구 추가
+            .call()
+            .content();
+    }
+    
+    public Flux<String> processStreaming(String userInput) {
+        return chatClient.prompt()
+            .user(userInput)
+            .stream()
+            .content();
     }
 }
 ```
@@ -1117,10 +1257,325 @@ public class SlackBotAdapter {
 }
 ```
 
-## 15.8 요약 및 다음 단계
+## 15.8 Google ADK와 Spring AI 통합
 
-이 장에서는 Spring AI를 활용한 에이전트 개발의 실질적인 구현 방법에 대해 알아보았습니다. 기본 에이전트 구성부터 도구 사용, 대화 맥락 관리, 고급 패턴 구현, 배포 및 통합에 이르기까지 다양한 측면을 살펴보았습니다.
+### 15.8.1 Google ADK 소개
 
-Spring AI 에이전트 프레임워크는 풍부한 기능과 확장 가능한 구조를 제공하여 다양한 복잡도의 AI 에이전트 애플리케이션을 개발할 수 있게 해줍니다. 기본 원칙과 패턴을 이해하고, 제공된 구성 요소들을 활용하면 비즈니스 요구사항에 맞는 맞춤형 에이전트를 효과적으로 개발할 수 있습니다.
+Google Agent Development Kit (ADK)는 2025년 Google Cloud NEXT에서 발표된 오픈소스 코드-우선(code-first) 프레임워크로, 정교한 AI 에이전트와 멀티 에이전트 시스템을 개발할 수 있도록 설계되었습니다.
 
-다음 장에서는 더 고급 에이전트 기능에 대해 살펴보고, 실제 비즈니스 시나리오에 적용하는 방법을 알아보겠습니다. 이를 통해 에이전트의 역량을 더욱 확장하고, 더 복잡한 문제를 해결하는 방법을 배우게 될 것입니다.
+**주요 특징:**
+- **멀티 에이전트 설계**: 특화된 에이전트들을 계층적으로 구성
+- **풍부한 모델 생태계**: Gemini 최적화 및 200개 이상 모델 지원
+- **A2A (Agent-to-Agent) Protocol**: 표준화된 에이전트 간 통신
+- **MCP (Model Context Protocol) 통합**: 표준화된 도구 통신
+- **Google Cloud 네이티브 통합**: Vertex AI와 완전 통합
+
+### 15.8.2 Spring AI와 Google ADK 통합 아키텍처
+
+```java
+@Configuration
+public class GoogleADKIntegrationConfig {
+    
+    @Bean
+    public VertexAiGeminiChatModel vertexAiChatModel() {
+        return VertexAiGeminiChatModel.builder()
+            .projectId("${spring.ai.vertex.ai.gemini.project-id}")
+            .location("${spring.ai.vertex.ai.gemini.location}")
+            .modelName("gemini-2.0-flash")
+            .build();
+    }
+    
+    @Bean
+    public ChatClient adkIntegratedChatClient(VertexAiGeminiChatModel chatModel,
+                                             ADKBridgeTools adkTools) {
+        return ChatClient.builder(chatModel)
+            .defaultSystem("""
+                당신은 Google ADK와 통합된 Spring AI 에이전트입니다.
+                복잡한 멀티 에이전트 작업이 필요한 경우 ADK 에이전트에게 위임하세요.
+                """)
+            .defaultTools(adkTools)
+            .build();
+    }
+}
+```
+
+### 15.8.3 A2A (Agent-to-Agent) 프로토콜 구현
+
+A2A 프로토콜을 활용한 Spring AI와 Google ADK 간 통신:
+
+```java
+@Component
+public class ADKBridgeTools {
+    
+    private final WebClient adkWebClient;
+    private final ObjectMapper objectMapper;
+    
+    public ADKBridgeTools(WebClient.Builder webClientBuilder, ObjectMapper objectMapper) {
+        this.adkWebClient = webClientBuilder
+            .baseUrl("${adk.agent.base-url}")
+            .defaultHeader("Authorization", "Bearer ${adk.agent.token}")
+            .build();
+        this.objectMapper = objectMapper;
+    }
+    
+    @Tool(description = "복잡한 연구 작업을 ADK 연구 에이전트에게 위임합니다")
+    public Mono<ResearchResult> delegateResearch(
+            @ToolParam(description = "연구할 주제") String topic,
+            @ToolParam(description = "연구 깊이 (shallow, medium, deep)") String depth) {
+        
+        Map<String, Object> request = Map.of(
+            "action", "research",
+            "parameters", Map.of(
+                "topic", topic,
+                "depth", depth,
+                "max_sources", 10
+            )
+        );
+        
+        return adkWebClient.post()
+            .uri("/api/agent/task")
+            .bodyValue(request)
+            .retrieve()
+            .bodyToMono(ResearchResult.class);
+    }
+    
+    @Tool(description = "멀티 에이전트 워크플로우를 ADK에서 실행합니다")
+    public Mono<WorkflowResult> executeWorkflow(
+            @ToolParam(description = "워크플로우 정의") String workflowSpec,
+            @ToolParam(description = "입력 데이터") Map<String, Object> inputData) {
+        
+        Map<String, Object> request = Map.of(
+            "action", "execute_workflow",
+            "workflow", workflowSpec,
+            "data", inputData
+        );
+        
+        return adkWebClient.post()
+            .uri("/api/workflow/execute")
+            .bodyValue(request)
+            .retrieve()
+            .bodyToMono(WorkflowResult.class);
+    }
+}
+```
+
+### 15.8.4 MCP를 통한 도구 공유
+
+Spring AI의 MCP 클라이언트를 활용한 ADK 도구 통합:
+
+```java
+@Configuration
+public class MCPADKIntegrationConfig {
+    
+    @Bean
+    public McpClient adkMcpClient() {
+        return McpClient.builder()
+            .transport(SseClientTransport.builder()
+                .uri("${adk.mcp.endpoint}")
+                .build())
+            .build();
+    }
+    
+    @Bean
+    public ChatClient mcpEnabledChatClient(ChatModel chatModel, McpClient mcpClient) {
+        return ChatClient.builder(chatModel)
+            .defaultSystem("MCP를 통해 ADK 도구에 접근할 수 있는 에이전트입니다.")
+            .defaultTools("mcp::google_search", "mcp::web_fetch", "mcp::code_executor")
+            .toolContext(Map.of("mcpClient", mcpClient))
+            .build();
+    }
+}
+
+@Component 
+public class MCPToolProxy {
+    
+    @Tool(description = "MCP를 통해 Google 검색을 실행합니다")
+    public String executeGoogleSearch(
+            @ToolParam(description = "검색 쿼리") String query,
+            ToolContext context) {
+        
+        McpClient mcpClient = (McpClient) context.getContext().get("mcpClient");
+        
+        return mcpClient.callTool("google_search", Map.of("query", query))
+            .map(result -> result.getContent())
+            .block();
+    }
+}
+```
+
+### 15.8.5 하이브리드 에이전트 시스템 구현
+
+Spring AI와 Google ADK를 활용한 하이브리드 시스템:
+
+```java
+@Service
+public class HybridAgentOrchestrator {
+    
+    private final ChatClient springAiChatClient;
+    private final ADKBridgeTools adkBridge;
+    
+    public HybridAgentOrchestrator(ChatClient springAiChatClient, ADKBridgeTools adkBridge) {
+        this.springAiChatClient = springAiChatClient;
+        this.adkBridge = adkBridge;
+    }
+    
+    public Mono<AgentResponse> processComplexRequest(ComplexRequest request) {
+        // 1. Spring AI로 초기 분석
+        String initialAnalysis = springAiChatClient.prompt()
+            .user("다음 요청을 분석하고 처리 방향을 제시하세요: " + request.getDescription())
+            .call()
+            .content();
+        
+        // 2. 복잡성 판단
+        if (requiresMultiAgent(initialAnalysis)) {
+            // ADK 멀티 에이전트 시스템으로 위임
+            return adkBridge.executeWorkflow(
+                buildWorkflowSpec(request),
+                Map.of("initialAnalysis", initialAnalysis)
+            ).map(this::convertToAgentResponse);
+        } else {
+            // Spring AI로 직접 처리
+            return Mono.just(processWithSpringAI(request, initialAnalysis));
+        }
+    }
+    
+    private boolean requiresMultiAgent(String analysis) {
+        return analysis.toLowerCase().contains("복잡한") || 
+               analysis.toLowerCase().contains("다단계") ||
+               analysis.toLowerCase().contains("전문가");
+    }
+    
+    private String buildWorkflowSpec(ComplexRequest request) {
+        return """
+            {
+              "agents": [
+                {"name": "researcher", "role": "정보 수집"},
+                {"name": "analyzer", "role": "데이터 분석"},
+                {"name": "synthesizer", "role": "결과 종합"}
+              ],
+              "workflow": "sequential",
+              "coordination": "llm_based"
+            }
+            """;
+    }
+}
+```
+
+### 15.8.6 ADK 에이전트 디스커버리 및 라우팅
+
+```java
+@Service
+public class ADKAgentRegistry {
+    
+    private final Map<String, AgentInfo> registeredAgents = new ConcurrentHashMap<>();
+    private final WebClient discoveryClient;
+    
+    @PostConstruct
+    public void discoverAgents() {
+        // A2A 프로토콜을 통한 에이전트 디스커버리
+        discoveryClient.get()
+            .uri("/api/agents/discover")
+            .retrieve()
+            .bodyToFlux(AgentInfo.class)
+            .doOnNext(agent -> registeredAgents.put(agent.getName(), agent))
+            .subscribe();
+    }
+    
+    @Tool(description = "적절한 ADK 에이전트를 찾아 작업을 라우팅합니다")
+    public Mono<String> routeToAgent(
+            @ToolParam(description = "작업 설명") String taskDescription,
+            @ToolParam(description = "필요한 전문성") String requiredExpertise) {
+        
+        AgentInfo bestAgent = findBestAgent(taskDescription, requiredExpertise);
+        
+        if (bestAgent == null) {
+            return Mono.just("적절한 에이전트를 찾을 수 없습니다.");
+        }
+        
+        return WebClient.create(bestAgent.getEndpoint())
+            .post()
+            .uri("/api/task")
+            .bodyValue(Map.of(
+                "description", taskDescription,
+                "expertise", requiredExpertise
+            ))
+            .retrieve()
+            .bodyToMono(String.class);
+    }
+    
+    private AgentInfo findBestAgent(String taskDescription, String expertise) {
+        return registeredAgents.values().stream()
+            .filter(agent -> agent.getCapabilities().contains(expertise))
+            .max(Comparator.comparing(agent -> 
+                calculateRelevanceScore(agent, taskDescription)))
+            .orElse(null);
+    }
+}
+```
+
+### 15.8.7 모니터링 및 관측성
+
+```java
+@Component
+public class HybridAgentObservability {
+    
+    private final MeterRegistry meterRegistry;
+    private final Tracer tracer;
+    
+    public HybridAgentObservability(MeterRegistry meterRegistry, Tracer tracer) {
+        this.meterRegistry = meterRegistry;
+        this.tracer = tracer;
+    }
+    
+    @EventListener
+    public void onSpringAIAgentCall(SpringAIAgentCallEvent event) {
+        meterRegistry.counter("agent.calls.spring_ai",
+            "model", event.getModelName(),
+            "success", String.valueOf(event.isSuccessful()))
+            .increment();
+        
+        meterRegistry.timer("agent.execution.time.spring_ai")
+            .record(event.getExecutionTime(), TimeUnit.MILLISECONDS);
+    }
+    
+    @EventListener
+    public void onADKAgentCall(ADKAgentCallEvent event) {
+        meterRegistry.counter("agent.calls.adk",
+            "agent_name", event.getAgentName(),
+            "protocol", event.getProtocol())
+            .increment();
+    }
+    
+    public Span createHybridAgentSpan(String operation) {
+        return tracer.nextSpan()
+            .name("hybrid-agent-" + operation)
+            .tag("component", "spring-ai-adk-bridge")
+            .start();
+    }
+}
+```
+
+## 15.9 요약 및 다음 단계
+
+이 장에서는 Spring AI 1.0.0 GA를 활용한 에이전트 개발의 실질적인 구현 방법에 대해 알아보았습니다. ChatClient 중심의 현대적 접근법부터 Google ADK와의 통합까지 다양한 측면을 살펴보았습니다.
+
+**주요 학습 내용:**
+
+1. **Spring AI 1.0.0 GA 에이전트 아키텍처**
+   - ChatClient 중심의 컴포지션 패턴
+   - Advisors API를 통한 재사용 가능한 AI 패턴
+   - @Tool 어노테이션을 활용한 선언적 도구 정의
+
+2. **Google ADK 통합**
+   - A2A 프로토콜을 통한 에이전트 간 통신
+   - MCP를 활용한 표준화된 도구 공유
+   - 하이브리드 에이전트 시스템 구축
+
+3. **엔터프라이즈 고려사항**
+   - 보안과 인증
+   - 모니터링과 관측성
+   - 확장성과 성능 최적화
+
+Spring AI 1.0.0 GA는 풍부한 기능과 확장 가능한 구조를 제공하여 다양한 복잡도의 AI 에이전트 애플리케이션을 개발할 수 있게 해줍니다. Google ADK와의 통합을 통해 멀티 에이전트 시스템의 강력한 기능을 활용할 수 있으며, A2A 프로토콜을 통해 에이전트 간 상호운용성을 보장할 수 있습니다.
+
+다음 장에서는 A2A (Agent-to-Agent) 프로토콜에 대해 더 자세히 살펴보고, 에이전트 간 통신과 협업 패턴을 구현하는 방법을 알아보겠습니다.
