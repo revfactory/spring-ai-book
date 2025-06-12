@@ -4,31 +4,44 @@ Spring AI는 Spring 생태계의 모듈화·POJO 지향 철학을 AI 도메인�
 
 ## 최신 버전 정보
 
-2025년 2월 공개된 1.0.0 Milestone 6(M6) 버전은 다음과 같은 주요 기능을 포함합니다:
-- `@Tool` / `@ToolParam` 어노테이션을 통한 향상된 Function Calling
-- Model Context Protocol(MCP) SDK 지원
-- 개선된 VectorStore API
-- Spring AI Agent API (실험적 기능)
+**Spring AI 1.0.0 GA 정식 출시** (2025년 5월 20일)
 
-([spring.io][1], [galaxy.ai][2], [infoq.com][3])
+2년 이상의 개발과 8번의 마일스톤을 거쳐 Spring AI 1.0.0 GA가 정식 출시되었습니다. 이번 GA 버전은 프로덕션 환경에서 사용할 수 있는 완전한 AI 애플리케이션 프레임워크를 제공합니다.
+
+### 주요 GA 기능
+- **ChatClient API**: 20개 이상의 AI 모델을 지원하는 통합 클라이언트 API
+- **Tool/Function Calling**: `@Tool` 어노테이션을 통한 선언적 도구 정의
+- **Model Context Protocol (MCP)**: OAuth2 보안과 함께 완전한 MCP 지원
+- **Agent API**: 계획, 메모리, 액션을 결합한 AI 에이전트 구현
+- **Structured Outputs**: AI 응답을 POJO로 매핑하는 타입 안전 처리
+- **Advisors API**: 프롬프트 수정을 위한 인터셉터 체인
+
+([Spring AI 1.0 GA 공식 발표](https://spring.io/blog/2025/05/20/spring-ai-1-0-GA-released/), [InfoQ 리뷰](https://www.infoq.com/news/2025/05/spring-ai-1-0-streamlines-apps/), [Microsoft Azure 통합](https://techcommunity.microsoft.com/blog/appsonazureblog/spring-ai-1-0-ga-is-here---build-java-ai-apps-end-to-end-on-azure-today/4414763))
 
 ## 주요 특징
 
-**1. 통합 AI 모델 지원**
-- OpenAI, Anthropic, Microsoft Azure, Amazon Bedrock, Google Gemini, Ollama 등 주요 모델 프로바이더를 단일 API로 지원
-- Chat Completion, Embedding, Text-to-Image, Transcription, Text-to-Speech, Moderation 등 다양한 모델 타입 지원
-- 동기 및 스트리밍 호출 모두 제공 ([spring.io][4])
+**1. 20개 이상 AI 모델 지원**
+- **메이저 프로바이더**: OpenAI, Anthropic, Microsoft Azure OpenAI, Amazon Bedrock, Google Vertex AI
+- **아시아 프로바이더**: ZhiPu AI, Qianfan, Moonshot 등
+- **로컬 모델**: Ollama, Hugging Face 등
+- **멀티모달**: Chat, Embedding, Image, Audio, Transcription, Text-to-Speech, Moderation 지원
 
-**2. RAG 및 벡터 스토어**
-- VectorStore API를 통한 벡터 데이터베이스 통합
-- ChromaDB, Pinecone, Postgres pgvector 등 다양한 벡터 스토어 지원
-- Retrieval-Augmented Generation(RAG) 패턴의 손쉬운 구현 ([docs.spring.io][5], [piotrminkowski.com][6], [baeldung.com][7])
+**2. ChatClient API**
+- 모든 AI 모델에 대한 통합된 포털 인터페이스
+- 멀티모달 입력/출력 지원 (모델이 지원하는 경우)
+- Structured Output을 통한 JSON 응답 자동 파싱
+- 동기/스트리밍 호출 모두 지원
 
-**3. 엔터프라이즈 준비**
-- 강력한 테스트 및 모킹 지원
-- 포괄적인 관찰가능성(Observability) 기능
-- 보안 및 비용 관리 기능
-- Spring Boot와의 완벽한 통합 ([piotrminkowski.com][6])
+**3. RAG 및 벡터 스토어**
+- **벡터 데이터베이스**: Cassandra, PostgreSQL/PGVector, MongoDB Atlas, Milvus, Pinecone, Redis 등
+- 일관된 Vector Store API를 통한 엔터프라이즈 데이터 그라운딩
+- Retrieval-Augmented Generation(RAG) 패턴 완벽 지원
+
+**4. 프로덕션 준비 기능**
+- Spring 패턴 및 관례 준수로 기존 개발자 친화적
+- Spring Security와 Authorization Server를 통한 OAuth2 보안
+- 포괄적인 관찰가능성(Observability) 및 모니터링
+- OpenRewrite 레시피를 통한 자동 업그레이드 지원
 
 ## 책의 구성
 
@@ -51,7 +64,7 @@ Spring AI는 Spring 생태계의 모듈화·POJO 지향 철학을 AI 도메인�
    - Spring 생태계와의 통합
 
 3. **[개발 환경 설정](Part01_AI와_Spring_AI_개요/03_Development_Environment_Setup.md)**
-   - Java 21, Spring Boot 3.3, Spring AI 1.0.0-M6 설정
+   - Java 21, Spring Boot 3.3+, Spring AI 1.0.0 GA 설정
    - IDE 설정 및 도구 구성
    - API 키 관리와 보안
 
@@ -187,16 +200,45 @@ C. **[Spring AI 커뮤니티 참여와 기여 방법](Part07_부록/C_Community_
 ## 이 책의 특징
 
 - **실습 중심**: 모든 장에 실행 가능한 예제 코드 포함
-- **최신 버전 대응**: Spring AI 1.0.0-M6 기준으로 작성
-- **실무 적용**: 실제 프로젝트에 바로 적용 가능한 패턴과 모범 사례
+- **최신 버전 대응**: Spring AI 1.0.0 GA 기준으로 작성
+- **프로덕션 준비**: 실제 프로덕션 환경에서 사용 가능한 패턴과 모범 사례
 - **점진적 학습**: 기초부터 고급까지 단계별 학습 구조
+- **에이전트 중심**: 2025년 AI 에이전트 시대에 맞춘 심화 내용
 
 ## 대상 독자
 
 - Spring Framework 경험이 있는 Java 개발자
 - AI/ML을 애플리케이션에 통합하고자 하는 개발자
 - 엔터프라이즈 환경에서 AI 솔루션을 구축하는 아키텍트
-- Spring AI의 최신 기능을 학습하고자 하는 모든 개발자
+- AI 에이전트 시스템을 구축하려는 개발자
+- Spring AI 1.0.0 GA의 최신 기능을 학습하고자 하는 모든 개발자
+
+## 시작하기
+
+### Maven 의존성
+
+```xml
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-bom</artifactId>
+            <version>1.0.0</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+```
+
+### Gradle 의존성
+
+```gradle
+dependencies {
+    implementation platform('org.springframework.ai:spring-ai-bom:1.0.0')
+    implementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter'
+}
+```
 
 ## 예제 코드
 
@@ -204,10 +246,18 @@ C. **[Spring AI 커뮤니티 참여와 기여 방법](Part07_부록/C_Community_
 
 ---
 
-[1]: https://spring.io/blog/2025/02/14/spring-ai-1-0-0-m6-released "Spring AI 1.0.0 M6 Released"
-[2]: https://galaxy.ai/youtube-summarizer/exploring-the-new-features-of-spring-ai-m6-and-the-mcp-protocol-cE1h-rC2o2U "Exploring the New Features of Spring AI M6 and the mCP Protocol"
-[3]: https://www.infoq.com/news/2025/02/spring-news-roundup-feb17-2025/ "Spring News Roundup: Milestone Releases of Boot, Security, Auth Server, Integration ..."
-[4]: https://spring.io/projects/spring-ai "Spring AI"
-[5]: https://docs.spring.io/spring-ai/reference/api/vectordbs.html "Vector Databases :: Spring AI Reference"
-[6]: https://piotrminkowski.com/2025/02/24/using-rag-and-vector-store-with-spring-ai/ "Using RAG and Vector Store with Spring AI - Piotr's TechBlog"
-[7]: https://www.baeldung.com/spring-ai-chromadb-vector-store "Spring AI With ChromaDB Vector Store - Baeldung"
+## 업그레이드 가이드
+
+기존 Spring AI 마일스톤 버전에서 1.0.0 GA로 업그레이드하려면 [OpenRewrite 레시피](https://github.com/openrewrite/rewrite-spring/tree/main/src/main/resources/META-INF/rewrite/spring-ai)를 사용하여 자동화할 수 있습니다.
+
+## 관련 링크
+
+- [Spring AI 1.0.0 GA 공식 발표](https://spring.io/blog/2025/05/20/spring-ai-1-0-GA-released/)
+- [Spring AI 공식 문서](https://docs.spring.io/spring-ai/reference/)
+- [Spring AI GitHub 저장소](https://github.com/spring-projects/spring-ai)
+- [InfoQ: Spring AI 1.0 출시 뉴스](https://www.infoq.com/news/2025/05/spring-ai-1-0-streamlines-apps/)
+- [Microsoft Azure Spring AI 통합](https://techcommunity.microsoft.com/blog/appsonazureblog/spring-ai-1-0-ga-is-here---build-java-ai-apps-end-to-end-on-azure-today/4414763)
+
+---
+
+**주의**: 이 책은 Spring AI 1.0.0 GA 버전을 기준으로 작성되었으며, 프로덕션 환경에서 안전하게 사용할 수 있는 실무 중심의 내용을 담고 있습니다.
