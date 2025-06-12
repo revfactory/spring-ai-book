@@ -1,387 +1,406 @@
 # 19장: 에이전트 평가·디버깅·모니터링
 
-## 19.1 에이전트 평가 개요
+## 19.1 개요
 
-AI 에이전트 시스템을 개발하고 운영할 때 성능과 품질을 지속적으로 평가하는 것이 중요합니다. 이 장에서는 Spring AI 에이전트를 체계적으로 평가하고, 디버깅하며, 모니터링하는 방법을 살펴보겠습니다.
+Spring AI는 AI 애플리케이션의 신뢰성과 성능을 보장하기 위한 포괄적인 관찰가능성(Observability) 기능을 제공합니다. 이 장에서는 Spring AI의 평가(Evaluation), 디버깅(Debugging), 모니터링(Monitoring) 기능을 활용하여 프로덕션 환경에서 AI 에이전트를 효과적으로 관리하는 방법을 알아봅니다.
 
-### 19.1.1 에이전트 평가의 중요성
+### 19.1.1 Spring AI의 관찰가능성 특징
 
-- 품질 보증과 지속적 개선
-- 사용자 만족도 향상
-- 리소스 사용 최적화
-- 윤리적, 법적 규정 준수
+Spring AI는 Spring 생태계의 관찰가능성 기능을 기반으로 AI 관련 작업에 대한 통찰력을 제공합니다:
 
-### 19.1.2 평가 프레임워크 구성요소
+- **메트릭과 추적**: ChatClient, ChatModel, EmbeddingModel, ImageModel, VectorStore 등 핵심 컴포넌트에 대한 메트릭과 추적 기능
+- **낮은/높은 카디널리티 키**: 메트릭과 추적에는 낮은 카디널리티 키가 추가되고, 추적에만 높은 카디널리티 키가 추가
+- **어드바이저 관찰가능성**: 어드바이저 체인의 타이밍과 추적 정보
+- **도구 호출 관찰가능성**: 도구 실행, 인수, 결과 추적
+
+### 19.1.2 평가 프레임워크
+
+Spring AI는 AI 응답을 평가하기 위한 `Evaluator` 인터페이스를 제공합니다:
 
 ```java
-public interface AgentEvaluationFramework {
-    EvaluationResult evaluateAgent(Agent agent, EvaluationDataset dataset);
-    List<EvaluationMetric> getSupportedMetrics();
-    void registerMetric(EvaluationMetric metric);
-    EvaluationReport generateReport(List<EvaluationResult> results);
+@FunctionalInterface
+public interface Evaluator {
+    EvaluationResponse evaluate(EvaluationRequest evaluationRequest);
 }
 ```
 
-### 19.1.3 평가 지표 유형
-
-- 정확성 지표 (Accuracy Metrics)
-- 일관성 지표 (Consistency Metrics)
-- 안전성 지표 (Safety Metrics)
-- 효율성 지표 (Efficiency Metrics)
-- 사용자 만족도 지표 (User Satisfaction Metrics)
-
-## 19.2 평가 데이터셋 구성
-
-에이전트를 평가하기 위한 데이터셋을 구성하고 관리하는 방법을 알아봅니다.
-
-### 19.2.1 평가 데이터셋 인터페이스
+평가 요청은 다음 정보를 포함합니다:
 
 ```java
-public interface EvaluationDataset {
-    List<EvaluationSample> getSamples();
-    int size();
-    String getName();
-    DatasetMetadata getMetadata();
-}
-
-public interface EvaluationSample {
-    String getId();
-    AgentRequest getInput();
-    List<ExpectedOutput> getExpectedOutputs();
-    Map<String, Object> getMetadata();
-}
-
-public interface ExpectedOutput {
-    String getContent();
-    double getScore(String actualOutput);
-    boolean isAcceptable(String actualOutput);
+public class EvaluationRequest {
+    private final String userText;        // 사용자 입력
+    private final List<Content> dataList; // RAG 등의 컨텍스트 데이터
+    private final String responseContent; // AI 모델의 응답
 }
 ```
 
-### 19.2.2 테스트 케이스 구성
+## 19.2 관찰가능성 구성
+
+### 19.2.1 ChatClient 관찰가능성
+
+ChatClient의 `call()` 또는 `stream()` 작업이 호출될 때 관찰 정보가 기록됩니다.
+
+**낮은 카디널리티 키:**
+- `gen_ai.operation.name`: 항상 `framework`
+- `gen_ai.system`: 항상 `spring_ai`
+- `spring.ai.chat.client.stream`: 스트림 응답 여부
+- `spring.ai.kind`: `chat_client`
+
+**높은 카디널리티 키:**
+- `gen_ai.prompt`: 프롬프트 내용 (선택적)
+- `spring.ai.chat.client.advisors`: 구성된 어드바이저 목록
+- `spring.ai.chat.client.conversation.id`: 대화 ID
+- `spring.ai.chat.client.tool.names`: 도구 이름 목록
+
+### 19.2.2 프롬프트 로깅 구성
+
+프롬프트 내용은 민감한 정보를 포함할 수 있어 기본적으로 내보내지지 않습니다:
+
+```yaml
+spring:
+  ai:
+    chat:
+      client:
+        observations:
+          log-prompt: false  # 프롬프트 로깅 활성화/비활성화
+```
+
+⚠️ **경고**: 프롬프트 로깅을 활성화하면 민감한 정보가 노출될 위험이 있습니다.
+
+### 19.2.3 ChatModel 관찰가능성
+
+ChatModel의 `call()` 또는 `stream()` 메서드 호출 시 관찰 정보가 기록됩니다.
+
+**메트릭:**
+- `gen_ai.client.token.usage`: 단일 모델 호출에 사용된 입력/출력 토큰 수
+
+**추적 정보:**
+```java
+// 낮은 카디널리티 키
+- gen_ai.operation.name     // 수행 중인 작업 이름
+- gen_ai.system            // 모델 제공자
+- gen_ai.request.model     // 요청 모델 이름
+- gen_ai.response.model    // 응답 모델 이름
+
+// 높은 카디널리티 키
+- gen_ai.request.temperature      // 온도 설정
+- gen_ai.request.max_tokens      // 최대 토큰 수
+- gen_ai.usage.input_tokens      // 입력 토큰 수
+- gen_ai.usage.output_tokens     // 출력 토큰 수
+- gen_ai.usage.total_tokens      // 총 토큰 수
+- gen_ai.prompt                  // 전체 프롬프트 (선택적)
+- gen_ai.completion              // 전체 응답 (선택적)
+```
+
+### 19.2.4 프롬프트 및 완성 데이터 로깅
+
+```yaml
+spring:
+  ai:
+    chat:
+      observations:
+        log-prompt: false      # 프롬프트 로깅
+        log-completion: false  # 완성 로깅
+        include-error-logging: false  # 오류 로깅 포함
+```
+
+### 19.2.5 도구 호출 관찰가능성
+
+Spring AI는 도구 호출에 대한 상세한 관찰 정보를 제공합니다:
+
+**낮은 카디널리티 키:**
+- `gen_ai.operation.name`: 항상 `framework`
+- `gen_ai.system`: 항상 `spring_ai`
+- `spring.ai.kind`: 항상 `tool_call`
+- `spring.ai.tool.definition.name`: 도구 이름
+
+**도구 호출 인수 및 결과:**
+```yaml
+spring:
+  ai:
+    vectorstore:
+      observations:
+        include-tool-call-arguments: false  # 기본값: false (보안)
+        include-tool-call-result: false     # 기본값: false (보안)
+```
+
+### 19.2.6 어드바이저 관찰가능성
+
+어드바이저 실행 시 생성되는 관찰 정보:
+
+```java
+// 낮은 카디널리티 키
+- gen_ai.operation.name: "framework"
+- gen_ai.system: "spring_ai"
+- spring.ai.kind: "advisor"
+
+// 높은 카디널리티 키
+- spring.ai.advisor.name   // 어드바이저 이름
+- spring.ai.advisor.order  // 어드바이저 체인에서의 순서
+```
+
+## 19.3 평가 프레임워크
+
+### 19.3.1 Evaluator 인터페이스
+
+Spring AI는 AI 응답을 평가하기 위한 표준 인터페이스를 제공합니다:
+
+```java
+@FunctionalInterface
+public interface Evaluator {
+    EvaluationResponse evaluate(EvaluationRequest evaluationRequest);
+}
+```
+
+### 19.3.2 RelevancyEvaluator
+
+`RelevancyEvaluator`는 RAG 플로우에서 AI 응답의 관련성을 평가합니다:
+
+```java
+@Test
+void evaluateRelevancy() {
+    String question = "Where does the adventure take place?";
+    
+    RetrievalAugmentationAdvisor ragAdvisor = RetrievalAugmentationAdvisor.builder()
+        .documentRetriever(VectorStoreDocumentRetriever.builder()
+            .vectorStore(vectorStore)
+            .build())
+        .build();
+    
+    ChatResponse chatResponse = ChatClient.builder(chatModel)
+        .build()
+        .prompt(question)
+        .advisors(ragAdvisor)
+        .call()
+        .chatResponse();
+    
+    EvaluationRequest evaluationRequest = new EvaluationRequest(
+        question,  // 원본 질문
+        chatResponse.getMetadata().get(RetrievalAugmentationAdvisor.DOCUMENT_CONTEXT),
+        chatResponse.getResult().getOutput().getText()
+    );
+    
+    RelevancyEvaluator evaluator = new RelevancyEvaluator(ChatClient.builder(chatModel));
+    EvaluationResponse evaluationResponse = evaluator.evaluate(evaluationRequest);
+    
+    assertThat(evaluationResponse.isPass()).isTrue();
+}
+```
+
+### 19.3.3 FactCheckingEvaluator
+
+`FactCheckingEvaluator`는 AI 응답의 사실성을 평가하여 환각을 감지합니다:
+
+```java
+public class FactCheckingEvaluator {
+    private final ChatClient.Builder chatClientBuilder;
+    
+    public FactCheckingEvaluator(ChatClient.Builder chatClientBuilder) {
+        this.chatClientBuilder = chatClientBuilder;
+    }
+    
+    // 평가 프롬프트 템플릿
+    private static final String FACT_CHECK_TEMPLATE = """
+        Document: {document}
+        Claim: {claim}
+        """;
+}
+```
+
+### 19.3.4 커스텀 평가 템플릿
+
+평가자는 커스텀 `PromptTemplate`을 제공할 수 있습니다:
+
+```java
+RelevancyEvaluator evaluator = RelevancyEvaluator.builder()
+    .chatClientBuilder(ChatClient.builder(chatModel))
+    .promptTemplate(customPromptTemplate)  // 커스텀 템플릿
+    .build();
+```
+
+필수 플레이스홀더:
+- `query`: 사용자 질문
+- `response`: AI 모델 응답
+- `context`: 컨텍스트 정보
+
+## 19.4 디버깅 도구
+
+### 19.4.1 로깅 어드바이저
+
+Spring AI는 디버깅을 위한 로깅 어드바이저 예제를 제공합니다:
+
+```java
+public class SimpleLoggerAdvisor implements CallAroundAdvisor, StreamAroundAdvisor {
+    
+    private static final Logger logger = LoggerFactory.getLogger(SimpleLoggerAdvisor.class);
+    
+    @Override
+    public String getName() {
+        return this.getClass().getSimpleName();
+    }
+    
+    @Override
+    public int getOrder() {
+        return 0;
+    }
+    
+    @Override
+    public AdvisedResponse aroundCall(AdvisedRequest advisedRequest, CallAroundAdvisorChain chain) {
+        logger.debug("BEFORE: {}", advisedRequest);
+        
+        AdvisedResponse advisedResponse = chain.nextAroundCall(advisedRequest);
+        
+        logger.debug("AFTER: {}", advisedResponse);
+        
+        return advisedResponse;
+    }
+    
+    @Override
+    public Flux<AdvisedResponse> aroundStream(AdvisedRequest advisedRequest, StreamAroundAdvisorChain chain) {
+        logger.debug("BEFORE: {}", advisedRequest);
+        
+        Flux<AdvisedResponse> advisedResponses = chain.nextAroundStream(advisedRequest);
+        
+        return new MessageAggregator().aggregateAdvisedResponse(advisedResponses, 
+            advisedResponse -> logger.debug("AFTER: {}", advisedResponse));
+    }
+}
+```
+
+### 19.4.2 프롬프트 및 응답 추적
+
+디버깅을 위해 프롬프트와 응답을 추적할 수 있습니다:
 
 ```java
 @Component
-public class TestCaseBuilder {
+public class PromptResponseTracker {
     
-    public EvaluationSample createTestCase(
-            String id,
-            String input,
-            List<String> expectedOutputs,
-            OutputMatchType matchType) {
+    private final Logger logger = LoggerFactory.getLogger(PromptResponseTracker.class);
+    
+    @EventListener
+    public void handleChatClientObservation(ChatClientObservationEvent event) {
+        // 프롬프트 로깅
+        if (event.getPrompt() != null) {
+            logger.debug("Prompt: {}", event.getPrompt());
+        }
         
-        AgentRequest agentRequest = AgentRequest.builder()
-            .prompt(input)
+        // 응답 로깅
+        if (event.getResponse() != null) {
+            logger.debug("Response: {}", event.getResponse());
+        }
+        
+        // 토큰 사용량 로깅
+        if (event.getTokenUsage() != null) {
+            logger.debug("Tokens - Input: {}, Output: {}, Total: {}",
+                event.getTokenUsage().getInputTokens(),
+                event.getTokenUsage().getOutputTokens(),
+                event.getTokenUsage().getTotalTokens()
+            );
+        }
+    }
+}
+```
+
+### 19.4.3 어드바이저 체인 디버깅
+
+어드바이저 체인의 실행 흐름을 디버깅하는 방법:
+
+```java
+@Component
+public class AdvisorChainDebugger {
+    
+    public void debugAdvisorChain(ChatClient chatClient) {
+        chatClient.prompt("Test prompt")
+            .advisors(advisor -> {
+                // 어드바이저 체인 확인
+                advisor.getAdvisors().forEach(adv -> {
+                    System.out.println("Advisor: " + adv.getName() + 
+                                     " Order: " + adv.getOrder());
+                });
+            })
+            .call()
+            .content();
+    }
+}
+```
+
+## 19.5 안전성 및 콘텐츠 조절
+
+### 19.5.1 SafeGuardAdvisor
+
+Spring AI는 유해한 콘텐츠 생성을 방지하는 `SafeGuardAdvisor`를 제공합니다:
+
+```java
+@Configuration
+public class SafetyConfiguration {
+    
+    @Bean
+    public ChatClient safeChatClient(ChatModel chatModel) {
+        return ChatClient.builder(chatModel)
+            .defaultAdvisors(new SafeGuardAdvisor())
             .build();
-        
-        List<ExpectedOutput> expectedOutputList = expectedOutputs.stream()
-            .map(output -> createExpectedOutput(output, matchType))
-            .collect(Collectors.toList());
-        
-        return new DefaultEvaluationSample(id, agentRequest, expectedOutputList);
-    }
-    
-    private ExpectedOutput createExpectedOutput(String output, OutputMatchType matchType) {
-        switch (matchType) {
-            case EXACT:
-                return new ExactMatchOutput(output);
-            case CONTAINS:
-                return new ContainsMatchOutput(output);
-            case SEMANTIC:
-                return new SemanticMatchOutput(output, embeddingService);
-            case REGEX:
-                return new RegexMatchOutput(output);
-            default:
-                throw new IllegalArgumentException("Unsupported match type: " + matchType);
-        }
-    }
-    
-    public enum OutputMatchType {
-        EXACT, CONTAINS, SEMANTIC, REGEX
     }
 }
 ```
 
-### 19.2.3 데이터셋 저장 및 관리
+### 19.5.2 콘텐츠 조절 API
+
+Spring AI는 OpenAI와 Mistral AI의 조절 서비스를 통합합니다:
 
 ```java
-@Service
-public class EvaluationDatasetService {
-    
-    private final EvaluationDatasetRepository repository;
-    
-    public EvaluationDataset createDataset(String name, String description, List<EvaluationSample> samples) {
-        // 데이터셋 생성 및 저장
-        DatasetMetadata metadata = new DatasetMetadata(description, LocalDateTime.now());
-        EvaluationDataset dataset = new DefaultEvaluationDataset(name, samples, metadata);
-        return repository.save(dataset);
-    }
-    
-    public EvaluationDataset getDataset(String name) {
-        return repository.findByName(name)
-            .orElseThrow(() -> new IllegalArgumentException("Dataset not found: " + name));
-    }
-    
-    public List<EvaluationDataset> getAllDatasets() {
-        return repository.findAll();
-    }
-    
-    public EvaluationDataset addSamplesToDataset(String datasetName, List<EvaluationSample> newSamples) {
-        // 기존 데이터셋에 샘플 추가
-        EvaluationDataset dataset = getDataset(datasetName);
-        List<EvaluationSample> allSamples = new ArrayList<>(dataset.getSamples());
-        allSamples.addAll(newSamples);
-        
-        DatasetMetadata updatedMetadata = new DatasetMetadata(
-            dataset.getMetadata().getDescription(),
-            LocalDateTime.now()
-        );
-        
-        EvaluationDataset updatedDataset = new DefaultEvaluationDataset(
-            dataset.getName(),
-            allSamples,
-            updatedMetadata
-        );
-        
-        return repository.save(updatedDataset);
-    }
-}
-```
+// OpenAI Moderation
+ModerationApi moderationApi = new OpenAiModerationApi(apiKey);
+ModerationResponse response = moderationApi.moderate("Content to check");
 
-## 19.3 정확성 및 품질 평가
-
-에이전트의 응답 정확성과 품질을 평가하는 방법을 알아봅니다.
-
-### 19.3.1 정확성 평가 메트릭
-
-```java
-@Component
-public class AccuracyMetric implements EvaluationMetric {
-    
-    @Override
-    public String getName() {
-        return "accuracy";
-    }
-    
-    @Override
-    public double evaluate(EvaluationSample sample, AgentResponse response) {
-        // 기대 출력과 실제 출력 비교
-        for (ExpectedOutput expectedOutput : sample.getExpectedOutputs()) {
-            if (expectedOutput.isAcceptable(response.getContent())) {
-                return 1.0;
+// 카테고리별 점수 확인
+if (response.getResults().get(0).isFlagged()) {
+    // 위험한 콘텐츠 감지됨
+    response.getResults().get(0).getCategories()
+        .forEach((category, flagged) -> {
+            if (flagged) {
+                System.out.println("Flagged category: " + category);
             }
-        }
-        return 0.0;
-    }
-    
-    @Override
-    public Map<String, Object> getMetadata() {
-        return Map.of(
-            "description", "Measures if the agent response matches any of the expected outputs",
-            "range", "0.0 to 1.0"
-        );
-    }
+        });
 }
 ```
 
-### 19.3.2 의미적 유사성 평가
+### 19.5.3 비용 및 사용량 추적
+
+AI 자원 사용량을 추적하고 비용을 관리합니다:
 
 ```java
 @Component
-public class SemanticSimilarityMetric implements EvaluationMetric {
+public class UsageTracker {
     
-    private final TextEmbedding embeddingService;
+    private final MeterRegistry meterRegistry;
     
-    @Override
-    public String getName() {
-        return "semantic_similarity";
-    }
-    
-    @Override
-    public double evaluate(EvaluationSample sample, AgentResponse response) {
-        // 기대 출력과 실제 출력의 의미적 유사도 계산
-        String actualContent = response.getContent();
+    @EventListener
+    public void trackTokenUsage(TokenUsageEvent event) {
+        // 토큰 사용량 메트릭 기록
+        meterRegistry.counter("ai.tokens.used",
+            "model", event.getModel(),
+            "type", "input"
+        ).increment(event.getInputTokens());
         
-        double maxSimilarity = 0.0;
-        for (ExpectedOutput expectedOutput : sample.getExpectedOutputs()) {
-            String expectedContent = expectedOutput.getContent();
-            
-            // 임베딩 생성
-            float[] actualEmbedding = embeddingService.embed(actualContent).getVector();
-            float[] expectedEmbedding = embeddingService.embed(expectedContent).getVector();
-            
-            // 코사인 유사도 계산
-            double similarity = calculateCosineSimilarity(actualEmbedding, expectedEmbedding);
-            maxSimilarity = Math.max(maxSimilarity, similarity);
-        }
+        meterRegistry.counter("ai.tokens.used",
+            "model", event.getModel(),
+            "type", "output"
+        ).increment(event.getOutputTokens());
         
-        return maxSimilarity;
-    }
-    
-    private double calculateCosineSimilarity(float[] vector1, float[] vector2) {
-        // 코사인 유사도 계산 로직
-    }
-    
-    @Override
-    public Map<String, Object> getMetadata() {
-        return Map.of(
-            "description", "Measures semantic similarity between agent response and expected outputs",
-            "range", "0.0 to 1.0"
+        // 비용 추적
+        double estimatedCost = calculateCost(event);
+        meterRegistry.gauge("ai.estimated.cost",
+            Tags.of("model", event.getModel()),
+            estimatedCost
         );
     }
-}
-```
-
-### 19.3.3 도구 사용 정확성 평가
-
-```java
-@Component
-public class ToolUsageMetric implements EvaluationMetric {
     
-    @Override
-    public String getName() {
-        return "tool_usage";
-    }
-    
-    @Override
-    public double evaluate(EvaluationSample sample, AgentResponse response) {
-        // 예상된 도구 사용과 실제 도구 사용 비교
-        List<ToolExecution> actualToolExecutions = response.getToolExecutions();
-        List<ExpectedToolUsage> expectedToolUsages = getExpectedToolUsages(sample);
-        
-        if (expectedToolUsages.isEmpty() && actualToolExecutions.isEmpty()) {
-            return 1.0; // 도구를 사용하지 않아야 하는 경우
-        }
-        
-        if (expectedToolUsages.isEmpty() || actualToolExecutions.isEmpty()) {
-            return 0.0; // 한쪽만 도구를 사용한 경우
-        }
-        
-        // 도구 사용 일치 확인
-        return calculateToolUsageMatch(expectedToolUsages, actualToolExecutions);
-    }
-    
-    private List<ExpectedToolUsage> getExpectedToolUsages(EvaluationSample sample) {
-        // 샘플 메타데이터에서 예상 도구 사용 정보 추출
-    }
-    
-    private double calculateToolUsageMatch(
-            List<ExpectedToolUsage> expectedUsages,
-            List<ToolExecution> actualExecutions) {
-        // 도구 사용 일치도 계산 로직
-    }
-    
-    @Override
-    public Map<String, Object> getMetadata() {
-        return Map.of(
-            "description", "Evaluates if the agent correctly used the expected tools",
-            "range", "0.0 to 1.0"
-        );
-    }
-}
-```
-
-## 19.4 안전성 및 윤리적 준수 평가
-
-에이전트의 안전성과 윤리적 준수를 평가하는 방법을 알아봅니다.
-
-### 19.4.1 유해 콘텐츠 감지
-
-```java
-@Component
-public class HarmfulContentMetric implements EvaluationMetric {
-    
-    private final ModerationService moderationService;
-    
-    @Override
-    public String getName() {
-        return "harmful_content";
-    }
-    
-    @Override
-    public double evaluate(EvaluationSample sample, AgentResponse response) {
-        // 응답에서 유해 콘텐츠 감지
-        String content = response.getContent();
-        ModerationResult result = moderationService.moderate(content);
-        
-        // 안전성 점수 계산 (높을수록 안전)
-        double safetyScore = 1.0 - result.getHarmScore();
-        return safetyScore;
-    }
-    
-    @Override
-    public Map<String, Object> getMetadata() {
-        return Map.of(
-            "description", "Measures the absence of harmful content in agent responses",
-            "range", "0.0 to 1.0 (higher is safer)"
-        );
-    }
-}
-```
-
-### 19.4.2 편향성 감지
-
-```java
-@Component
-public class BiasDetectionMetric implements EvaluationMetric {
-    
-    private final BiasAnalysisService biasAnalysisService;
-    
-    @Override
-    public String getName() {
-        return "bias_detection";
-    }
-    
-    @Override
-    public double evaluate(EvaluationSample sample, AgentResponse response) {
-        // 응답에서 편향성 분석
-        String content = response.getContent();
-        BiasAnalysisResult result = biasAnalysisService.analyzeText(content);
-        
-        // 편향성 점수 계산 (높을수록 중립적)
-        double fairnessScore = 1.0 - result.getBiasScore();
-        return fairnessScore;
-    }
-    
-    @Override
-    public Map<String, Object> getMetadata() {
-        return Map.of(
-            "description", "Measures the neutrality and absence of bias in agent responses",
-            "range", "0.0 to 1.0 (higher is more neutral)"
-        );
-    }
-}
-```
-
-### 19.4.3 개인정보 누출 감지
-
-```java
-@Component
-public class PrivacyProtectionMetric implements EvaluationMetric {
-    
-    private final PrivacyScanner privacyScanner;
-    
-    @Override
-    public String getName() {
-        return "privacy_protection";
-    }
-    
-    @Override
-    public double evaluate(EvaluationSample sample, AgentResponse response) {
-        // 응답에서 개인정보 누출 검사
-        String content = response.getContent();
-        PrivacyScanResult result = privacyScanner.scanForPII(content);
-        
-        // 개인정보 보호 점수 계산 (높을수록 안전)
-        int piiCount = result.getDetectedPIICount();
-        return piiCount == 0 ? 1.0 : Math.max(0.0, 1.0 - (piiCount * 0.2));
-    }
-    
-    @Override
-    public Map<String, Object> getMetadata() {
-        return Map.of(
-            "description", "Evaluates if the agent properly protects personal information",
-            "range", "0.0 to 1.0 (higher is better protected)"
+    private double calculateCost(TokenUsageEvent event) {
+        // 모델별 비용 계산 로직
+        return CostCalculator.calculate(
+            event.getModel(),
+            event.getInputTokens(),
+            event.getOutputTokens()
         );
     }
 }
@@ -534,463 +553,516 @@ public class ResourceUsageMetric implements EvaluationMetric {
 }
 ```
 
-## 19.6 사용자 관점 평가
+## 19.6 실시간 메트릭 수집
 
-사용자 경험과 만족도 측면에서 에이전트를 평가하는 방법을 알아봅니다.
+Spring AI는 Micrometer를 통해 실시간 메트릭을 수집하고 모니터링할 수 있습니다.
 
-### 19.6.1 사용자 만족도 측정
+### 19.6.1 토큰 사용량 메트릭
 
-```java
-@Component
-public class UserSatisfactionMetric implements EvaluationMetric {
-    
-    private final UserFeedbackRepository feedbackRepository;
-    
-    @Override
-    public String getName() {
-        return "user_satisfaction";
-    }
-    
-    @Override
-    public double evaluate(EvaluationSample sample, AgentResponse response) {
-        // 테스트 ID에 대한 사용자 피드백 검색
-        String testId = sample.getId();
-        List<UserFeedback> feedbacks = feedbackRepository.findByTestId(testId);
-        
-        if (feedbacks.isEmpty()) {
-            return 0.0; // 피드백이 없음
-        }
-        
-        // 평균 사용자 만족도 계산
-        double totalScore = 0.0;
-        for (UserFeedback feedback : feedbacks) {
-            totalScore += feedback.getRating();
-        }
-        
-        return totalScore / (feedbacks.size() * 5.0); // 5점 만점 기준으로 정규화
-    }
-    
-    @Override
-    public Map<String, Object> getMetadata() {
-        return Map.of(
-            "description", "Measures user satisfaction based on feedback",
-            "range", "0.0 to 1.0 (higher is more satisfied)"
-        );
-    }
-}
-```
-
-### 19.6.2 상호작용 품질 평가
+Spring AI는 `gen_ai.client.token.usage` 메트릭을 통해 토큰 사용량을 추적합니다:
 
 ```java
 @Component
-public class InteractionQualityMetric implements EvaluationMetric {
-    
-    private final ConversationAnalyzer conversationAnalyzer;
-    
-    @Override
-    public String getName() {
-        return "interaction_quality";
-    }
-    
-    @Override
-    public double evaluate(EvaluationSample sample, AgentResponse response) {
-        // 대화 이력 추출
-        List<Message> conversationHistory = extractConversationHistory(sample, response);
-        
-        // 대화 품질 분석
-        ConversationQuality quality = conversationAnalyzer.analyzeQuality(conversationHistory);
-        
-        // 품질 점수 계산
-        double coherenceScore = quality.getCoherenceScore();
-        double engagementScore = quality.getEngagementScore();
-        double helpfulnessScore = quality.getHelpfulnessScore();
-        
-        return (coherenceScore + engagementScore + helpfulnessScore) / 3.0;
-    }
-    
-    private List<Message> extractConversationHistory(EvaluationSample sample, AgentResponse response) {
-        // 대화 이력 구성
-        List<Message> history = new ArrayList<>();
-        
-        // 요청 메시지 추가
-        history.add(new UserMessage(sample.getInput().getPrompt()));
-        
-        // 응답 메시지 추가
-        history.add(new AssistantMessage(response.getContent()));
-        
-        return history;
-    }
-    
-    @Override
-    public Map<String, Object> getMetadata() {
-        return Map.of(
-            "description", "Evaluates the quality of agent-user interaction",
-            "range", "0.0 to 1.0 (higher is better quality)"
-        );
-    }
-}
-```
-
-### 19.6.3 태스크 완료율 평가
-
-```java
-@Component
-public class TaskCompletionMetric implements EvaluationMetric {
-    
-    @Override
-    public String getName() {
-        return "task_completion";
-    }
-    
-    @Override
-    public double evaluate(EvaluationSample sample, AgentResponse response) {
-        // 작업 요구사항 추출
-        List<String> taskRequirements = extractTaskRequirements(sample);
-        
-        // 각 요구사항 충족 여부 확인
-        int completedTasks = 0;
-        for (String requirement : taskRequirements) {
-            if (isRequirementSatisfied(requirement, response)) {
-                completedTasks++;
-            }
-        }
-        
-        // 작업 완료율 계산
-        return taskRequirements.isEmpty() ? 1.0 : (double) completedTasks / taskRequirements.size();
-    }
-    
-    private List<String> extractTaskRequirements(EvaluationSample sample) {
-        // 샘플 메타데이터에서 작업 요구사항 추출
-        Map<String, Object> metadata = sample.getMetadata();
-        if (!metadata.containsKey("taskRequirements")) {
-            return Collections.emptyList();
-        }
-        
-        return (List<String>) metadata.get("taskRequirements");
-    }
-    
-    private boolean isRequirementSatisfied(String requirement, AgentResponse response) {
-        // 특정 요구사항 충족 여부 확인 로직
-    }
-    
-    @Override
-    public Map<String, Object> getMetadata() {
-        return Map.of(
-            "description", "Measures the rate of task completion by the agent",
-            "range", "0.0 to 1.0 (higher is more complete)"
-        );
-    }
-}
-```
-
-## 19.7 에이전트 디버깅 도구 구현
-
-에이전트 동작을 디버깅하고 문제를 진단하는 도구를 구현하는 방법을 알아봅니다.
-
-### 19.7.1 세부 로깅 및 추적
-
-```java
-@Aspect
-@Component
-public class AgentExecutionTracer {
-    
-    private final Logger logger = LoggerFactory.getLogger(AgentExecutionTracer.class);
-    private final TraceRepository traceRepository;
-    
-    @Around("execution(* org.springframework.ai.agent.Agent.execute(..))")
-    public Object traceAgentExecution(ProceedingJoinPoint joinPoint) throws Throwable {
-        Agent agent = (Agent) joinPoint.getTarget();
-        AgentRequest request = (AgentRequest) joinPoint.getArgs()[0];
-        
-        // 추적 ID 생성
-        String traceId = UUID.randomUUID().toString();
-        
-        // 실행 시작 로깅
-        logger.debug("Agent execution started - TraceID: {}, Agent: {}", traceId, agent.getClass().getSimpleName());
-        
-        // 요청 상세 정보 로깅
-        logRequest(traceId, request);
-        
-        // 실행 시간 측정 시작
-        long startTime = System.currentTimeMillis();
-        
-        ExecutionTrace trace = new ExecutionTrace();
-        trace.setTraceId(traceId);
-        trace.setAgentType(agent.getClass().getName());
-        trace.setRequest(request);
-        trace.setStartTime(LocalDateTime.now());
-        
-        try {
-            // 에이전트 실행
-            AgentResponse response = (AgentResponse) joinPoint.proceed();
-            
-            // 실행 완료 시간 및 소요 시간 계산
-            long endTime = System.currentTimeMillis();
-            long executionTime = endTime - startTime;
-            
-            // 응답 상세 정보 로깅
-            logResponse(traceId, response, executionTime);
-            
-            // 추적 정보 저장
-            trace.setResponse(response);
-            trace.setEndTime(LocalDateTime.now());
-            trace.setExecutionTimeMs(executionTime);
-            trace.setStatus("SUCCESS");
-            traceRepository.save(trace);
-            
-            return response;
-            
-        } catch (Throwable e) {
-            // 오류 정보 로깅
-            long endTime = System.currentTimeMillis();
-            long executionTime = endTime - startTime;
-            
-            logger.error("Agent execution failed - TraceID: {}, Error: {}", traceId, e.getMessage(), e);
-            
-            // 추적 정보 저장 (오류 포함)
-            trace.setEndTime(LocalDateTime.now());
-            trace.setExecutionTimeMs(executionTime);
-            trace.setStatus("ERROR");
-            trace.setErrorMessage(e.getMessage());
-            trace.setStackTrace(ExceptionUtils.getStackTrace(e));
-            traceRepository.save(trace);
-            
-            throw e;
-        }
-    }
-    
-    private void logRequest(String traceId, AgentRequest request) {
-        // 요청 상세 정보 로깅
-        logger.debug("Request - TraceID: {}, Prompt: {}", traceId, request.getPrompt());
-        logger.trace("Request details - TraceID: {}, Full request: {}", traceId, request);
-    }
-    
-    private void logResponse(String traceId, AgentResponse response, long executionTime) {
-        // 응답 상세 정보 로깅
-        logger.debug("Response - TraceID: {}, Execution time: {}ms, Content length: {}", 
-            traceId, executionTime, response.getContent().length());
-        logger.trace("Response details - TraceID: {}, Full response: {}", traceId, response);
-        
-        // 도구 실행 정보 로깅
-        List<ToolExecution> toolExecutions = response.getToolExecutions();
-        if (!toolExecutions.isEmpty()) {
-            logger.debug("Tool executions - TraceID: {}, Count: {}", traceId, toolExecutions.size());
-            for (ToolExecution execution : toolExecutions) {
-                logger.trace("Tool execution - TraceID: {}, Tool: {}, Parameters: {}", 
-                    traceId, execution.getToolName(), execution.getParameters());
-            }
-        }
-    }
-}
-```
-
-### 19.7.2 단계별 실행 분석
-
-```java
-@Service
-public class AgentExecutionAnalyzer {
-    
-    private final TraceRepository traceRepository;
-    
-    public ExecutionAnalysisReport analyzeExecution(String traceId) {
-        // 추적 정보 조회
-        ExecutionTrace trace = traceRepository.findByTraceId(traceId)
-            .orElseThrow(() -> new IllegalArgumentException("Trace not found: " + traceId));
-        
-        // 실행 단계 분석
-        List<ExecutionStep> steps = analyzeExecutionSteps(trace);
-        
-        // 병목 구간 식별
-        List<PerformanceBottleneck> bottlenecks = identifyBottlenecks(steps);
-        
-        // 에러 및 경고 분석
-        List<ExecutionIssue> issues = analyzeIssues(trace, steps);
-        
-        // 분석 보고서 생성
-        return new ExecutionAnalysisReport(trace, steps, bottlenecks, issues);
-    }
-    
-    private List<ExecutionStep> analyzeExecutionSteps(ExecutionTrace trace) {
-        // 실행 단계 분석 로직
-        List<ExecutionStep> steps = new ArrayList<>();
-        
-        // 1. 입력 처리 단계
-        steps.add(new ExecutionStep("input_processing", "Input processing", 
-            trace.getStartTime(), null, extractInputProcessingDuration(trace)));
-        
-        // 2. 모델 호출 단계
-        LocalDateTime modelCallStart = calculateModelCallStart(trace);
-        steps.add(new ExecutionStep("model_call", "Model API call",
-            modelCallStart, null, extractModelCallDuration(trace)));
-        
-        // 3. 도구 실행 단계
-        if (trace.getResponse() != null && !trace.getResponse().getToolExecutions().isEmpty()) {
-            List<ToolExecution> toolExecutions = trace.getResponse().getToolExecutions();
-            for (int i = 0; i < toolExecutions.size(); i++) {
-                ToolExecution execution = toolExecutions.get(i);
-                LocalDateTime toolStart = calculateToolExecutionStart(trace, i);
-                steps.add(new ExecutionStep("tool_execution_" + i, "Tool: " + execution.getToolName(),
-                    toolStart, null, extractToolExecutionDuration(trace, i)));
-            }
-        }
-        
-        // 4. 응답 생성 단계
-        LocalDateTime responseGenStart = calculateResponseGenerationStart(trace);
-        steps.add(new ExecutionStep("response_generation", "Response generation",
-            responseGenStart, trace.getEndTime(), extractResponseGenerationDuration(trace)));
-        
-        return steps;
-    }
-    
-    private List<PerformanceBottleneck> identifyBottlenecks(List<ExecutionStep> steps) {
-        // 병목 구간 식별 로직
-    }
-    
-    private List<ExecutionIssue> analyzeIssues(ExecutionTrace trace, List<ExecutionStep> steps) {
-        // 실행 중 발생한 이슈 분석 로직
-    }
-    
-    // 단계별 시간 계산 메서드들...
-}
-```
-
-### 19.7.3 프롬프트와 응답 디버깅
-
-```java
-@Component
-public class PromptDebugger {
-    
-    private final ModelClient debugModel;
-    
-    public PromptAnalysisResult analyzePrompt(String prompt, Map<String, Object> parameters) {
-        // 프롬프트 구조 분석
-        PromptStructure structure = analyzePromptStructure(prompt);
-        
-        // 변수 치환 시뮬레이션
-        String renderedPrompt = simulateVariableSubstitution(prompt, parameters);
-        
-        // 토큰 수 예측
-        int estimatedTokens = estimateTokenCount(renderedPrompt);
-        
-        // 프롬프트 품질 평가
-        PromptQualityMetrics qualityMetrics = evaluatePromptQuality(renderedPrompt);
-        
-        // 잠재적 이슈 감지
-        List<PromptIssue> issues = detectPotentialIssues(renderedPrompt, structure, qualityMetrics);
-        
-        return new PromptAnalysisResult(
-            structure,
-            renderedPrompt,
-            estimatedTokens,
-            qualityMetrics,
-            issues
-        );
-    }
-    
-    private PromptStructure analyzePromptStructure(String prompt) {
-        // 프롬프트 구조 분석 로직
-    }
-    
-    private String simulateVariableSubstitution(String prompt, Map<String, Object> parameters) {
-        // 변수 치환 시뮬레이션 로직
-    }
-    
-    private int estimateTokenCount(String text) {
-        // 토큰 수 예측 로직
-    }
-    
-    private PromptQualityMetrics evaluatePromptQuality(String prompt) {
-        // 프롬프트 품질 평가 로직
-    }
-    
-    private List<PromptIssue> detectPotentialIssues(
-            String prompt,
-            PromptStructure structure,
-            PromptQualityMetrics metrics) {
-        // 잠재적 이슈 감지 로직
-    }
-}
-```
-
-## 19.8 에이전트 모니터링 시스템 구현
-
-운영 환경에서 에이전트 성능과 품질을 모니터링하는 시스템을 구현하는 방법을 알아봅니다.
-
-### 19.8.1 실시간 메트릭 수집
-
-```java
-@Component
-public class AgentMetricsCollector {
+public class TokenUsageMonitor {
     
     private final MeterRegistry meterRegistry;
     
-    @Around("execution(* org.springframework.ai.agent.Agent.execute(..))")
-    public Object collectMetrics(ProceedingJoinPoint joinPoint) throws Throwable {
-        Agent agent = (Agent) joinPoint.getTarget();
-        String agentName = agent.getClass().getSimpleName();
+    @EventListener
+    public void handleChatModelObservation(ChatModelObservationEvent event) {
+        // 토큰 사용량 메트릭은 자동으로 수집됨
+        // gen_ai.client.token.usage 메트릭으로 접근 가능
         
-        // 호출 횟수 카운터 증가
-        meterRegistry.counter("agent.calls", "agent", agentName).increment();
-        
-        // 타이머 시작
-        Timer.Sample sample = Timer.start(meterRegistry);
-        
-        try {
-            // 에이전트 실행
-            AgentResponse response = (AgentResponse) joinPoint.proceed();
+        // 커스텀 메트릭 추가
+        if (event.getUsage() != null) {
+            // 모델별 비용 추적
+            String model = event.getModel();
+            double cost = calculateCost(model, 
+                event.getUsage().getInputTokens(),
+                event.getUsage().getOutputTokens());
             
-            // 성공 횟수 카운터 증가
-            meterRegistry.counter("agent.success", "agent", agentName).increment();
-            
-            // 토큰 사용량 기록
-            recordTokenUsage(agentName, response);
-            
-            // 도구 사용 기록
-            recordToolUsage(agentName, response);
-            
-            return response;
-            
-        } catch (Exception e) {
-            // 실패 횟수 카운터 증가
-            meterRegistry.counter("agent.errors", "agent", agentName, "error", e.getClass().getSimpleName()).increment();
-            throw e;
-            
-        } finally {
-            // 응답 시간 기록
-            sample.stop(meterRegistry.timer("agent.response.time", "agent", agentName));
+            meterRegistry.gauge("ai.model.cost",
+                Tags.of("model", model),
+                cost
+            );
         }
     }
     
-    private void recordTokenUsage(String agentName, AgentResponse response) {
-        // 토큰 사용량 메트릭 기록
-        Map<String, Object> metadata = response.getMetadata();
-        if (metadata.containsKey("totalTokens")) {
-            int totalTokens = (int) metadata.get("totalTokens");
-            meterRegistry.gauge("agent.tokens.total", Tags.of("agent", agentName), totalTokens);
-        }
+    private double calculateCost(String model, int inputTokens, int outputTokens) {
+        // 모델별 토큰 가격 계산
+        return switch(model) {
+            case "gpt-4" -> inputTokens * 0.03 / 1000 + outputTokens * 0.06 / 1000;
+            case "gpt-3.5-turbo" -> inputTokens * 0.0005 / 1000 + outputTokens * 0.0015 / 1000;
+            default -> 0.0;
+        };
+    }
+}
+```
+
+### 19.6.2 VectorStore 메트릭
+
+VectorStore 작업에 대한 관찰가능성:
+
+```java
+@Configuration
+public class VectorStoreObservabilityConfig {
+    
+    @Bean
+    public VectorStoreObservationConvention vectorStoreObservationConvention() {
+        return new DefaultVectorStoreObservationConvention() {
+            @Override
+            public KeyValues getLowCardinalityKeyValues(
+                    VectorStoreObservationContext context) {
+                return super.getLowCardinalityKeyValues(context)
+                    .and("db.system", context.getDatabaseSystem())
+                    .and("db.operation.name", context.getOperationName())
+                    .and("spring.ai.kind", "vector_store");
+            }
+        };
+    }
+    
+    @Component
+    public static class VectorStoreMetricsCollector {
         
-        if (metadata.containsKey("promptTokens")) {
-            int promptTokens = (int) metadata.get("promptTokens");
-            meterRegistry.gauge("agent.tokens.prompt", Tags.of("agent", agentName), promptTokens);
-        }
+        private final MeterRegistry meterRegistry;
         
-        if (metadata.containsKey("completionTokens")) {
-            int completionTokens = (int) metadata.get("completionTokens");
-            meterRegistry.gauge("agent.tokens.completion", Tags.of("agent", agentName), completionTokens);
+        @EventListener
+        public void handleVectorStoreOperation(VectorStoreObservationEvent event) {
+            // 벡터 스토어 작업 메트릭
+            String operation = event.getOperationName(); // add, delete, query
+            String dbSystem = event.getDatabaseSystem();
+            
+            // 쿼리 성능 추적
+            if ("query".equals(operation)) {
+                int topK = event.getTopK();
+                double similarityThreshold = event.getSimilarityThreshold();
+                int documentsReturned = event.getDocumentsReturned();
+                
+                meterRegistry.gauge("vectorstore.query.documents",
+                    Tags.of("db.system", dbSystem),
+                    documentsReturned
+                );
+                
+                // 쿼리 효율성 메트릭
+                double efficiency = (double) documentsReturned / topK;
+                meterRegistry.gauge("vectorstore.query.efficiency",
+                    Tags.of("db.system", dbSystem),
+                    efficiency
+                );
+            }
+        }
+    }
+}
+```
+
+### 19.6.3 프롬프트 및 완성 로깅
+
+민감한 정보를 포함할 수 있는 프롬프트와 완성 데이터의 로깅 구성:
+
+```yaml
+spring:
+  ai:
+    chat:
+      client:
+        observations:
+          log-prompt: true  # ChatClient 프롬프트 로깅
+      observations:
+        log-prompt: true      # ChatModel 프롬프트 로깅
+        log-completion: true  # ChatModel 완성 로깅
+    image:
+      observations:
+        log-prompt: true      # ImageModel 프롬프트 로깅
+    vectorstore:
+      observations:
+        log-query-response: true  # VectorStore 쿼리 응답 로깅
+```
+
+```java
+@Component
+@ConditionalOnProperty(name = "spring.ai.chat.observations.log-prompt", 
+                      havingValue = "true")
+public class PromptLogger {
+    
+    private static final Logger logger = LoggerFactory.getLogger(PromptLogger.class);
+    
+    @EventListener
+    public void logChatModelPrompt(ChatModelPromptEvent event) {
+        // 추적 정보와 함께 프롬프트 로깅
+        MDC.put("traceId", event.getTraceId());
+        MDC.put("spanId", event.getSpanId());
+        
+        logger.debug("Chat Model Prompt: {}", event.getPrompt());
+        
+        // 민감한 정보 마스킹
+        String maskedPrompt = maskSensitiveData(event.getPrompt());
+        logger.info("Masked Prompt: {}", maskedPrompt);
+        
+        MDC.clear();
+    }
+    
+    private String maskSensitiveData(String prompt) {
+        // 이메일, 전화번호, 신용카드 번호 등 마스킹
+        return prompt
+            .replaceAll("\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b", "[EMAIL]")
+            .replaceAll("\\b\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}\\b", "[CARD]")
+            .replaceAll("\\b\\d{3}[-.]?\\d{3}[-.]?\\d{4}\\b", "[PHONE]");
+    }
+}
+```
+
+## 19.7 모니터링 대시보드 구성
+
+Spring AI의 관찰가능성 데이터를 활용한 모니터링 대시보드 구성 방법을 알아봅니다.
+
+### 19.7.1 Grafana 대시보드 구성
+
+```java
+@Configuration
+public class GrafanaDashboardConfig {
+    
+    @Bean
+    public GrafanaDashboardExporter grafanaDashboardExporter() {
+        return GrafanaDashboardExporter.builder()
+            .withDashboardTitle("Spring AI Observability")
+            .withDefaultPanels()
+            .build();
+    }
+    
+    // Grafana 대시보드 JSON 템플릿
+    public String getAIDashboardTemplate() {
+        return """
+        {
+          "dashboard": {
+            "title": "Spring AI Metrics",
+            "panels": [
+              {
+                "title": "Token Usage by Model",
+                "targets": [{
+                  "expr": "sum(rate(gen_ai_client_token_usage_total[5m])) by (gen_ai_request_model)"
+                }]
+              },
+              {
+                "title": "Chat Model Response Time",
+                "targets": [{
+                  "expr": "histogram_quantile(0.95, gen_ai_client_operation_duration_seconds_bucket)"
+                }]
+              },
+              {
+                "title": "Vector Store Query Performance",
+                "targets": [{
+                  "expr": "rate(db_vector_client_operation_duration_seconds_sum[5m])"
+                }]
+              },
+              {
+                "title": "Error Rate by Operation",
+                "targets": [{
+                  "expr": "sum(rate(gen_ai_client_operation_errors_total[5m])) by (gen_ai_operation_name)"
+                }]
+              }
+            ]
+          }
+        }
+        """;
+    }
+}
+
+// Prometheus 메트릭 수집 구성
+@Configuration
+public class PrometheusConfig {
+    
+    @Bean
+    public PrometheusMeterRegistry prometheusMeterRegistry() {
+        PrometheusMeterRegistry registry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+        
+        // AI 관련 메트릭 필터링
+        registry.config().meterFilter(
+            MeterFilter.maximumAllowableMetrics("gen_ai", 1000)
+        );
+        
+        return registry;
+    }
+}
+```
+
+### 19.7.2 알림 규칙 구성
+
+```java
+@Component
+public class AIAlertingRules {
+    
+    private final MeterRegistry meterRegistry;
+    private final NotificationService notificationService;
+    
+    @Scheduled(fixedRate = 60000) // 1분마다 체크
+    public void checkAlertConditions() {
+        // 토큰 사용량 임계값 체크
+        checkTokenUsageThreshold();
+        
+        // 에러율 체크
+        checkErrorRate();
+        
+        // 응답 시간 체크
+        checkResponseTime();
+        
+        // 비용 임계값 체크
+        checkCostThreshold();
+    }
+    
+    private void checkTokenUsageThreshold() {
+        // 시간당 토큰 사용량 체크
+        double tokensPerHour = meterRegistry.counter("gen_ai.client.token.usage")
+            .getId()
+            .getTag("gen_ai.usage.type")
+            .equals("total") ? getRate("gen_ai.client.token.usage") : 0;
+        
+        if (tokensPerHour > 1_000_000) {
+            notificationService.sendAlert(Alert.builder()
+                .severity(AlertSeverity.WARNING)
+                .title("High Token Usage")
+                .message(String.format("Token usage rate: %.0f tokens/hour", tokensPerHour))
+                .build());
         }
     }
     
-    private void recordToolUsage(String agentName, AgentResponse response) {
-        // 도구 사용 메트릭 기록
-        List<ToolExecution> toolExecutions = response.getToolExecutions();
-        for (ToolExecution execution : toolExecutions) {
-            String toolName = execution.getToolName();
-            meterRegistry.counter("agent.tool.usage", 
-                "agent", agentName, 
-                "tool", toolName
-            ).increment();
+    private void checkErrorRate() {
+        // 5분간 에러율 계산
+        double errorRate = calculateErrorRate("gen_ai.client.operation", 5);
+        
+        if (errorRate > 0.05) { // 5% 이상
+            notificationService.sendAlert(Alert.builder()
+                .severity(AlertSeverity.CRITICAL)
+                .title("High Error Rate")
+                .message(String.format("Error rate: %.2f%%", errorRate * 100))
+                .build());
         }
+    }
+    
+    private void checkResponseTime() {
+        // P95 응답 시간 체크
+        double p95ResponseTime = meterRegistry.timer("gen_ai.client.operation.duration")
+            .takeSnapshot()
+            .percentileValue(0.95);
+        
+        if (p95ResponseTime > 10_000) { // 10초 이상
+            notificationService.sendAlert(Alert.builder()
+                .severity(AlertSeverity.WARNING)
+                .title("Slow Response Time")
+                .message(String.format("P95 response time: %.2fs", p95ResponseTime / 1000))
+                .build());
+        }
+    }
+    
+    private void checkCostThreshold() {
+        // 일일 비용 임계값 체크
+        double dailyCost = meterRegistry.gauge("ai.model.cost.daily", 0.0);
+        
+        if (dailyCost > 1000) { // $1000 이상
+            notificationService.sendAlert(Alert.builder()
+                .severity(AlertSeverity.CRITICAL)
+                .title("Cost Threshold Exceeded")
+                .message(String.format("Daily cost: $%.2f", dailyCost))
+                .metadata(Map.of(
+                    "action", "Review AI usage patterns",
+                    "dashboard", "/grafana/ai-cost-analysis"
+                ))
+                .build());
+        }
+    }
+    
+    private double getRate(String metricName) {
+        // 메트릭의 변화율 계산
+        return meterRegistry.counter(metricName).count() / 3600.0; // 시간당 비율
+    }
+    
+    private double calculateErrorRate(String metricName, int minutes) {
+        // 특정 기간 동안의 에러율 계산
+        double totalRequests = meterRegistry.counter(metricName + ".total").count();
+        double errors = meterRegistry.counter(metricName + ".errors").count();
+        return totalRequests > 0 ? errors / totalRequests : 0;
+    }
+}
+```
+
+### 19.7.3 분산 추적 구성
+
+```java
+@Configuration
+@EnableConfigurationProperties(TracingProperties.class)
+public class DistributedTracingConfig {
+    
+    @Bean
+    public Tracer tracer() {
+        return OTel.getGlobalTracer("spring-ai-application");
+    }
+    
+    @Bean
+    public ObservationRegistry observationRegistry(Tracer tracer) {
+        ObservationRegistry registry = ObservationRegistry.create();
+        
+        // OpenTelemetry 브릿지 구성
+        registry.observationConfig()
+            .observationHandler(new TracingObservationHandler(tracer));
+        
+        return registry;
+    }
+    
+    // AI 작업에 대한 커스텀 스팬 생성
+    @Component
+    public static class AIOperationTracer {
+        
+        private final Tracer tracer;
+        
+        public <T> T traceAIOperation(String operationName, 
+                                     Supplier<T> operation,
+                                     Map<String, String> attributes) {
+            Span span = tracer.spanBuilder(operationName)
+                .setSpanKind(SpanKind.CLIENT)
+                .setAttribute("gen_ai.system", "spring_ai")
+                .setAllAttributes(Attributes.of(
+                    AttributeKey.stringKey("gen_ai.operation.name"), operationName
+                ))
+                .startSpan();
+            
+            try (Scope scope = span.makeCurrent()) {
+                // 추가 속성 설정
+                attributes.forEach((key, value) -> 
+                    span.setAttribute(key, value));
+                
+                T result = operation.get();
+                
+                // 결과 메타데이터 추가
+                if (result instanceof ChatResponse) {
+                    ChatResponse response = (ChatResponse) result;
+                    span.setAttribute("gen_ai.usage.total_tokens", 
+                        response.getMetadata().getUsage().getTotalTokens());
+                }
+                
+                span.setStatus(StatusCode.OK);
+                return result;
+                
+            } catch (Exception e) {
+                span.recordException(e);
+                span.setStatus(StatusCode.ERROR, e.getMessage());
+                throw e;
+            } finally {
+                span.end();
+            }
+        }
+    }
+    
+    // Jaeger 구성
+    @Bean
+    @ConditionalOnProperty(name = "spring.ai.tracing.backend", havingValue = "jaeger")
+    public JaegerTracer jaegerTracer(TracingProperties properties) {
+        return JaegerTracer.builder()
+            .serviceName(properties.getServiceName())
+            .endpoint(properties.getJaeger().getEndpoint())
+            .build();
+    }
+}
+
+@ConfigurationProperties(prefix = "spring.ai.tracing")
+public class TracingProperties {
+    private String serviceName = "spring-ai-app";
+    private String backend = "jaeger";
+    private JaegerProperties jaeger = new JaegerProperties();
+    
+    // getters and setters...
+    
+    public static class JaegerProperties {
+        private String endpoint = "http://localhost:14250";
+        // getters and setters...
+    }
+}
+```
+
+## 19.8 통합 테스팅 패턴
+
+Spring AI의 평가 프레임워크를 활용한 통합 테스트 패턴을 알아봅니다.
+
+### 19.8.1 RAG 평가 테스트
+
+```java
+@SpringBootTest
+@AutoConfigureMockMvc
+public class RAGEvaluationTest {
+    
+    @Autowired
+    private ChatModel chatModel;
+    
+    @Autowired
+    private VectorStore vectorStore;
+    
+    @Test
+    void testRAGRelevancy() {
+        // 문서 준비 및 저장
+        List<Document> documents = List.of(
+            new Document("The capital of France is Paris.", Map.of("country", "France")),
+            new Document("The capital of Germany is Berlin.", Map.of("country", "Germany")),
+            new Document("The capital of Italy is Rome.", Map.of("country", "Italy"))
+        );
+        
+        vectorStore.add(documents);
+        
+        // RAG 어드바이저 구성
+        String question = "What is the capital of France?";
+        
+        RetrievalAugmentationAdvisor ragAdvisor = RetrievalAugmentationAdvisor.builder()
+            .documentRetriever(VectorStoreDocumentRetriever.builder()
+                .vectorStore(vectorStore)
+                .similarityThreshold(0.7)
+                .topK(3)
+                .build())
+            .build();
+        
+        // ChatClient로 질문
+        ChatResponse chatResponse = ChatClient.builder(chatModel)
+            .build()
+            .prompt(question)
+            .advisors(ragAdvisor)
+            .call()
+            .chatResponse();
+        
+        // 평가 요청 생성
+        EvaluationRequest evaluationRequest = new EvaluationRequest(
+            question,
+            chatResponse.getMetadata().get(RetrievalAugmentationAdvisor.DOCUMENT_CONTEXT),
+            chatResponse.getResult().getOutput().getText()
+        );
+        
+        // RelevancyEvaluator로 평가
+        RelevancyEvaluator evaluator = RelevancyEvaluator.builder()
+            .chatClientBuilder(ChatClient.builder(chatModel))
+            .build();
+        
+        EvaluationResponse evaluationResponse = evaluator.evaluate(evaluationRequest);
+        
+        // 검증
+        assertThat(evaluationResponse.isPass()).isTrue();
+        assertThat(chatResponse.getResult().getOutput().getText())
+            .containsIgnoringCase("Paris");
+    }
+    
+    @ParameterizedTest
+    @CsvSource({
+        "What is the capital of France?, France, Paris",
+        "What is the capital of Germany?, Germany, Berlin",
+        "What is the capital of Italy?, Italy, Rome"
+    })
+    void testMultipleRAGQueries(String question, String expectedCountry, String expectedCapital) {
+        // RAG 플로우 실행 및 평가
+        ChatResponse response = executeRAGQuery(question);
+        
+        // 응답 검증
+        assertThat(response.getResult().getOutput().getText())
+            .containsIgnoringCase(expectedCapital);
+        
+        // 메타데이터 검증
+        List<Content> retrievedDocs = response.getMetadata()
+            .get(RetrievalAugmentationAdvisor.DOCUMENT_CONTEXT);
+        
+        assertThat(retrievedDocs)
+            .isNotEmpty()
+            .anyMatch(doc -> doc.getText().contains(expectedCapital));
     }
 }
 ```
@@ -1776,6 +1848,875 @@ public class MultiAgentSystemEvaluator {
 에이전트를 체계적으로 평가하고 모니터링함으로써 AI 시스템의 안정성과 신뢰성을 확보할 수 있으며, 사용자에게 더 나은 경험을 제공할 수 있습니다. 또한, 지속적인 개선 프로세스를 통해 시간이 지남에 따라 에이전트의 성능이 향상되도록 할 수 있습니다.
 
 이로써 "Part V: AI 에이전트 설계와 구현"을 마무리합니다. 다음 파트에서는 지금까지 배운 내용을 바탕으로 실전 프로젝트와 케이스 스터디를 통해 Spring AI의 활용 방법을 더 깊이 살펴보겠습니다.
+
+## 19.12 프로덕션 디버깅 기법
+
+프로덕션 환경에서 에이전트를 효과적으로 디버깅하기 위한 고급 기법을 살펴봅니다.
+
+### 19.12.1 분산 추적 기반 디버깅
+
+```java
+@Component
+public class DistributedAgentDebugger {
+    
+    private final Tracer tracer;
+    private final SpanProcessor spanProcessor;
+    private final TraceSampler sampler;
+    
+    public void debugAgentExecution(String agentId, String sessionId) {
+        // 특정 세션에 대한 추적 활성화
+        sampler.enableFullSampling(sessionId);
+        
+        // 스팬 프로세서에 디버그 핸들러 추가
+        spanProcessor.addHandler(new DebugSpanHandler() {
+            @Override
+            public void onSpanStart(ReadableSpan span) {
+                if (isAgentRelated(span, agentId)) {
+                    // 디버그 정보 수집
+                    collectDebugInfo(span);
+                }
+            }
+            
+            @Override
+            public void onSpanEnd(ReadableSpan span) {
+                if (isAgentRelated(span, agentId)) {
+                    // 실행 경로 분석
+                    analyzeExecutionPath(span);
+                }
+            }
+        });
+    }
+    
+    private void collectDebugInfo(ReadableSpan span) {
+        // 스팬 속성 추출
+        Map<String, Object> attributes = span.getAttributes().asMap();
+        
+        // 프롬프트와 응답 캡처
+        if (attributes.containsKey("gen_ai.prompt")) {
+            String prompt = (String) attributes.get("gen_ai.prompt");
+            debugLogger.logPrompt(span.getSpanContext().getTraceId(), prompt);
+        }
+        
+        // 토큰 사용량 추적
+        if (attributes.containsKey("gen_ai.usage.total_tokens")) {
+            int tokens = (int) attributes.get("gen_ai.usage.total_tokens");
+            debugLogger.logTokenUsage(span.getSpanContext().getTraceId(), tokens);
+        }
+    }
+    
+    private void analyzeExecutionPath(ReadableSpan span) {
+        // 실행 경로 재구성
+        List<SpanData> path = reconstructExecutionPath(span);
+        
+        // 병목 지점 식별
+        BottleneckAnalysis bottlenecks = identifyBottlenecks(path);
+        
+        // 오류 패턴 분석
+        ErrorPatternAnalysis errors = analyzeErrorPatterns(path);
+        
+        // 디버그 보고서 생성
+        DebugReport report = new DebugReport(
+            span.getSpanContext().getTraceId(),
+            path,
+            bottlenecks,
+            errors
+        );
+        
+        debugLogger.logReport(report);
+    }
+}
+```
+
+### 19.12.2 실시간 에이전트 상태 검사
+
+```java
+@RestController
+@RequestMapping("/api/debug/agent")
+public class AgentDebugController {
+    
+    private final AgentRegistry agentRegistry;
+    private final AgentStateInspector stateInspector;
+    private final DebugSessionManager debugSessionManager;
+    
+    @PostMapping("/{agentId}/debug/start")
+    public ResponseEntity<DebugSession> startDebugSession(
+            @PathVariable String agentId,
+            @RequestBody DebugConfiguration config) {
+        
+        Agent agent = agentRegistry.getAgent(agentId);
+        if (agent == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        // 디버그 세션 시작
+        DebugSession session = debugSessionManager.createSession(agent, config);
+        
+        // 에이전트에 디버그 인터셉터 추가
+        agent.addInterceptor(new DebugInterceptor(session));
+        
+        return ResponseEntity.ok(session);
+    }
+    
+    @GetMapping("/{agentId}/state")
+    public ResponseEntity<AgentState> inspectAgentState(
+            @PathVariable String agentId,
+            @RequestParam(required = false) String sessionId) {
+        
+        Agent agent = agentRegistry.getAgent(agentId);
+        if (agent == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        // 에이전트 상태 검사
+        AgentState state = stateInspector.inspect(agent, sessionId);
+        
+        return ResponseEntity.ok(state);
+    }
+    
+    @PostMapping("/{agentId}/debug/breakpoint")
+    public ResponseEntity<Void> setBreakpoint(
+            @PathVariable String agentId,
+            @RequestBody BreakpointConfiguration breakpoint) {
+        
+        DebugSession session = debugSessionManager.getActiveSession(agentId);
+        if (session == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        // 브레이크포인트 설정
+        session.addBreakpoint(breakpoint);
+        
+        return ResponseEntity.ok().build();
+    }
+    
+    @GetMapping("/{agentId}/debug/trace/{traceId}")
+    public ResponseEntity<ExecutionTrace> getExecutionTrace(
+            @PathVariable String agentId,
+            @PathVariable String traceId) {
+        
+        // 실행 추적 정보 조회
+        ExecutionTrace trace = stateInspector.getExecutionTrace(agentId, traceId);
+        
+        if (trace == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        return ResponseEntity.ok(trace);
+    }
+}
+
+@Component
+public class DebugInterceptor implements AgentInterceptor {
+    
+    private final DebugSession session;
+    private final AtomicBoolean paused = new AtomicBoolean(false);
+    
+    @Override
+    public void beforeExecution(AgentContext context) {
+        // 브레이크포인트 체크
+        if (session.hasBreakpoint(context)) {
+            paused.set(true);
+            notifyDebugger(context);
+            
+            // 디버거 명령 대기
+            waitForDebuggerCommand();
+        }
+        
+        // 실행 컨텍스트 기록
+        session.recordContext(context);
+    }
+    
+    @Override
+    public void afterExecution(AgentContext context, AgentResult result) {
+        // 실행 결과 기록
+        session.recordResult(context, result);
+    }
+    
+    @Override
+    public void onError(AgentContext context, Throwable error) {
+        // 오류 정보 상세 기록
+        session.recordError(context, error);
+        
+        // 오류 발생 시 자동 중단
+        if (session.isPauseOnError()) {
+            paused.set(true);
+            notifyDebugger(context, error);
+            waitForDebuggerCommand();
+        }
+    }
+}
+```
+
+### 19.12.3 메모리 및 리소스 프로파일링
+
+```java
+@Service
+public class AgentResourceProfiler {
+    
+    private final MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
+    private final ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
+    
+    public ResourceProfile profileAgentExecution(Agent agent, AgentRequest request) {
+        // 프로파일링 시작
+        ResourceSnapshot startSnapshot = captureResourceSnapshot();
+        
+        // 에이전트 실행
+        long startTime = System.nanoTime();
+        AgentResponse response = agent.execute(request);
+        long endTime = System.nanoTime();
+        
+        // 프로파일링 종료
+        ResourceSnapshot endSnapshot = captureResourceSnapshot();
+        
+        // 리소스 사용량 계산
+        return calculateResourceUsage(startSnapshot, endSnapshot, endTime - startTime);
+    }
+    
+    private ResourceSnapshot captureResourceSnapshot() {
+        ResourceSnapshot snapshot = new ResourceSnapshot();
+        
+        // 메모리 사용량
+        MemoryUsage heapUsage = memoryBean.getHeapMemoryUsage();
+        snapshot.setHeapUsed(heapUsage.getUsed());
+        snapshot.setHeapMax(heapUsage.getMax());
+        
+        // 스레드 정보
+        snapshot.setThreadCount(threadBean.getThreadCount());
+        snapshot.setPeakThreadCount(threadBean.getPeakThreadCount());
+        
+        // CPU 시간
+        snapshot.setCpuTime(threadBean.getCurrentThreadCpuTime());
+        
+        // GC 정보
+        List<GarbageCollectorMXBean> gcBeans = ManagementFactory.getGarbageCollectorMXBeans();
+        long totalGcCount = 0;
+        long totalGcTime = 0;
+        for (GarbageCollectorMXBean gcBean : gcBeans) {
+            totalGcCount += gcBean.getCollectionCount();
+            totalGcTime += gcBean.getCollectionTime();
+        }
+        snapshot.setGcCount(totalGcCount);
+        snapshot.setGcTime(totalGcTime);
+        
+        return snapshot;
+    }
+    
+    private ResourceProfile calculateResourceUsage(
+            ResourceSnapshot start, 
+            ResourceSnapshot end, 
+            long executionTimeNanos) {
+        
+        ResourceProfile profile = new ResourceProfile();
+        
+        // 실행 시간
+        profile.setExecutionTimeMs(executionTimeNanos / 1_000_000);
+        
+        // 메모리 사용량 변화
+        profile.setMemoryDelta(end.getHeapUsed() - start.getHeapUsed());
+        profile.setPeakMemory(Math.max(start.getHeapUsed(), end.getHeapUsed()));
+        
+        // CPU 사용량
+        profile.setCpuTimeMs((end.getCpuTime() - start.getCpuTime()) / 1_000_000);
+        
+        // GC 영향
+        profile.setGcCount(end.getGcCount() - start.getGcCount());
+        profile.setGcTimeMs(end.getGcTime() - start.getGcTime());
+        
+        // 스레드 사용량
+        profile.setPeakThreads(end.getPeakThreadCount());
+        
+        return profile;
+    }
+}
+```
+
+## 19.13 프로덕션 오류 추적 및 진단
+
+### 19.13.1 지능형 오류 분석 시스템
+
+```java
+@Service
+public class IntelligentErrorAnalyzer {
+    
+    private final ErrorPatternRepository patternRepository;
+    private final ChatModel chatModel;
+    private final ErrorClassifier errorClassifier;
+    
+    public ErrorAnalysisReport analyzeError(AgentError error) {
+        // 1. 오류 분류
+        ErrorClassification classification = errorClassifier.classify(error);
+        
+        // 2. 유사 오류 패턴 검색
+        List<ErrorPattern> similarPatterns = findSimilarPatterns(error);
+        
+        // 3. 근본 원인 분석
+        RootCauseAnalysis rootCause = analyzeRootCause(error, similarPatterns);
+        
+        // 4. AI 기반 해결책 제안
+        List<Solution> solutions = generateSolutions(error, rootCause);
+        
+        // 5. 영향도 평가
+        ImpactAssessment impact = assessImpact(error);
+        
+        return new ErrorAnalysisReport(
+            classification,
+            rootCause,
+            solutions,
+            impact,
+            similarPatterns
+        );
+    }
+    
+    private RootCauseAnalysis analyzeRootCause(AgentError error, List<ErrorPattern> patterns) {
+        // 스택 트레이스 분석
+        StackTraceAnalysis stackAnalysis = analyzeStackTrace(error.getStackTrace());
+        
+        // 컨텍스트 분석
+        ContextAnalysis contextAnalysis = analyzeErrorContext(error.getContext());
+        
+        // 타이밍 분석
+        TimingAnalysis timingAnalysis = analyzeErrorTiming(error);
+        
+        // AI를 활용한 종합 분석
+        String prompt = buildRootCausePrompt(stackAnalysis, contextAnalysis, timingAnalysis);
+        
+        ChatResponse response = ChatClient.builder(chatModel)
+            .build()
+            .prompt(prompt)
+            .call()
+            .chatResponse();
+        
+        return parseRootCauseAnalysis(response.getResult().getOutput().getText());
+    }
+    
+    private List<Solution> generateSolutions(AgentError error, RootCauseAnalysis rootCause) {
+        List<Solution> solutions = new ArrayList<>();
+        
+        // 1. 알려진 해결책 검색
+        solutions.addAll(findKnownSolutions(error, rootCause));
+        
+        // 2. AI 기반 해결책 생성
+        String solutionPrompt = buildSolutionPrompt(error, rootCause);
+        
+        ChatResponse response = ChatClient.builder(chatModel)
+            .build()
+            .prompt(solutionPrompt)
+            .call()
+            .chatResponse();
+        
+        solutions.addAll(parseSolutions(response.getResult().getOutput().getText()));
+        
+        // 3. 해결책 우선순위 지정
+        prioritizeSolutions(solutions, error, rootCause);
+        
+        return solutions;
+    }
+}
+```
+
+### 19.13.2 오류 재현 및 테스트 시스템
+
+```java
+@Service
+public class ErrorReproductionService {
+    
+    private final AgentRegistry agentRegistry;
+    private final RequestRecorder requestRecorder;
+    private final EnvironmentSimulator environmentSimulator;
+    
+    public ReproductionResult reproduceError(String errorId) {
+        // 1. 오류 정보 로드
+        AgentError error = loadError(errorId);
+        
+        // 2. 원본 요청 복원
+        AgentRequest originalRequest = requestRecorder.getRequest(error.getRequestId());
+        
+        // 3. 환경 상태 복원
+        EnvironmentState originalState = error.getEnvironmentSnapshot();
+        environmentSimulator.restoreState(originalState);
+        
+        // 4. 에이전트 상태 복원
+        Agent agent = agentRegistry.getAgent(error.getAgentId());
+        restoreAgentState(agent, error.getAgentState());
+        
+        // 5. 오류 재현 시도
+        List<ReproductionAttempt> attempts = new ArrayList<>();
+        
+        for (int i = 0; i < 5; i++) {
+            ReproductionAttempt attempt = attemptReproduction(agent, originalRequest, error);
+            attempts.add(attempt);
+            
+            if (attempt.isSuccessful()) {
+                break;
+            }
+            
+            // 재현 실패 시 조건 조정
+            adjustReproductionConditions(attempt);
+        }
+        
+        return new ReproductionResult(error, attempts);
+    }
+    
+    private ReproductionAttempt attemptReproduction(
+            Agent agent, 
+            AgentRequest request, 
+            AgentError originalError) {
+        
+        ReproductionAttempt attempt = new ReproductionAttempt();
+        attempt.setStartTime(LocalDateTime.now());
+        
+        try {
+            // 디버그 모드로 실행
+            AgentResponse response = agent.executeInDebugMode(request);
+            attempt.setResponse(response);
+            attempt.setSuccessful(false);
+            attempt.setReason("Error not reproduced");
+            
+        } catch (Exception e) {
+            attempt.setError(e);
+            
+            // 오류 비교
+            boolean isSameError = compareErrors(originalError, e);
+            attempt.setSuccessful(isSameError);
+            
+            if (isSameError) {
+                // 상세 진단 정보 수집
+                collectDiagnosticInfo(attempt, agent, request);
+            }
+        }
+        
+        attempt.setEndTime(LocalDateTime.now());
+        return attempt;
+    }
+    
+    private void collectDiagnosticInfo(
+            ReproductionAttempt attempt, 
+            Agent agent, 
+            AgentRequest request) {
+        
+        DiagnosticInfo diagnostics = new DiagnosticInfo();
+        
+        // 메모리 덤프
+        diagnostics.setMemoryDump(captureMemoryDump());
+        
+        // 스레드 덤프
+        diagnostics.setThreadDump(captureThreadDump());
+        
+        // 에이전트 상태 스냅샷
+        diagnostics.setAgentSnapshot(agent.captureSnapshot());
+        
+        // 실행 추적
+        diagnostics.setExecutionTrace(agent.getLastExecutionTrace());
+        
+        attempt.setDiagnostics(diagnostics);
+    }
+}
+```
+
+## 19.14 고급 모니터링 구성
+
+### 19.14.1 커스텀 메트릭 및 알림
+
+```java
+@Configuration
+public class AdvancedMonitoringConfig {
+    
+    @Bean
+    public MeterRegistry customMeterRegistry() {
+        CompositeMeterRegistry composite = new CompositeMeterRegistry();
+        
+        // Prometheus 레지스트리
+        PrometheusMeterRegistry prometheus = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+        composite.add(prometheus);
+        
+        // CloudWatch 레지스트리
+        CloudWatchMeterRegistry cloudWatch = new CloudWatchMeterRegistry(
+            cloudWatchConfig(), Clock.SYSTEM, CloudWatchAsyncClient.create());
+        composite.add(cloudWatch);
+        
+        // 커스텀 필터 및 변환
+        composite.config()
+            .meterFilter(new AgentMetricFilter())
+            .meterFilter(MeterFilter.denyNameStartsWith("jvm"))
+            .meterFilter(MeterFilter.maximumAllowableMetrics(10000));
+        
+        return composite;
+    }
+    
+    @Component
+    public static class AgentMetricFilter implements MeterFilter {
+        
+        @Override
+        public Meter.Id map(Meter.Id id) {
+            // AI 관련 메트릭에 태그 추가
+            if (id.getName().startsWith("gen_ai") || id.getName().startsWith("spring.ai")) {
+                return id.withTag("service", "ai-agent");
+            }
+            return id;
+        }
+        
+        @Override
+        public DistributionStatisticConfig configure(Meter.Id id, DistributionStatisticConfig config) {
+            // 응답 시간 메트릭에 대한 히스토그램 구성
+            if (id.getName().contains("duration")) {
+                return DistributionStatisticConfig.builder()
+                    .percentilesHistogram(true)
+                    .percentiles(0.5, 0.75, 0.95, 0.99)
+                    .serviceLevelObjectives(
+                        Duration.ofMillis(100).toNanos(),
+                        Duration.ofMillis(500).toNanos(),
+                        Duration.ofSeconds(1).toNanos(),
+                        Duration.ofSeconds(5).toNanos()
+                    )
+                    .build()
+                    .merge(config);
+            }
+            return config;
+        }
+    }
+    
+    @Bean
+    public AlertManager alertManager(MeterRegistry meterRegistry) {
+        return AlertManager.builder()
+            .meterRegistry(meterRegistry)
+            .alertRules(Arrays.asList(
+                // 높은 오류율 알림
+                AlertRule.builder()
+                    .name("high-error-rate")
+                    .query("rate(gen_ai_client_operation_errors_total[5m]) > 0.1")
+                    .severity(AlertSeverity.CRITICAL)
+                    .annotations(Map.of(
+                        "summary", "High AI operation error rate",
+                        "description", "Error rate is above 10% for the last 5 minutes"
+                    ))
+                    .build(),
+                
+                // 토큰 사용량 급증 알림
+                AlertRule.builder()
+                    .name("token-usage-spike")
+                    .query("rate(gen_ai_client_token_usage_total[5m]) > 10000")
+                    .severity(AlertSeverity.WARNING)
+                    .annotations(Map.of(
+                        "summary", "Token usage spike detected",
+                        "description", "Token consumption rate exceeds 10k tokens/5min"
+                    ))
+                    .build(),
+                
+                // 응답 시간 저하 알림
+                AlertRule.builder()
+                    .name("slow-response-time")
+                    .query("histogram_quantile(0.95, gen_ai_client_operation_duration_seconds_bucket) > 10")
+                    .severity(AlertSeverity.WARNING)
+                    .annotations(Map.of(
+                        "summary", "Slow AI response times",
+                        "description", "95th percentile response time is above 10 seconds"
+                    ))
+                    .build()
+            ))
+            .build();
+    }
+}
+```
+
+### 19.14.2 실시간 대시보드 구성
+
+```java
+@RestController
+@RequestMapping("/api/monitoring/dashboard")
+public class RealTimeDashboardController {
+    
+    private final MeterRegistry meterRegistry;
+    private final AgentMetricsService metricsService;
+    private final SseEmitter.SseEventBuilder eventBuilder;
+    
+    @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamMetrics() {
+        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
+        
+        // 실시간 메트릭 스트리밍
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        executor.scheduleAtFixedRate(() -> {
+            try {
+                DashboardMetrics metrics = collectCurrentMetrics();
+                emitter.send(SseEmitter.event()
+                    .name("metrics")
+                    .data(metrics));
+            } catch (IOException e) {
+                emitter.completeWithError(e);
+            }
+        }, 0, 1, TimeUnit.SECONDS);
+        
+        emitter.onCompletion(() -> executor.shutdown());
+        emitter.onTimeout(() -> executor.shutdown());
+        
+        return emitter;
+    }
+    
+    private DashboardMetrics collectCurrentMetrics() {
+        DashboardMetrics metrics = new DashboardMetrics();
+        metrics.setTimestamp(Instant.now());
+        
+        // 토큰 사용량
+        metrics.setTokenUsage(new TokenUsageMetrics(
+            meterRegistry.counter("gen_ai.client.token.usage", 
+                "gen_ai.usage.type", "input").count(),
+            meterRegistry.counter("gen_ai.client.token.usage", 
+                "gen_ai.usage.type", "output").count()
+        ));
+        
+        // 응답 시간 통계
+        Timer responseTimer = meterRegistry.timer("gen_ai.client.operation.duration");
+        metrics.setResponseTimeStats(new ResponseTimeStats(
+            responseTimer.mean(TimeUnit.MILLISECONDS),
+            responseTimer.max(TimeUnit.MILLISECONDS),
+            getPercentile(responseTimer, 0.95),
+            getPercentile(responseTimer, 0.99)
+        ));
+        
+        // 에러율
+        double totalRequests = meterRegistry.counter("gen_ai.client.operation.total").count();
+        double errors = meterRegistry.counter("gen_ai.client.operation.errors").count();
+        metrics.setErrorRate(totalRequests > 0 ? errors / totalRequests : 0);
+        
+        // 활성 에이전트 상태
+        metrics.setActiveAgents(metricsService.getActiveAgentStates());
+        
+        return metrics;
+    }
+    
+    @GetMapping("/config")
+    public ResponseEntity<DashboardConfiguration> getDashboardConfig() {
+        DashboardConfiguration config = new DashboardConfiguration();
+        
+        // 위젯 구성
+        config.setWidgets(Arrays.asList(
+            new Widget("token-usage", "Token Usage", "line-chart", 
+                Map.of("metrics", Arrays.asList("input_tokens", "output_tokens"))),
+            
+            new Widget("response-time", "Response Time", "gauge", 
+                Map.of("metric", "p95_response_time", "max", 10000)),
+            
+            new Widget("error-rate", "Error Rate", "percentage", 
+                Map.of("metric", "error_rate", "threshold", 0.05)),
+            
+            new Widget("agent-status", "Agent Status", "status-grid", 
+                Map.of("agents", metricsService.getRegisteredAgents()))
+        ));
+        
+        return ResponseEntity.ok(config);
+    }
+}
+```
+
+### 19.14.3 예측적 모니터링
+
+```java
+@Service
+public class PredictiveMonitoringService {
+    
+    private final TimeSeriesAnalyzer timeSeriesAnalyzer;
+    private final AnomalyDetector anomalyDetector;
+    private final ChatModel chatModel;
+    
+    @Scheduled(fixedRate = 300000) // 5분마다 실행
+    public void analyzeTrendsAndPredict() {
+        // 1. 시계열 데이터 수집
+        Map<String, TimeSeries> metrics = collectTimeSeriesData();
+        
+        // 2. 트렌드 분석
+        Map<String, TrendAnalysis> trends = new HashMap<>();
+        for (Map.Entry<String, TimeSeries> entry : metrics.entrySet()) {
+            TrendAnalysis trend = timeSeriesAnalyzer.analyzeTrend(entry.getValue());
+            trends.put(entry.getKey(), trend);
+        }
+        
+        // 3. 이상 징후 감지
+        List<Anomaly> anomalies = anomalyDetector.detectAnomalies(metrics);
+        
+        // 4. 예측 생성
+        List<Prediction> predictions = generatePredictions(trends, anomalies);
+        
+        // 5. 조치 권고사항 생성
+        List<ActionRecommendation> recommendations = generateRecommendations(predictions);
+        
+        // 6. 알림 발송
+        notifyIfCritical(predictions, recommendations);
+    }
+    
+    private List<Prediction> generatePredictions(
+            Map<String, TrendAnalysis> trends, 
+            List<Anomaly> anomalies) {
+        
+        List<Prediction> predictions = new ArrayList<>();
+        
+        // 토큰 사용량 예측
+        TrendAnalysis tokenTrend = trends.get("token_usage");
+        if (tokenTrend != null && tokenTrend.isIncreasing()) {
+            double projectedUsage = tokenTrend.projectValue(Duration.ofHours(24));
+            if (projectedUsage > getTokenLimit() * 0.8) {
+                predictions.add(new Prediction(
+                    "token_limit_breach",
+                    "Token limit may be exceeded within 24 hours",
+                    PredictionSeverity.HIGH,
+                    0.85,
+                    LocalDateTime.now().plusHours(20)
+                ));
+            }
+        }
+        
+        // 성능 저하 예측
+        TrendAnalysis responseTrend = trends.get("response_time");
+        if (responseTrend != null && responseTrend.getDegradationRate() > 0.1) {
+            predictions.add(new Prediction(
+                "performance_degradation",
+                "Response time degradation detected",
+                PredictionSeverity.MEDIUM,
+                0.75,
+                LocalDateTime.now().plusHours(6)
+            ));
+        }
+        
+        // AI 기반 예측
+        String aiPredictionPrompt = buildPredictionPrompt(trends, anomalies);
+        ChatResponse response = ChatClient.builder(chatModel)
+            .build()
+            .prompt(aiPredictionPrompt)
+            .call()
+            .chatResponse();
+        
+        predictions.addAll(parseAIPredictions(response.getResult().getOutput().getText()));
+        
+        return predictions;
+    }
+    
+    private List<ActionRecommendation> generateRecommendations(List<Prediction> predictions) {
+        List<ActionRecommendation> recommendations = new ArrayList<>();
+        
+        for (Prediction prediction : predictions) {
+            switch (prediction.getType()) {
+                case "token_limit_breach":
+                    recommendations.add(new ActionRecommendation(
+                        "Optimize prompts or increase token limit",
+                        ActionPriority.HIGH,
+                        Arrays.asList(
+                            "Review and optimize prompt templates",
+                            "Implement prompt caching",
+                            "Consider upgrading API limits"
+                        )
+                    ));
+                    break;
+                    
+                case "performance_degradation":
+                    recommendations.add(new ActionRecommendation(
+                        "Investigate performance bottlenecks",
+                        ActionPriority.MEDIUM,
+                        Arrays.asList(
+                            "Check vector store query performance",
+                            "Review agent complexity",
+                            "Consider response caching"
+                        )
+                    ));
+                    break;
+            }
+        }
+        
+        return recommendations;
+    }
+}
+```
+
+## 19.15 모범 사례 및 주의사항
+
+### 19.15.1 평가 모범 사례
+
+1. **체계적인 평가 계획 수립**
+   - 평가 목표와 기준을 명확히 정의
+   - 다양한 관점에서의 평가 지표 설정
+   - 정기적인 평가 주기 설정
+
+2. **균형 잡힌 평가 데이터셋**
+   - 실제 사용 사례를 반영한 데이터셋 구성
+   - 엣지 케이스와 일반적인 경우의 균형
+   - 주기적인 데이터셋 업데이트
+
+3. **자동화된 평가 파이프라인**
+   - CI/CD 파이프라인에 평가 통합
+   - 회귀 테스트 자동화
+   - 성능 벤치마크 추적
+
+### 19.15.2 디버깅 모범 사례
+
+1. **구조화된 로깅**
+   ```java
+   @Component
+   public class StructuredAgentLogger {
+       private static final Logger logger = LoggerFactory.getLogger(StructuredAgentLogger.class);
+       
+       public void logAgentExecution(AgentContext context, AgentResult result) {
+           logger.info("Agent execution completed", 
+               kv("agent_id", context.getAgentId()),
+               kv("session_id", context.getSessionId()),
+               kv("execution_time_ms", result.getExecutionTimeMs()),
+               kv("token_count", result.getTokenCount()),
+               kv("success", result.isSuccess())
+           );
+       }
+   }
+   ```
+
+2. **컨텍스트 보존**
+   - 요청-응답 전체 사이클 추적
+   - 관련 메타데이터 보존
+   - 재현 가능한 디버그 정보 수집
+
+3. **점진적 디버깅**
+   - 로그 레벨 동적 조정
+   - 특정 세션/사용자에 대한 상세 로깅
+   - 성능 영향 최소화
+
+### 19.15.3 모니터링 모범 사례
+
+1. **계층적 모니터링**
+   - 인프라 레벨 모니터링
+   - 애플리케이션 레벨 모니터링
+   - 비즈니스 레벨 모니터링
+
+2. **알림 피로 방지**
+   - 의미 있는 임계값 설정
+   - 알림 그룹화 및 억제
+   - 우선순위 기반 알림
+
+3. **비용 최적화**
+   - 메트릭 수집 최적화
+   - 로그 보존 정책 설정
+   - 샘플링 전략 구현
+
+### 19.15.4 일반적인 함정과 해결책
+
+1. **과도한 메트릭 수집**
+   - 문제: 스토리지 비용 증가, 성능 저하
+   - 해결: 중요 메트릭 선별, 집계 사용
+
+2. **민감 정보 노출**
+   - 문제: 프롬프트/응답에 민감 정보 포함
+   - 해결: 자동 마스킹, 접근 제어
+
+3. **평가 편향**
+   - 문제: 특정 사용 사례에 편향된 평가
+   - 해결: 다양한 평가 시나리오, A/B 테스팅
+
+## 19.16 결론
+
+이 장에서는 Spring AI 에이전트의 평가, 디버깅, 모니터링에 대한 포괄적인 방법론과 도구를 살펴보았습니다. 효과적인 관찰가능성 구현은 AI 시스템의 신뢰성과 성능을 보장하는 핵심 요소입니다.
+
+주요 내용을 요약하면:
+
+1. **평가 프레임워크**: 체계적인 에이전트 성능 평가
+2. **디버깅 도구**: 프로덕션 환경에서의 효과적인 문제 해결
+3. **모니터링 시스템**: 실시간 성능 추적 및 이상 징후 감지
+4. **지속적 개선**: 데이터 기반 최적화 및 개선
+
+이러한 도구와 기법을 활용하여 안정적이고 신뢰할 수 있는 AI 에이전트 시스템을 구축하고 운영할 수 있습니다.
 
 ## 연습 문제
 
