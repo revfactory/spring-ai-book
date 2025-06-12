@@ -114,7 +114,7 @@
       api-key: ${OPENAI_API_KEY}
       chat:
         options:
-          model: gpt-4o
+          model: gpt-4.1
           temperature: 0.7</code></pre>
                     </div>
                 </div>
@@ -167,95 +167,209 @@ public class AIChatService {
         </div>
     </section>
 
-    <!-- Model Comparison -->
+    <!-- AI Models -->
     <section id="models" class="py-12 bg-gray-100">
         <div class="container mx-auto px-4">
-            <h2 class="text-3xl font-bold text-center mb-8">🤖 모델 선택 가이드</h2>
+            <h2 class="text-3xl font-bold text-center mb-8">🤖 지원 AI 모델</h2>
+            <p class="text-center text-gray-600 mb-8">Spring AI에서 지원하는 다양한 AI 모델과 설정 방법</p>
             
-            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left font-semibold">용도</th>
-                                <th class="px-6 py-3 text-left font-semibold">추천 모델</th>
-                                <th class="px-6 py-3 text-left font-semibold">이유</th>
-                                <th class="px-6 py-3 text-left font-semibold">설정 복잡도</th>
-                                <th class="px-6 py-3 text-left font-semibold">액션</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200">
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4">프로토타입</td>
-                                <td class="px-6 py-4 font-medium text-blue-600">OpenAI GPT-4o</td>
-                                <td class="px-6 py-4">신뢰성, 문서화</td>
-                                <td class="px-6 py-4">⭐</td>
-                                <td class="px-6 py-4">
-                                    <button class="bg-blue-100 text-blue-700 px-3 py-1 rounded text-sm hover:bg-blue-200" 
-                                            onclick="showConfig('openai')">
-                                        설정 보기
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4">프로덕션</td>
-                                <td class="px-6 py-4 font-medium text-green-600">Anthropic Claude</td>
-                                <td class="px-6 py-4">안전성, 성능</td>
-                                <td class="px-6 py-4">⭐⭐</td>
-                                <td class="px-6 py-4">
-                                    <button class="bg-green-100 text-green-700 px-3 py-1 rounded text-sm hover:bg-green-200" 
-                                            onclick="showConfig('anthropic')">
-                                        설정 보기
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4">로컬 개발</td>
-                                <td class="px-6 py-4 font-medium text-purple-600">Ollama</td>
-                                <td class="px-6 py-4">무료, 오프라인</td>
-                                <td class="px-6 py-4">⭐⭐⭐</td>
-                                <td class="px-6 py-4">
-                                    <button class="bg-purple-100 text-purple-700 px-3 py-1 rounded text-sm hover:bg-purple-200" 
-                                            onclick="showConfig('ollama')">
-                                        설정 보기
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4">엔터프라이즈</td>
-                                <td class="px-6 py-4 font-medium text-red-600">Azure OpenAI</td>
-                                <td class="px-6 py-4">규정준수</td>
-                                <td class="px-6 py-4">⭐⭐⭐⭐</td>
-                                <td class="px-6 py-4">
-                                    <button class="bg-red-100 text-red-700 px-3 py-1 rounded text-sm hover:bg-red-200" 
-                                            onclick="showConfig('azure')">
-                                        설정 보기
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+            <div class="grid md:grid-cols-2 lg:grid-cols-2 gap-6">
+                <!-- OpenAI -->
+                <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                            <i class="fab fa-openai text-blue-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold text-blue-600">OpenAI</h3>
+                            <p class="text-sm text-gray-500">GPT-4.1, GPT-4.1 mini, o3-mini, o4-mini</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-4">가장 널리 사용되는 AI 모델로 높은 성능과 다양한 기능을 제공합니다.</p>
+                    
+                    <div class="mb-4">
+                        <h4 class="font-semibold mb-2">주요 특징:</h4>
+                        <ul class="text-sm text-gray-600 space-y-1">
+                            <li>• 강력한 텍스트 생성 및 이해 능력</li>
+                            <li>• Function Calling 지원</li>
+                            <li>• 스트리밍 응답 지원</li>
+                            <li>• 100만 토큰 컨텍스트 지원 (GPT-4.1)</li>
+                            <li>• 향상된 추론 능력 (o3, o4 시리즈)</li>
+                            <li>• 코딩 및 수학 성능 대폭 개선</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('openai-config')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="openai-config"><code class="language-yaml">spring:
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: gpt-4.1
+          temperature: 0.7
+          max-tokens: 1000</code></pre>
+                    </div>
+                    
+                    <div class="text-sm">
+                        <span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded mr-2">상업적 이용</span>
+                        <span class="inline-block bg-green-100 text-green-800 px-2 py-1 rounded">API 기반</span>
+                    </div>
+                </div>
+
+                <!-- Anthropic Claude -->
+                <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mr-4">
+                            <i class="fas fa-brain text-orange-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold text-orange-600">Anthropic Claude</h3>
+                            <p class="text-sm text-gray-500">Claude-4 Sonnet, Claude-4 Opus, Claude-3.7 Sonnet</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-4">안전성과 신뢰성에 중점을 둔 AI 모델로 긴 컨텍스트 처리가 뛰어납니다.</p>
+                    
+                    <div class="mb-4">
+                        <h4 class="font-semibold mb-2">주요 특징:</h4>
+                        <ul class="text-sm text-gray-600 space-y-1">
+                            <li>• 200K 토큰의 긴 컨텍스트 윈도우</li>
+                            <li>• 높은 안전성과 윤리적 고려</li>
+                            <li>• 하이브리드 추론 모델 (빠른 응답/단계별 사고)</li>
+                            <li>• 컴퓨터 사용 기능 (Computer Use)</li>
+                            <li>• 향상된 코딩 성능 (SWE-bench 49.0%)</li>
+                            <li>• Claude-4 시리즈의 최고 성능</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('anthropic-config')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="anthropic-config"><code class="language-yaml">spring:
+  ai:
+    anthropic:
+      claude:
+        api-key: ${ANTHROPIC_API_KEY}
+        chat:
+          options:
+            model: claude-4-sonnet-20250522
+            max-tokens: 4096
+            temperature: 0.7</code></pre>
+                    </div>
+                    
+                    <div class="text-sm">
+                        <span class="inline-block bg-orange-100 text-orange-800 px-2 py-1 rounded mr-2">긴 컨텍스트</span>
+                        <span class="inline-block bg-green-100 text-green-800 px-2 py-1 rounded">API 기반</span>
+                    </div>
+                </div>
+
+                <!-- Ollama -->
+                <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
+                            <i class="fas fa-server text-purple-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold text-purple-600">Ollama</h3>
+                            <p class="text-sm text-gray-500">DeepSeek-R1, Llama 3.3, Qwen3, Mistral Small 3.1</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-4">로컬에서 실행 가능한 오픈소스 모델로 개인정보 보호와 비용 절약이 가능합니다.</p>
+                    
+                    <div class="mb-4">
+                        <h4 class="font-semibold mb-2">주요 특징:</h4>
+                        <ul class="text-sm text-gray-600 space-y-1">
+                            <li>• 로컬 실행으로 데이터 보안</li>
+                            <li>• 네트워크 없이 오프라인 사용</li>
+                            <li>• DeepSeek-R1 추론 모델 (30배 비용 효율)</li>
+                            <li>• Qwen3 MoE 아키텍처</li>
+                            <li>• Mistral Small 3.1의 향상된 비전 기능</li>
+                            <li>• 무료 사용 (하드웨어 리소스 필요)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('ollama-config')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="ollama-config"><code class="language-yaml">spring:
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        options:
+          model: deepseek-r1
+          temperature: 0.7</code></pre>
+                    </div>
+                    
+                    <div class="text-sm">
+                        <span class="inline-block bg-purple-100 text-purple-800 px-2 py-1 rounded mr-2">로컬 실행</span>
+                        <span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded">오픈소스</span>
+                    </div>
+                </div>
+
+                <!-- Azure OpenAI -->
+                <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                            <i class="fab fa-microsoft text-blue-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold text-blue-600">Azure OpenAI</h3>
+                            <p class="text-sm text-gray-500">GPT-4.1, o3-mini, GPT-4o, GPT-4o-mini</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-4">기업용 OpenAI 서비스로 높은 보안성과 컴플라이언스를 제공합니다.</p>
+                    
+                    <div class="mb-4">
+                        <h4 class="font-semibold mb-2">주요 특징:</h4>
+                        <ul class="text-sm text-gray-600 space-y-1">
+                            <li>• 기업급 보안 및 컴플라이언스</li>
+                            <li>• 데이터 프라이버시 보장</li>
+                            <li>• Azure 생태계 통합</li>
+                            <li>• GPT-4.1 최신 모델 지원</li>
+                            <li>• o3-mini 추론 모델 제공</li>
+                            <li>• 실시간 오디오 및 파인튜닝 지원</li>
+                            <li>• SLA 및 기술 지원</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('azure-config')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="azure-config"><code class="language-yaml">spring:
+  ai:
+    azure:
+      openai:
+        api-key: ${AZURE_OPENAI_API_KEY}
+        endpoint: ${AZURE_OPENAI_ENDPOINT}
+        chat:
+          options:
+            deployment-name: gpt-4.1
+            temperature: 0.7</code></pre>
+                    </div>
+                    
+                    <div class="text-sm">
+                        <span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded mr-2">엔터프라이즈</span>
+                        <span class="inline-block bg-green-100 text-green-800 px-2 py-1 rounded">높은 보안</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Configuration Modal -->
-            <div id="configModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-                <div class="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
-                    <div class="p-6">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 id="configTitle" class="text-xl font-semibold"></h3>
-                            <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                        <div id="configContent" class="code-block p-4"></div>
-                        <div class="mt-4 text-right">
-                            <button onclick="copyModalCode()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                                <i class="fas fa-copy"></i> 복사
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            <div class="text-center mt-8">
+                <p class="text-gray-600 mb-4">더 많은 모델과 설정 방법이 궁금하다면?</p>
+                <a href="guide/vectorstore.html" class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors">
+                    벡터 스토어 가이드 보기 →
+                </a>
             </div>
         </div>
     </section>
@@ -559,7 +673,7 @@ spring:
       api-key: \${OPENAI_API_KEY}
       chat:
         options:
-          model: gpt-4o
+          model: gpt-4.1
           temperature: 0.7
 
 # 환경 변수 설정
@@ -574,7 +688,7 @@ export OPENAI_API_KEY="your-api-key-here"`
       claude:
         chat:
           options:
-            model: claude-3-5-sonnet-20241022
+            model: claude-4-sonnet-20250522
             max-tokens: 1000
 
 # 환경 변수 설정
@@ -586,7 +700,7 @@ export ANTHROPIC_API_KEY="your-api-key-here"`
 curl -fsSL https://ollama.ai/install.sh | sh
 
 # 2. 모델 다운로드
-ollama pull llama3.2
+ollama pull deepseek-r1
 
 # 3. Spring 설정
 spring:
@@ -595,7 +709,7 @@ spring:
       base-url: http://localhost:11434
       chat:
         options:
-          model: llama3.2`
+          model: deepseek-r1.2`
             },
             azure: {
                 title: 'Azure OpenAI 설정',
