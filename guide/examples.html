@@ -52,14 +52,11 @@
                 <button class="example-filter tab-button bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300" data-category="chatbot">
                     채팅봇
                 </button>
-                <button class="example-filter tab-button bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300" data-category="rag">
-                    RAG 시스템
-                </button>
                 <button class="example-filter tab-button bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300" data-category="analysis">
                     문서 분석
                 </button>
-                <button class="example-filter tab-button bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300" data-category="integration">
-                    서비스 통합
+                <button class="example-filter tab-button bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300" data-category="search">
+                    AI 검색
                 </button>
             </div>
 
@@ -200,14 +197,14 @@ public class CustomerSupportChatService {
         Priority priority = determinePriority(sentiment);
         
         // 3. FAQ 검색
-        List<Document> relevantFAQs = vectorStore.similaritySearch(
+        List&lt;Document&gt; relevantFAQs = vectorStore.similaritySearch(
             SearchRequest.query(translatedMessage)
                 .withTopK(3)
                 .withSimilarityThreshold(0.7)
         );
         
         // 4. 대화 컨텍스트 로드
-        List<Message> conversationHistory = conversationRepository
+        List&lt;Message&gt; conversationHistory = conversationRepository
             .findBySessionId(request.getSessionId())
             .stream()
             .map(this::toMessage)
@@ -215,7 +212,7 @@ public class CustomerSupportChatService {
         
         // 5. AI 응답 생성
         String response = chatClient.prompt()
-            .user(u -> u.text(translatedMessage)
+            .user(u -&gt; u.text(translatedMessage)
                 .param("faqs", relevantFAQs)
                 .param("sentiment", sentiment)
                 .param("history", conversationHistory))
@@ -245,16 +242,16 @@ public class CustomerSupportChatService {
     }
     
     private Priority determinePriority(SentimentResult sentiment) {
-        if (sentiment.getScore() < -0.5) {
+        if (sentiment.getScore() &lt; -0.5) {
             return Priority.HIGH;
-        } else if (sentiment.getScore() < 0) {
+        } else if (sentiment.getScore() &lt; 0) {
             return Priority.MEDIUM;
         }
         return Priority.LOW;
     }
     
-    private List<String> generateSuggestedActions(SentimentResult sentiment, Priority priority) {
-        List<String> actions = new ArrayList<>();
+    private List&lt;String&gt; generateSuggestedActions(SentimentResult sentiment, Priority priority) {
+        List&lt;String&gt; actions = new ArrayList&lt;&gt;();
         
         if (priority == Priority.HIGH) {
             actions.add("상담원 연결");
@@ -270,14 +267,14 @@ public class CustomerSupportChatService {
     }
     
     // Streaming 지원
-    public Flux<String> handleCustomerQueryStream(ChatRequest request) {
+    public Flux&lt;String&gt; handleCustomerQueryStream(ChatRequest request) {
         // 전처리 로직 동일...
         
         return chatClient.prompt()
-            .user(u -> u.text(request.getMessage()))
+            .user(u -&gt; u.text(request.getMessage()))
             .stream()
             .content()
-            .map(chunk -> {
+            .map(chunk -&gt; {
                 // 실시간 번역 적용
                 if (!request.getLanguage().equals("ko")) {
                     return translationService.translateRealtime(chunk, "ko", request.getLanguage());
@@ -305,7 +302,7 @@ public class CustomerSupportController {
     private final MetricsService metricsService;
     
     @PostMapping("/chat")
-    public ResponseEntity<ChatResponse> chat(@RequestBody @Valid ChatRequest request) {
+    public ResponseEntity&lt;ChatResponse&gt; chat(@RequestBody @Valid ChatRequest request) {
         log.info("Received chat request for session: {}", request.getSessionId());
         
         Timer.Sample sample = Timer.start();
@@ -328,26 +325,26 @@ public class CustomerSupportController {
     }
     
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<String>> chatStream(@RequestBody @Valid ChatRequest request) {
+    public Flux&lt;ServerSentEvent&lt;String&gt;&gt; chatStream(@RequestBody @Valid ChatRequest request) {
         return chatService.handleCustomerQueryStream(request)
-            .map(content -> ServerSentEvent.<String>builder()
+            .map(content -&gt; ServerSentEvent.&lt;String&gt;builder()
                 .data(content)
                 .event("message")
                 .build())
-            .concatWith(Mono.just(ServerSentEvent.<String>builder()
+            .concatWith(Mono.just(ServerSentEvent.&lt;String&gt;builder()
                 .event("complete")
                 .data("[DONE]")
                 .build()));
     }
     
     @GetMapping("/session/{sessionId}/history")
-    public ResponseEntity<ConversationHistory> getHistory(@PathVariable String sessionId) {
+    public ResponseEntity&lt;ConversationHistory&gt; getHistory(@PathVariable String sessionId) {
         ConversationHistory history = chatService.getConversationHistory(sessionId);
         return ResponseEntity.ok(history);
     }
     
     @PostMapping("/feedback")
-    public ResponseEntity<Void> submitFeedback(@RequestBody @Valid FeedbackRequest feedback) {
+    public ResponseEntity&lt;Void&gt; submitFeedback(@RequestBody @Valid FeedbackRequest feedback) {
         chatService.processFeedback(feedback);
         return ResponseEntity.ok().build();
     }
@@ -370,7 +367,7 @@ public class CustomerSupportController {
         private String message;
         
         private String language;
-        private Map<String, Object> metadata;
+        private Map&lt;String, Object&gt; metadata;
     }
     
     @Data
@@ -380,7 +377,7 @@ public class CustomerSupportController {
         private String sessionId;
         private SentimentResult sentiment;
         private Priority priority;
-        private List<String> suggestedActions;
+        private List&lt;String&gt; suggestedActions;
         private Instant timestamp;
     }
 }</code></pre>
@@ -519,10 +516,6 @@ volumes:
                                         onclick="showTab(this, 'rag-pipeline')">
                                     파이프라인
                                 </button>
-                                <button class="tab-nav py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" 
-                                        onclick="showTab(this, 'rag-search')">
-                                    검색 최적화
-                                </button>
                             </nav>
                         </div>
 
@@ -601,7 +594,7 @@ public class DocumentAnalysisRAGService {
     }
     
     // 문서 업로드 및 처리
-    public DocumentIngestionResult ingestDocument(MultipartFile file, Map<String, String> metadata) {
+    public DocumentIngestionResult ingestDocument(MultipartFile file, Map&lt;String, String&gt; metadata) {
         try {
             // 1. 문서 형식 검증
             DocumentType docType = detectDocumentType(file);
@@ -611,10 +604,10 @@ public class DocumentAnalysisRAGService {
             ProcessedDocument processed = processingPipeline.process(file, docType);
             
             // 3. 청크 생성 (오버랩 포함)
-            List<DocumentChunk> chunks = createOptimizedChunks(processed);
+            List&lt;DocumentChunk&gt; chunks = createOptimizedChunks(processed);
             
             // 4. 메타데이터 보강
-            chunks.forEach(chunk -> {
+            chunks.forEach(chunk -&gt; {
                 chunk.addMetadata("source", file.getOriginalFilename());
                 chunk.addMetadata("type", docType.toString());
                 chunk.addMetadata("processed_at", Instant.now().toString());
@@ -623,8 +616,8 @@ public class DocumentAnalysisRAGService {
             });
             
             // 5. 임베딩 생성 및 저장
-            List<Document> documents = chunks.stream()
-                .map(chunk -> new Document(
+            List&lt;Document&gt; documents = chunks.stream()
+                .map(chunk -&gt; new Document(
                     chunk.getContent(),
                     chunk.getMetadata()
                 ))
@@ -666,7 +659,7 @@ public class DocumentAnalysisRAGService {
         );
         
         // 2. 관련 문서 재순위화
-        List<RankedDocument> rerankedDocs = rerank(searchResult.getDocuments(), question);
+        List&lt;RankedDocument&gt; rerankedDocs = rerank(searchResult.getDocuments(), question);
         
         // 3. 컨텍스트 구성
         String context = buildContext(rerankedDocs);
@@ -678,7 +671,7 @@ public class DocumentAnalysisRAGService {
                 주어진 문서를 바탕으로 정확하고 상세한 답변을 제공하세요.
                 답변시 반드시 출처를 명시하고, 확실하지 않은 내용은 추측하지 마세요.
                 """)
-            .user(u -> u.text("""
+            .user(u -&gt; u.text("""
                 질문: {question}
                 
                 관련 문서:
@@ -696,7 +689,7 @@ public class DocumentAnalysisRAGService {
             .content();
         
         // 5. 소스 추적 정보 추가
-        List<SourceReference> sources = extractSourceReferences(rerankedDocs);
+        List&lt;SourceReference&gt; sources = extractSourceReferences(rerankedDocs);
         
         return AnswerResponse.builder()
             .question(question)
@@ -708,7 +701,7 @@ public class DocumentAnalysisRAGService {
     }
     
     // 청크 최적화
-    private List<DocumentChunk> createOptimizedChunks(ProcessedDocument doc) {
+    private List&lt;DocumentChunk&gt; createOptimizedChunks(ProcessedDocument doc) {
         ChunkingStrategy strategy = ChunkingStrategy.builder()
             .maxChunkSize(1000)
             .overlapSize(200)
@@ -721,10 +714,10 @@ public class DocumentAnalysisRAGService {
     }
     
     // 재순위화 알고리즘
-    private List<RankedDocument> rerank(List<Document> documents, String query) {
+    private List&lt;RankedDocument&gt; rerank(List&lt;Document&gt; documents, String query) {
         // Cross-Encoder를 사용한 재순위화
         return documents.stream()
-            .map(doc -> {
+            .map(doc -&gt; {
                 double relevanceScore = calculateRelevance(doc, query);
                 double freshnessScore = calculateFreshness(doc);
                 double qualityScore = calculateQuality(doc);
@@ -736,7 +729,7 @@ public class DocumentAnalysisRAGService {
                 
                 return new RankedDocument(doc, finalScore);
             })
-            .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()))
+            .sorted((a, b) -&gt; Double.compare(b.getScore(), a.getScore()))
             .limit(5)
             .toList();
     }
@@ -780,11 +773,11 @@ public class DocumentProcessingPipeline {
                 }
                 
                 // 테이블 추출
-                List<Table> tables = tableExtractor.extract(file);
+                List&lt;Table&gt; tables = tableExtractor.extract(file);
                 resultBuilder.tables(tables);
                 
                 // 이미지 추출 및 설명 생성
-                List<ImageContent> images = extractAndDescribeImages(file);
+                List&lt;ImageContent&gt; images = extractAndDescribeImages(file);
                 resultBuilder.images(images);
             }
             
@@ -792,7 +785,7 @@ public class DocumentProcessingPipeline {
             CleanedDocument cleaned = documentCleaner.clean(rawText);
             
             // 4. 섹션 분할
-            List<DocumentSection> sections = splitIntoSections(cleaned);
+            List&lt;DocumentSection&gt; sections = splitIntoSections(cleaned);
             
             // 5. 메타데이터 추출
             DocumentMetadata metadata = extractMetadata(file, cleaned);
@@ -815,25 +808,25 @@ public class DocumentProcessingPipeline {
     
     private String extractText(MultipartFile file, DocumentType type) throws IOException {
         return switch (type) {
-            case PDF -> tikaReader.read(file.getInputStream());
-            case DOCX -> extractFromDocx(file);
-            case MARKDOWN -> new String(file.getBytes(), StandardCharsets.UTF_8);
-            case TXT -> new String(file.getBytes(), StandardCharsets.UTF_8);
-            case IMAGE -> ocrService.extractText(file);
-            default -> throw new UnsupportedDocumentException("Unsupported type: " + type);
+            case PDF -&gt; tikaReader.read(file.getInputStream());
+            case DOCX -&gt; extractFromDocx(file);
+            case MARKDOWN -&gt; new String(file.getBytes(), StandardCharsets.UTF_8);
+            case TXT -&gt; new String(file.getBytes(), StandardCharsets.UTF_8);
+            case IMAGE -&gt; ocrService.extractText(file);
+            default -&gt; throw new UnsupportedDocumentException("Unsupported type: " + type);
         };
     }
     
-    private List<DocumentSection> splitIntoSections(CleanedDocument doc) {
+    private List&lt;DocumentSection&gt; splitIntoSections(CleanedDocument doc) {
         // 헤더 기반 섹션 분할
         Pattern headerPattern = Pattern.compile("^#{1,3}\\s+(.+)$", Pattern.MULTILINE);
         Matcher matcher = headerPattern.matcher(doc.getText());
         
-        List<DocumentSection> sections = new ArrayList<>();
+        List&lt;DocumentSection&gt; sections = new ArrayList&lt;&gt;();
         int lastEnd = 0;
         
         while (matcher.find()) {
-            if (lastEnd < matcher.start()) {
+            if (lastEnd &lt; matcher.start()) {
                 // 이전 섹션 저장
                 String content = doc.getText().substring(lastEnd, matcher.start()).trim();
                 if (!content.isEmpty()) {
@@ -849,7 +842,7 @@ public class DocumentProcessingPipeline {
         }
         
         // 마지막 섹션 처리
-        if (lastEnd < doc.getText().length()) {
+        if (lastEnd &lt; doc.getText().length()) {
             sections.add(DocumentSection.builder()
                 .content(doc.getText().substring(lastEnd))
                 .startIndex(lastEnd)
@@ -860,13 +853,13 @@ public class DocumentProcessingPipeline {
         return sections;
     }
     
-    private List<ImageContent> extractAndDescribeImages(MultipartFile file) {
-        List<ImageContent> images = new ArrayList<>();
+    private List&lt;ImageContent&gt; extractAndDescribeImages(MultipartFile file) {
+        List&lt;ImageContent&gt; images = new ArrayList&lt;&gt;();
         
         try {
-            List<BufferedImage> extractedImages = ImageExtractor.extract(file);
+            List&lt;BufferedImage&gt; extractedImages = ImageExtractor.extract(file);
             
-            for (int i = 0; i < extractedImages.size(); i++) {
+            for (int i = 0; i &lt; extractedImages.size(); i++) {
                 BufferedImage img = extractedImages.get(i);
                 
                 // AI를 사용한 이미지 설명 생성
@@ -889,218 +882,384 @@ public class DocumentProcessingPipeline {
 }</code></pre>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <div id="rag-search" class="tab-content">
+                <!-- Example 3: AI Search -->
+                <div class="example-card bg-white rounded-lg shadow-lg overflow-hidden" data-category="search">
+                    <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white p-6">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-2xl font-bold flex items-center">
+                                <i class="fas fa-search mr-3"></i>
+                                AI 기반 지능형 검색
+                            </h3>
+                            <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm">
+                                난이도: ⭐⭐⭐
+                            </span>
+                        </div>
+                        <p class="mt-2 text-indigo-100">의미 기반 검색, 자동 완성, 맞춤법 교정을 포함한 지능형 검색 시스템</p>
+                    </div>
+                    
+                    <div class="p-6">
+                        <!-- Tabs -->
+                        <div class="border-b border-gray-200 mb-6">
+                            <nav class="-mb-px flex space-x-8">
+                                <button class="tab-nav py-2 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600" 
+                                        onclick="showTab(this, 'search-overview')">
+                                    개요
+                                </button>
+                                <button class="tab-nav py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" 
+                                        onclick="showTab(this, 'search-service')">
+                                    검색 서비스
+                                </button>
+                                <button class="tab-nav py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" 
+                                        onclick="showTab(this, 'search-features')">
+                                    고급 기능
+                                </button>
+                            </nav>
+                        </div>
+
+                        <!-- Tab Contents -->
+                        <div id="search-overview" class="tab-content active">
+                            <h4 class="font-semibold mb-3">주요 기능</h4>
+                            <ul class="space-y-2 mb-6">
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-indigo-500 mt-1 mr-3"></i>
+                                    <span>의미 기반 검색 (Semantic Search)</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-indigo-500 mt-1 mr-3"></i>
+                                    <span>실시간 자동 완성 및 제안</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-indigo-500 mt-1 mr-3"></i>
+                                    <span>맞춤법 교정 및 유사어 검색</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-indigo-500 mt-1 mr-3"></i>
+                                    <span>검색 의도 파악 및 재구성</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-indigo-500 mt-1 mr-3"></i>
+                                    <span>개인화된 검색 결과 순위</span>
+                                </li>
+                            </ul>
+
+                            <h4 class="font-semibold mb-3">검색 플로우</h4>
+                            <div class="bg-gray-100 p-4 rounded-lg">
+                                <pre class="text-sm font-mono">
+사용자 입력 → 쿼리 분석 → 의도 파악
+     ↓                      ↓
+맞춤법 교정 ← 쿼리 확장 ← 동의어 추가
+     ↓
+벡터 검색 + 키워드 검색 → 결과 병합
+     ↓
+AI 재순위화 → 개인화 → 최종 결과
+                                </pre>
+                            </div>
+                        </div>
+
+                        <div id="search-service" class="tab-content">
                             <div class="code-block p-4 relative">
                                 <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
-                                        onclick="copyCode('rag-search-code')">
+                                        onclick="copyCode('search-service-code')">
                                     <i class="fas fa-copy"></i> 복사
                                 </button>
-                                <pre id="rag-search-code"><code class="language-java">@Service
+                                <pre id="search-service-code"><code class="language-java">@Service
 @Slf4j
-public class HybridSearchService {
+public class IntelligentSearchService {
     
+    private final ChatClient chatClient;
     private final VectorStore vectorStore;
-    private final ElasticsearchClient elasticsearchClient;
-    private final EmbeddingModel embeddingModel;
-    private final SearchOptimizer searchOptimizer;
+    private final QueryAnalyzer queryAnalyzer;
+    private final PersonalizationEngine personalizationEngine;
+    private final SearchMetricsCollector metricsCollector;
     
-    public HybridSearchResult search(String query, SearchFilters filters, SearchOptions options) {
-        log.debug("Performing hybrid search for query: {}", query);
+    public SearchResponse search(SearchRequest request) {
+        // 1. 쿼리 분석 및 의도 파악
+        AnalyzedQuery analyzed = queryAnalyzer.analyze(request.getQuery());
         
-        // 1. 쿼리 확장 및 개선
-        ExpandedQuery expandedQuery = searchOptimizer.expandQuery(query);
+        // 2. 맞춤법 교정 및 쿼리 확장
+        EnrichedQuery enriched = enrichQuery(analyzed);
         
-        // 2. 벡터 검색
-        List<Document> vectorResults = performVectorSearch(
-            expandedQuery.getMainQuery(), 
-            filters, 
-            options.getTopK() * 2  // 재순위화를 위해 더 많이 검색
+        // 3. 하이브리드 검색 실행
+        SearchResults results = performHybridSearch(enriched);
+        
+        // 4. AI 기반 재순위화
+        List&lt;ScoredResult&gt; reranked = rerankResults(results, enriched);
+        
+        // 5. 개인화 적용
+        List&lt;ScoredResult&gt; personalized = personalizationEngine.personalize(
+            reranked, 
+            request.getUserContext()
         );
         
-        // 3. 키워드 검색 (Elasticsearch)
-        List<Document> keywordResults = performKeywordSearch(
-            expandedQuery,
-            filters,
-            options.getTopK() * 2
-        );
+        // 6. 메트릭 수집
+        metricsCollector.collect(request, personalized);
         
-        // 4. 결과 병합 및 점수 계산
-        Map<String, ScoredDocument> mergedResults = new HashMap<>();
-        
-        // 벡터 검색 결과 처리
-        for (int i = 0; i < vectorResults.size(); i++) {
-            Document doc = vectorResults.get(i);
-            double vectorScore = 1.0 - (i * 0.1 / vectorResults.size());
-            
-            mergedResults.put(doc.getId(), ScoredDocument.builder()
-                .document(doc)
-                .vectorScore(vectorScore * options.getVectorWeight())
-                .build());
-        }
-        
-        // 키워드 검색 결과 병합
-        for (int i = 0; i < keywordResults.size(); i++) {
-            Document doc = keywordResults.get(i);
-            double keywordScore = 1.0 - (i * 0.1 / keywordResults.size());
-            
-            mergedResults.compute(doc.getId(), (id, existing) -> {
-                if (existing == null) {
-                    return ScoredDocument.builder()
-                        .document(doc)
-                        .keywordScore(keywordScore * options.getKeywordWeight())
-                        .build();
-                } else {
-                    existing.setKeywordScore(keywordScore * options.getKeywordWeight());
-                    return existing;
-                }
-            });
-        }
-        
-        // 5. 최종 점수 계산 및 정렬
-        List<ScoredDocument> finalResults = mergedResults.values().stream()
-            .peek(doc -> doc.setFinalScore(
-                doc.getVectorScore() + 
-                doc.getKeywordScore() + 
-                calculateBoostScore(doc, filters)
-            ))
-            .sorted((a, b) -> Double.compare(b.getFinalScore(), a.getFinalScore()))
-            .limit(options.getTopK())
-            .toList();
-        
-        // 6. 검색 메타데이터 생성
-        SearchMetadata metadata = SearchMetadata.builder()
-            .totalVectorResults(vectorResults.size())
-            .totalKeywordResults(keywordResults.size())
-            .mergedResults(finalResults.size())
-            .queryExpansions(expandedQuery.getExpansions())
-            .searchDuration(Duration.between(startTime, Instant.now()))
-            .build();
-        
-        return HybridSearchResult.builder()
-            .documents(finalResults.stream()
-                .map(ScoredDocument::getDocument)
-                .toList())
-            .scores(finalResults.stream()
-                .collect(Collectors.toMap(
-                    sd -> sd.getDocument().getId(),
-                    ScoredDocument::getFinalScore
-                )))
-            .metadata(metadata)
+        return SearchResponse.builder()
+            .query(request.getQuery())
+            .correctedQuery(enriched.getCorrectedQuery())
+            .results(personalized)
+            .suggestions(generateSuggestions(analyzed))
+            .facets(extractFacets(personalized))
+            .totalCount(results.getTotalCount())
+            .searchTime(calculateElapsedTime())
             .build();
     }
     
-    private List<Document> performVectorSearch(String query, SearchFilters filters, int topK) {
-        SearchRequest.Builder searchBuilder = SearchRequest.query(query)
-            .withTopK(topK);
+    private EnrichedQuery enrichQuery(AnalyzedQuery analyzed) {
+        // 맞춤법 교정
+        String corrected = spellChecker.correct(analyzed.getQuery());
         
-        // 필터 적용
-        if (filters != null) {
-            FilterExpressionBuilder filterBuilder = new FilterExpressionBuilder();
-            
-            if (filters.getFileTypes() != null && !filters.getFileTypes().isEmpty()) {
-                filterBuilder.in("type", filters.getFileTypes());
-            }
-            
-            if (filters.getDateRange() != null) {
-                filterBuilder.gte("processed_at", filters.getDateRange().getStart())
-                            .lte("processed_at", filters.getDateRange().getEnd());
-            }
-            
-            if (filters.getMetadataFilters() != null) {
-                filters.getMetadataFilters().forEach((key, value) -> 
-                    filterBuilder.eq(key, value)
-                );
-            }
-            
-            searchBuilder.withFilterExpression(filterBuilder.build());
-        }
+        // 쿼리 의도 파악
+        QueryIntent intent = chatClient.prompt()
+            .system("쿼리의 의도를 파악하고 검색어를 개선하세요.")
+            .user(u -&gt; u.text("""
+                원본 쿼리: {query}
+                
+                다음을 분석하세요:
+                1. 사용자의 검색 의도
+                2. 핵심 키워드
+                3. 추가할 동의어나 관련어
+                4. 검색 범위 (전체/특정 카테고리)
+                
+                JSON 형식으로 응답하세요.
+                """)
+                .param("query", corrected))
+            .call()
+            .entity(QueryIntent.class);
         
-        return vectorStore.similaritySearch(searchBuilder.build());
+        // 쿼리 확장
+        Set&lt;String&gt; expandedTerms = new HashSet&lt;&gt;();
+        expandedTerms.addAll(intent.getKeywords());
+        expandedTerms.addAll(synonymService.getSynonyms(intent.getKeywords()));
+        expandedTerms.addAll(relatedTermsService.getRelated(intent.getKeywords()));
+        
+        return EnrichedQuery.builder()
+            .originalQuery(analyzed.getQuery())
+            .correctedQuery(corrected)
+            .intent(intent)
+            .expandedTerms(expandedTerms)
+            .filters(buildFilters(intent))
+            .build();
     }
     
-    private List<Document> performKeywordSearch(ExpandedQuery query, SearchFilters filters, int topK) {
-        // Elasticsearch 쿼리 구성
-        BoolQuery.Builder boolQuery = new BoolQuery.Builder();
+    private List&lt;ScoredResult&gt; rerankResults(
+            SearchResults results, 
+            EnrichedQuery query) {
         
-        // 메인 쿼리
-        boolQuery.must(m -> m.multiMatch(mm -> mm
-            .query(query.getMainQuery())
-            .fields("content", "title^2", "summary^1.5")
-            .type(TextQueryType.BestFields)
-            .fuzziness("AUTO")
-        ));
+        // AI를 사용한 관련성 점수 재계산
+        String rerankerPrompt = buildRerankerPrompt(query, results);
         
-        // 동의어 및 확장 쿼리
-        for (String expansion : query.getExpansions()) {
-            boolQuery.should(s -> s.match(m -> m
-                .field("content")
-                .query(expansion)
-                .boost(0.5f)
-            ));
-        }
+        List&lt;RerankScore&gt; scores = chatClient.prompt()
+            .system("검색 결과의 관련성을 평가하고 점수를 매기세요.")
+            .user(rerankerPrompt)
+            .call()
+            .entity(new ParameterizedTypeReference&lt;List&lt;RerankScore&gt;&gt;() {});
         
-        // 필터 적용
-        applyElasticsearchFilters(boolQuery, filters);
-        
-        // 검색 실행
-        SearchResponse<DocumentES> response = elasticsearchClient.search(s -> s
-            .index("documents")
-            .query(q -> q.bool(boolQuery.build()))
-            .size(topK)
-            .highlight(h -> h
-                .fields("content", f -> f
-                    .preTags("<mark>")
-                    .postTags("</mark>")
-                    .fragmentSize(150)
-                    .numberOfFragments(3)
-                )
-            ),
-            DocumentES.class
-        );
-        
-        // 결과 변환
-        return response.hits().hits().stream()
-            .map(hit -> {
-                Document doc = new Document(
-                    hit.source().getContent(),
-                    hit.source().getMetadata()
-                );
-                doc.setId(hit.id());
-                
-                // 하이라이트 추가
-                if (hit.highlight().containsKey("content")) {
-                    doc.getMetadata().put("highlight", 
-                        String.join(" ... ", hit.highlight().get("content"))
-                    );
-                }
-                
-                return doc;
+        // 점수 기반 재정렬
+        return results.getDocuments().stream()
+            .map(doc -&gt; {
+                RerankScore score = findScore(scores, doc.getId());
+                return ScoredResult.builder()
+                    .document(doc)
+                    .relevanceScore(score.getRelevance())
+                    .explanation(score.getExplanation())
+                    .highlights(extractHighlights(doc, query))
+                    .build();
             })
+            .sorted((a, b) -&gt; Double.compare(
+                b.getRelevanceScore(), 
+                a.getRelevanceScore()
+            ))
             .toList();
     }
     
-    // 부스트 점수 계산 (최신성, 신뢰도 등)
-    private double calculateBoostScore(ScoredDocument doc, SearchFilters filters) {
-        double boost = 0.0;
+    // 자동 완성 기능
+    public List&lt;AutoCompleteItem&gt; autoComplete(String prefix) {
+        // 1. 기본 자동완성 (Trie 기반)
+        List&lt;String&gt; basicSuggestions = autoCompleteTrie.search(prefix);
         
-        // 최신성 부스트
-        String processedAt = doc.getDocument().getMetadata().get("processed_at");
-        if (processedAt != null) {
-            long daysSinceProcessed = ChronoUnit.DAYS.between(
-                Instant.parse(processedAt),
-                Instant.now()
-            );
-            boost += Math.max(0, 0.1 * (1 - daysSinceProcessed / 30.0));
+        // 2. AI 기반 스마트 제안
+        List&lt;String&gt; smartSuggestions = chatClient.prompt()
+            .system("검색어 자동완성 제안을 생성하세요.")
+            .user(u -&gt; u.text("""
+                부분 검색어: {prefix}
+                
+                사용자가 찾고자 하는 것을 예측하여 
+                5개의 자동완성 제안을 만드세요.
+                인기 검색어와 맥락을 고려하세요.
+                """)
+                .param("prefix", prefix))
+            .call()
+            .entity(new ParameterizedTypeReference&lt;List&lt;String&gt;&gt;() {});
+        
+        // 3. 최근 검색 기록 기반 제안
+        List&lt;String&gt; recentSearches = searchHistoryService
+            .getRecentSearches(getCurrentUser())
+            .stream()
+            .filter(s -&gt; s.toLowerCase().startsWith(prefix.toLowerCase()))
+            .toList();
+        
+        // 결과 병합 및 중복 제거
+        return Stream.concat(
+                Stream.concat(basicSuggestions.stream(), smartSuggestions.stream()),
+                recentSearches.stream()
+            )
+            .distinct()
+            .limit(10)
+            .map(suggestion -&gt; AutoCompleteItem.builder()
+                .text(suggestion)
+                .category(categorize(suggestion))
+                .popularity(getPopularityScore(suggestion))
+                .build())
+            .toList();
+    }
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div id="search-features" class="tab-content">
+                            <div class="code-block p-4 relative">
+                                <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                        onclick="copyCode('search-features-code')">
+                                    <i class="fas fa-copy"></i> 복사
+                                </button>
+                                <pre id="search-features-code"><code class="language-java">// 검색 의도 분석기
+@Component
+public class QueryIntentAnalyzer {
+    
+    private final ChatClient chatClient;
+    
+    public QueryIntent analyzeIntent(String query) {
+        return chatClient.prompt()
+            .system("""
+                검색 쿼리를 분석하여 사용자의 의도를 파악하세요.
+                
+                의도 유형:
+                - NAVIGATIONAL: 특정 페이지/문서 찾기
+                - INFORMATIONAL: 정보 탐색
+                - TRANSACTIONAL: 작업 수행
+                - COMPARISON: 비교 검색
+                """)
+            .user(query)
+            .call()
+            .entity(QueryIntent.class);
+    }
+}
+
+// 개인화 엔진
+@Component
+public class SearchPersonalizationEngine {
+    
+    private final UserProfileService userProfileService;
+    private final ClickstreamAnalyzer clickstreamAnalyzer;
+    
+    public List&lt;ScoredResult&gt; personalize(
+            List&lt;ScoredResult&gt; results,
+            UserContext context) {
+        
+        UserProfile profile = userProfileService.getProfile(context.getUserId());
+        
+        return results.stream()
+            .map(result -&gt; {
+                double personalScore = calculatePersonalScore(result, profile);
+                result.setPersonalizationScore(personalScore);
+                result.setFinalScore(
+                    result.getRelevanceScore() * 0.7 + 
+                    personalScore * 0.3
+                );
+                return result;
+            })
+            .sorted((a, b) -&gt; Double.compare(b.getFinalScore(), a.getFinalScore()))
+            .toList();
+    }
+    
+    private double calculatePersonalScore(ScoredResult result, UserProfile profile) {
+        double score = 0.0;
+        
+        // 관심 카테고리 매칭
+        if (profile.getInterests().contains(result.getDocument().getCategory())) {
+            score += 0.3;
         }
         
-        // 소스 신뢰도 부스트
-        String source = doc.getDocument().getMetadata().get("source");
-        if (source != null && filters.getTrustedSources().contains(source)) {
-            boost += 0.2;
+        // 과거 클릭 이력
+        if (profile.hasInteractedWith(result.getDocument().getId())) {
+            score += 0.2;
         }
         
-        return boost;
+        // 유사 문서 선호도
+        double similarityScore = calculateSimilarityToPreferences(
+            result.getDocument(),
+            profile.getPreferenceVector()
+        );
+        score += similarityScore * 0.5;
+        
+        return Math.min(1.0, score);
+    }
+}
+
+// 실시간 검색 분석
+@Component
+public class RealTimeSearchAnalytics {
+    
+    private final StreamBridge streamBridge;
+    private final SearchMetricsAggregator aggregator;
+    
+    @EventListener
+    public void onSearchEvent(SearchEvent event) {
+        // 실시간 스트림으로 전송
+        streamBridge.send("search-events", event);
+        
+        // 메트릭 집계
+        aggregator.aggregate(event);
+        
+        // 이상 패턴 감지
+        if (isAnomalous(event)) {
+            handleAnomaly(event);
+        }
+    }
+    
+    // 검색 품질 모니터링
+    @Scheduled(fixedRate = 60000) // 1분마다
+    public void monitorSearchQuality() {
+        SearchQualityMetrics metrics = calculateQualityMetrics();
+        
+        if (metrics.getClickThroughRate() &lt; 0.2) {
+            log.warn("Low CTR detected: {}", metrics.getClickThroughRate());
+            // 자동 튜닝 시작
+            initiateAutoTuning();
+        }
+        
+        if (metrics.getZeroResultRate() &gt; 0.1) {
+            log.warn("High zero result rate: {}", metrics.getZeroResultRate());
+            // 쿼리 확장 전략 조정
+            adjustQueryExpansion();
+        }
+    }
+}
+
+// 검색 결과 설명
+@Component
+public class SearchExplainer {
+    
+    public String explainResult(ScoredResult result, EnrichedQuery query) {
+        return chatClient.prompt()
+            .system("검색 결과가 쿼리와 관련된 이유를 설명하세요.")
+            .user(u -&gt; u.text("""
+                쿼리: {query}
+                문서 제목: {title}
+                문서 내용: {content}
+                
+                이 문서가 검색 결과에 포함된 이유를 
+                사용자가 이해하기 쉽게 1-2문장으로 설명하세요.
+                """)
+                .param("query", query.getCorrectedQuery())
+                .param("title", result.getDocument().getTitle())
+                .param("content", truncate(result.getDocument().getContent(), 200)))
+            .call()
+            .content();
     }
 }</code></pre>
                             </div>
@@ -1108,7 +1267,7 @@ public class HybridSearchService {
                     </div>
                 </div>
 
-                <!-- Example 3: Code Review Assistant -->
+                <!-- Example 4: Code Review Assistant -->
                 <div class="example-card bg-white rounded-lg shadow-lg overflow-hidden" data-category="integration">
                     <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6">
                         <div class="flex items-center justify-between">
@@ -1215,7 +1374,7 @@ public class AICodeReviewService {
     }
     
     @Async
-    public CompletableFuture<ReviewResult> reviewPullRequest(PullRequestEvent event) {
+    public CompletableFuture&lt;ReviewResult&gt; reviewPullRequest(PullRequestEvent event) {
         log.info("Starting review for PR #{} in {}", 
             event.getPullRequest().getNumber(), 
             event.getRepository().getFullName());
@@ -1228,10 +1387,10 @@ public class AICodeReviewService {
                 event.getPullRequest().getNumber()
             );
             
-            List<PullRequestFile> files = githubService.getPullRequestFiles(pr);
+            List&lt;PullRequestFile&gt; files = githubService.getPullRequestFiles(pr);
             
             // 2. 변경 파일 분석
-            Map<String, FileAnalysis> fileAnalyses = new HashMap<>();
+            Map&lt;String, FileAnalysis&gt; fileAnalyses = new HashMap&lt;&gt;();
             for (PullRequestFile file : files) {
                 if (shouldReviewFile(file)) {
                     FileAnalysis analysis = analyzeFile(file, pr);
@@ -1243,11 +1402,11 @@ public class AICodeReviewService {
             PRContext context = buildPRContext(pr, fileAnalyses);
             
             // 4. AI 리뷰 수행
-            List<ReviewComment> comments = new ArrayList<>();
+            List&lt;ReviewComment&gt; comments = new ArrayList&lt;&gt;();
             
             // 파일별 상세 리뷰
-            for (Map.Entry<String, FileAnalysis> entry : fileAnalyses.entrySet()) {
-                List<ReviewComment> fileComments = performFileReview(
+            for (Map.Entry&lt;String, FileAnalysis&gt; entry : fileAnalyses.entrySet()) {
+                List&lt;ReviewComment&gt; fileComments = performFileReview(
                     entry.getKey(), 
                     entry.getValue(), 
                     context
@@ -1276,12 +1435,12 @@ public class AICodeReviewService {
         }
     }
     
-    private List<ReviewComment> performFileReview(
+    private List&lt;ReviewComment&gt; performFileReview(
             String filename, 
             FileAnalysis analysis, 
             PRContext context) {
         
-        List<ReviewComment> comments = new ArrayList<>();
+        List&lt;ReviewComment&gt; comments = new ArrayList&lt;&gt;();
         
         // 1. 코드 품질 검사
         String qualityReview = chatClient.prompt()
@@ -1293,7 +1452,7 @@ public class AICodeReviewService {
                 - 복잡도와 중복 코드
                 - 성능 최적화 기회
                 """)
-            .user(u -> u.text("""
+            .user(u -&gt; u.text("""
                 파일: {filename}
                 변경 내용:
                 {patch}
@@ -1310,7 +1469,7 @@ public class AICodeReviewService {
             .content();
         
         // 2. 보안 취약점 검사
-        List<SecurityIssue> securityIssues = codeAnalysisService.scanSecurity(analysis);
+        List&lt;SecurityIssue&gt; securityIssues = codeAnalysisService.scanSecurity(analysis);
         for (SecurityIssue issue : securityIssues) {
             comments.add(ReviewComment.builder()
                 .path(filename)
@@ -1327,13 +1486,13 @@ public class AICodeReviewService {
         // 3. 버그 가능성 검사
         String bugAnalysis = chatClient.prompt()
             .system("잠재적 버그나 런타임 에러 가능성을 찾아주세요.")
-            .user(u -> u.text(analysis.getPatch()))
+            .user(u -&gt; u.text(analysis.getPatch()))
             .functions("detectBugs", "suggestFixes")
             .call()
             .content();
         
         // 4. 팀 규칙 검사
-        List<RuleViolation> violations = rulesEngine.check(analysis, context.getTeamRules());
+        List&lt;RuleViolation&gt; violations = rulesEngine.check(analysis, context.getTeamRules());
         for (RuleViolation violation : violations) {
             comments.add(ReviewComment.builder()
                 .path(filename)
@@ -1355,9 +1514,9 @@ public class AICodeReviewService {
         return comments;
     }
     
-    private String performPRSummaryReview(PRContext context, Map<String, FileAnalysis> analyses) {
+    private String performPRSummaryReview(PRContext context, Map&lt;String, FileAnalysis&gt; analyses) {
         // 관련 코드베이스 지식 검색
-        List<Document> relatedCode = codebaseKnowledge.similaritySearch(
+        List&lt;Document&gt; relatedCode = codebaseKnowledge.similaritySearch(
             SearchRequest.query(context.getDescription())
                 .withTopK(5)
         );
@@ -1371,7 +1530,7 @@ public class AICodeReviewService {
                 4. 잠재적 위험 요소
                 5. 전반적인 코드 품질 평가
                 """)
-            .user(u -> u.text("""
+            .user(u -&gt; u.text("""
                 PR 제목: {title}
                 설명: {description}
                 변경 파일 수: {fileCount}
@@ -1394,13 +1553,13 @@ public class AICodeReviewService {
             .content();
     }
     
-    private void postReviewToGitHub(PullRequest pr, List<ReviewComment> comments, String summary) {
+    private void postReviewToGitHub(PullRequest pr, List&lt;ReviewComment&gt; comments, String summary) {
         // 리뷰 생성
         Review review = Review.builder()
             .body(summary)
             .event(comments.isEmpty() ? "APPROVE" : "REQUEST_CHANGES")
             .comments(comments.stream()
-                .map(c -> Comment.builder()
+                .map(c -&gt; Comment.builder()
                     .path(c.getPath())
                     .line(c.getLine())
                     .body(c.getBody())
@@ -1417,8 +1576,8 @@ public class AICodeReviewService {
         
         // 중요 이슈는 별도 이슈로 생성
         comments.stream()
-            .filter(c -> c.getSeverity() == ReviewSeverity.HIGH)
-            .forEach(c -> githubService.createIssue(
+            .filter(c -&gt; c.getSeverity() == ReviewSeverity.HIGH)
+            .forEach(c -&gt; githubService.createIssue(
                 pr.getBase().getRepo().getOwner().getLogin(),
                 pr.getBase().getRepo().getName(),
                 Issue.builder()
@@ -1454,7 +1613,7 @@ public class GitHubWebhookController {
     }
     
     @PostMapping
-    public ResponseEntity<Void> handleWebhook(
+    public ResponseEntity&lt;Void&gt; handleWebhook(
             @RequestHeader("X-GitHub-Event") String eventType,
             @RequestHeader("X-Hub-Signature-256") String signature,
             @RequestBody String payload) {
@@ -1468,10 +1627,10 @@ public class GitHubWebhookController {
         // 2. 이벤트 타입별 처리
         try {
             switch (eventType) {
-                case "pull_request" -> handlePullRequestEvent(payload);
-                case "pull_request_review_comment" -> handleReviewCommentEvent(payload);
-                case "issue_comment" -> handleIssueCommentEvent(payload);
-                default -> log.debug("Ignoring event type: {}", eventType);
+                case "pull_request" -&gt; handlePullRequestEvent(payload);
+                case "pull_request_review_comment" -&gt; handleReviewCommentEvent(payload);
+                case "issue_comment" -&gt; handleIssueCommentEvent(payload);
+                default -&gt; log.debug("Ignoring event type: {}", eventType);
             }
             
             return ResponseEntity.ok().build();
@@ -1565,9 +1724,9 @@ public class GitHubService {
             
             // 리뷰 상태 설정
             switch (review.getEvent()) {
-                case "APPROVE" -> reviewBuilder.approve();
-                case "REQUEST_CHANGES" -> reviewBuilder.requestChanges();
-                default -> reviewBuilder.comment();
+                case "APPROVE" -&gt; reviewBuilder.approve();
+                case "REQUEST_CHANGES" -&gt; reviewBuilder.requestChanges();
+                default -&gt; reviewBuilder.comment();
             }
             
             reviewBuilder.create();
@@ -1717,10 +1876,10 @@ public class MultiModalAnalysisService {
         MediaType mediaType = detectMediaType(file);
         
         return switch (mediaType) {
-            case IMAGE -> analyzeImage(file);
-            case AUDIO -> analyzeAudio(file);
-            case VIDEO -> analyzeVideo(file);
-            default -> throw new UnsupportedMediaException(mediaType);
+            case IMAGE -&gt; analyzeImage(file);
+            case AUDIO -&gt; analyzeAudio(file);
+            case VIDEO -&gt; analyzeVideo(file);
+            default -&gt; throw new UnsupportedMediaException(mediaType);
         };
     }
     
@@ -1730,13 +1889,13 @@ public class MultiModalAnalysisService {
         
         // 2. AI 분석
         String analysis = chatClient.prompt()
-            .user(u -> u.text("이 이미지를 상세히 분석해주세요.")
+            .user(u -&gt; u.text("이 이미지를 상세히 분석해주세요.")
                        .media(MimeTypeUtils.IMAGE_PNG, image))
             .call()
             .content();
         
         // 3. 객체 감지, 텍스트 추출 등
-        List<DetectedObject> objects = imageAnalyzer.detectObjects(image);
+        List&lt;DetectedObject&gt; objects = imageAnalyzer.detectObjects(image);
         String extractedText = imageAnalyzer.extractText(image);
         
         return ImageAnalysisResult.builder()
@@ -1751,7 +1910,389 @@ public class MultiModalAnalysisService {
                     </div>
                 </div>
 
-                <!-- Example 5: Real-time Dashboard -->
+                <!-- Example 5: AI Search System -->
+                <div class="example-card bg-white rounded-lg shadow-lg overflow-hidden" data-category="search">
+                    <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white p-6">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-2xl font-bold flex items-center">
+                                <i class="fas fa-search mr-3"></i>
+                                AI 기반 지능형 검색
+                            </h3>
+                            <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm">
+                                난이도: ⭐⭐⭐
+                            </span>
+                        </div>
+                        <p class="mt-2 text-indigo-100">의미 기반 검색, 자동 완성, 맞춤법 교정을 포함한 지능형 검색 시스템</p>
+                    </div>
+                    
+                    <div class="p-6">
+                        <!-- Tabs -->
+                        <div class="border-b border-gray-200 mb-6">
+                            <nav class="-mb-px flex space-x-8">
+                                <button class="tab-nav py-2 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600" 
+                                        onclick="showTab(this, 'search-overview')">
+                                    개요
+                                </button>
+                                <button class="tab-nav py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" 
+                                        onclick="showTab(this, 'search-service')">
+                                    검색 서비스
+                                </button>
+                                <button class="tab-nav py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" 
+                                        onclick="showTab(this, 'search-features')">
+                                    고급 기능
+                                </button>
+                            </nav>
+                        </div>
+
+                        <!-- Tab Contents -->
+                        <div id="search-overview" class="tab-content active">
+                            <h4 class="font-semibold mb-3">주요 기능</h4>
+                            <ul class="space-y-2 mb-6">
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-indigo-500 mt-1 mr-3"></i>
+                                    <span>의미 기반 검색 (Semantic Search)</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-indigo-500 mt-1 mr-3"></i>
+                                    <span>실시간 자동 완성 및 제안</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-indigo-500 mt-1 mr-3"></i>
+                                    <span>맞춤법 교정 및 유사어 검색</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-indigo-500 mt-1 mr-3"></i>
+                                    <span>검색 의도 파악 및 재구성</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-indigo-500 mt-1 mr-3"></i>
+                                    <span>개인화된 검색 결과 순위</span>
+                                </li>
+                            </ul>
+
+                            <h4 class="font-semibold mb-3">검색 플로우</h4>
+                            <div class="bg-gray-100 p-4 rounded-lg">
+                                <pre class="text-sm font-mono">
+사용자 입력 → 쿼리 분석 → 의도 파악
+     ↓                      ↓
+맞춤법 교정 ← 쿼리 확장 ← 동의어 추가
+     ↓
+벡터 검색 + 키워드 검색 → 결과 병합
+     ↓
+AI 재순위화 → 개인화 → 최종 결과
+                                </pre>
+                            </div>
+                        </div>
+
+                        <div id="search-service" class="tab-content">
+                            <div class="code-block p-4 relative">
+                                <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                        onclick="copyCode('search-service-code')">
+                                    <i class="fas fa-copy"></i> 복사
+                                </button>
+                                <pre id="search-service-code"><code class="language-java">@Service
+@Slf4j
+public class IntelligentSearchService {
+    
+    private final ChatClient chatClient;
+    private final VectorStore vectorStore;
+    private final QueryAnalyzer queryAnalyzer;
+    private final PersonalizationEngine personalizationEngine;
+    private final SearchMetricsCollector metricsCollector;
+    
+    public SearchResponse search(SearchRequest request) {
+        // 1. 쿼리 분석 및 의도 파악
+        AnalyzedQuery analyzed = queryAnalyzer.analyze(request.getQuery());
+        
+        // 2. 맞춤법 교정 및 쿼리 확장
+        EnrichedQuery enriched = enrichQuery(analyzed);
+        
+        // 3. 하이브리드 검색 실행
+        SearchResults results = performHybridSearch(enriched);
+        
+        // 4. AI 기반 재순위화
+        List&lt;ScoredResult&gt; reranked = rerankResults(results, enriched);
+        
+        // 5. 개인화 적용
+        List&lt;ScoredResult&gt; personalized = personalizationEngine.personalize(
+            reranked, 
+            request.getUserContext()
+        );
+        
+        // 6. 메트릭 수집
+        metricsCollector.collect(request, personalized);
+        
+        return SearchResponse.builder()
+            .query(request.getQuery())
+            .correctedQuery(enriched.getCorrectedQuery())
+            .results(personalized)
+            .suggestions(generateSuggestions(analyzed))
+            .facets(extractFacets(personalized))
+            .totalCount(results.getTotalCount())
+            .searchTime(calculateElapsedTime())
+            .build();
+    }
+    
+    private EnrichedQuery enrichQuery(AnalyzedQuery analyzed) {
+        // 맞춤법 교정
+        String corrected = spellChecker.correct(analyzed.getQuery());
+        
+        // 쿼리 의도 파악
+        QueryIntent intent = chatClient.prompt()
+            .system("쿼리의 의도를 파악하고 검색어를 개선하세요.")
+            .user(u -&gt; u.text("""
+                원본 쿼리: {query}
+                
+                다음을 분석하세요:
+                1. 사용자의 검색 의도
+                2. 핵심 키워드
+                3. 추가할 동의어나 관련어
+                4. 검색 범위 (전체/특정 카테고리)
+                
+                JSON 형식으로 응답하세요.
+                """)
+                .param("query", corrected))
+            .call()
+            .entity(QueryIntent.class);
+        
+        // 쿼리 확장
+        Set&lt;String&gt; expandedTerms = new HashSet&lt;&gt;();
+        expandedTerms.addAll(intent.getKeywords());
+        expandedTerms.addAll(synonymService.getSynonyms(intent.getKeywords()));
+        expandedTerms.addAll(relatedTermsService.getRelated(intent.getKeywords()));
+        
+        return EnrichedQuery.builder()
+            .originalQuery(analyzed.getQuery())
+            .correctedQuery(corrected)
+            .intent(intent)
+            .expandedTerms(expandedTerms)
+            .filters(buildFilters(intent))
+            .build();
+    }
+    
+    private List&lt;ScoredResult&gt; rerankResults(
+            SearchResults results, 
+            EnrichedQuery query) {
+        
+        // AI를 사용한 관련성 점수 재계산
+        String rerankerPrompt = buildRerankerPrompt(query, results);
+        
+        List&lt;RerankScore&gt; scores = chatClient.prompt()
+            .system("검색 결과의 관련성을 평가하고 점수를 매기세요.")
+            .user(rerankerPrompt)
+            .call()
+            .entity(new ParameterizedTypeReference&lt;List&lt;RerankScore&gt;&gt;() {});
+        
+        // 점수 기반 재정렬
+        return results.getDocuments().stream()
+            .map(doc -&gt; {
+                RerankScore score = findScore(scores, doc.getId());
+                return ScoredResult.builder()
+                    .document(doc)
+                    .relevanceScore(score.getRelevance())
+                    .explanation(score.getExplanation())
+                    .highlights(extractHighlights(doc, query))
+                    .build();
+            })
+            .sorted((a, b) -&gt; Double.compare(
+                b.getRelevanceScore(), 
+                a.getRelevanceScore()
+            ))
+            .toList();
+    }
+    
+    // 자동 완성 기능
+    public List&lt;AutoCompleteItem&gt; autoComplete(String prefix) {
+        // 1. 기본 자동완성 (Trie 기반)
+        List&lt;String&gt; basicSuggestions = autoCompleteTrie.search(prefix);
+        
+        // 2. AI 기반 스마트 제안
+        List&lt;String&gt; smartSuggestions = chatClient.prompt()
+            .system("검색어 자동완성 제안을 생성하세요.")
+            .user(u -&gt; u.text("""
+                부분 검색어: {prefix}
+                
+                사용자가 찾고자 하는 것을 예측하여 
+                5개의 자동완성 제안을 만드세요.
+                인기 검색어와 맥락을 고려하세요.
+                """)
+                .param("prefix", prefix))
+            .call()
+            .entity(new ParameterizedTypeReference&lt;List&lt;String&gt;&gt;() {});
+        
+        // 3. 최근 검색 기록 기반 제안
+        List&lt;String&gt; recentSearches = searchHistoryService
+            .getRecentSearches(getCurrentUser())
+            .stream()
+            .filter(s -&gt; s.toLowerCase().startsWith(prefix.toLowerCase()))
+            .toList();
+        
+        // 결과 병합 및 중복 제거
+        return Stream.concat(
+                Stream.concat(basicSuggestions.stream(), smartSuggestions.stream()),
+                recentSearches.stream()
+            )
+            .distinct()
+            .limit(10)
+            .map(suggestion -&gt; AutoCompleteItem.builder()
+                .text(suggestion)
+                .category(categorize(suggestion))
+                .popularity(getPopularityScore(suggestion))
+                .build())
+            .toList();
+    }
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div id="search-features" class="tab-content">
+                            <div class="code-block p-4 relative">
+                                <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                        onclick="copyCode('search-features-code')">
+                                    <i class="fas fa-copy"></i> 복사
+                                </button>
+                                <pre id="search-features-code"><code class="language-java">// 검색 의도 분석기
+@Component
+public class QueryIntentAnalyzer {
+    
+    private final ChatClient chatClient;
+    
+    public QueryIntent analyzeIntent(String query) {
+        return chatClient.prompt()
+            .system("""
+                검색 쿼리를 분석하여 사용자의 의도를 파악하세요.
+                
+                의도 유형:
+                - NAVIGATIONAL: 특정 페이지/문서 찾기
+                - INFORMATIONAL: 정보 탐색
+                - TRANSACTIONAL: 작업 수행
+                - COMPARISON: 비교 검색
+                """)
+            .user(query)
+            .call()
+            .entity(QueryIntent.class);
+    }
+}
+
+// 개인화 엔진
+@Component
+public class SearchPersonalizationEngine {
+    
+    private final UserProfileService userProfileService;
+    private final ClickstreamAnalyzer clickstreamAnalyzer;
+    
+    public List&lt;ScoredResult&gt; personalize(
+            List&lt;ScoredResult&gt; results,
+            UserContext context) {
+        
+        UserProfile profile = userProfileService.getProfile(context.getUserId());
+        
+        return results.stream()
+            .map(result -&gt; {
+                double personalScore = calculatePersonalScore(result, profile);
+                result.setPersonalizationScore(personalScore);
+                result.setFinalScore(
+                    result.getRelevanceScore() * 0.7 + 
+                    personalScore * 0.3
+                );
+                return result;
+            })
+            .sorted((a, b) -&gt; Double.compare(b.getFinalScore(), a.getFinalScore()))
+            .toList();
+    }
+    
+    private double calculatePersonalScore(ScoredResult result, UserProfile profile) {
+        double score = 0.0;
+        
+        // 관심 카테고리 매칭
+        if (profile.getInterests().contains(result.getDocument().getCategory())) {
+            score += 0.3;
+        }
+        
+        // 과거 클릭 이력
+        if (profile.hasInteractedWith(result.getDocument().getId())) {
+            score += 0.2;
+        }
+        
+        // 유사 문서 선호도
+        double similarityScore = calculateSimilarityToPreferences(
+            result.getDocument(),
+            profile.getPreferenceVector()
+        );
+        score += similarityScore * 0.5;
+        
+        return Math.min(1.0, score);
+    }
+}
+
+// 실시간 검색 분석
+@Component
+public class RealTimeSearchAnalytics {
+    
+    private final StreamBridge streamBridge;
+    private final SearchMetricsAggregator aggregator;
+    
+    @EventListener
+    public void onSearchEvent(SearchEvent event) {
+        // 실시간 스트림으로 전송
+        streamBridge.send("search-events", event);
+        
+        // 메트릭 집계
+        aggregator.aggregate(event);
+        
+        // 이상 패턴 감지
+        if (isAnomalous(event)) {
+            handleAnomaly(event);
+        }
+    }
+    
+    // 검색 품질 모니터링
+    @Scheduled(fixedRate = 60000) // 1분마다
+    public void monitorSearchQuality() {
+        SearchQualityMetrics metrics = calculateQualityMetrics();
+        
+        if (metrics.getClickThroughRate() &lt; 0.2) {
+            log.warn("Low CTR detected: {}", metrics.getClickThroughRate());
+            // 자동 튜닝 시작
+            initiateAutoTuning();
+        }
+        
+        if (metrics.getZeroResultRate() &gt; 0.1) {
+            log.warn("High zero result rate: {}", metrics.getZeroResultRate());
+            // 쿼리 확장 전략 조정
+            adjustQueryExpansion();
+        }
+    }
+}
+
+// 검색 결과 설명
+@Component
+public class SearchExplainer {
+    
+    public String explainResult(ScoredResult result, EnrichedQuery query) {
+        return chatClient.prompt()
+            .system("검색 결과가 쿼리와 관련된 이유를 설명하세요.")
+            .user(u -&gt; u.text("""
+                쿼리: {query}
+                문서 제목: {title}
+                문서 내용: {content}
+                
+                이 문서가 검색 결과에 포함된 이유를 
+                사용자가 이해하기 쉽게 1-2문장으로 설명하세요.
+                """)
+                .param("query", query.getCorrectedQuery())
+                .param("title", result.getDocument().getTitle())
+                .param("content", truncate(result.getDocument().getContent(), 200)))
+            .call()
+            .content();
+    }
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Example 6: Real-time Dashboard -->
                 <div class="example-card bg-white rounded-lg shadow-lg overflow-hidden" data-category="integration">
                     <div class="bg-gradient-to-r from-red-500 to-red-600 text-white p-6">
                         <div class="flex items-center justify-between">
@@ -1780,9 +2321,9 @@ public class AIDashboardController {
     private final CostCalculator costCalculator;
     
     @GetMapping(value = "/metrics/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<DashboardMetrics>> streamMetrics() {
+    public Flux&lt;ServerSentEvent&lt;DashboardMetrics&gt;&gt; streamMetrics() {
         return Flux.interval(Duration.ofSeconds(1))
-            .map(tick -> {
+            .map(tick -&gt; {
                 DashboardMetrics metrics = DashboardMetrics.builder()
                     .timestamp(Instant.now())
                     .requestsPerSecond(metricsService.getRequestRate())
@@ -1793,7 +2334,7 @@ public class AIDashboardController {
                     .estimatedCost(costCalculator.getCurrentCost())
                     .build();
                 
-                return ServerSentEvent.<DashboardMetrics>builder()
+                return ServerSentEvent.&lt;DashboardMetrics&gt;builder()
                     .data(metrics)
                     .event("metrics")
                     .build();
@@ -1801,7 +2342,7 @@ public class AIDashboardController {
     }
     
     @GetMapping("/alerts")
-    public List<Alert> getActiveAlerts() {
+    public List&lt;Alert&gt; getActiveAlerts() {
         return metricsService.getActiveAlerts();
     }
 }</code></pre>
