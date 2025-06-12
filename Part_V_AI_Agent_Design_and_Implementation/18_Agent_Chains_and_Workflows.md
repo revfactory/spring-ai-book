@@ -1,513 +1,735 @@
-# 18장: 에이전트 체인 & 워크플로 구축
+# 18장: 효과적인 에이전트 구축: 워크플로와 패턴
 
-## 18.1 에이전트 체인과 워크플로 개요
+## 18.1 개요
 
-AI 에이전트 체인과 워크플로는 여러 전문 에이전트를 조합하여 복잡한 작업을 단계별로 처리하는 방법을 제공합니다. 이 장에서는 Spring AI에서 에이전트 체인과 워크플로를 구축하고 관리하는 방법을 살펴보겠습니다.
+Anthropic의 "Building Effective Agents" 연구에서 제시된 원칙에 따르면, 효과적인 AI 에이전트를 구축하는 핵심은 복잡한 프레임워크보다 **단순성과 구성 가능성**에 있습니다. 이 장에서는 Spring AI를 사용하여 이러한 원칙을 구현하는 방법을 살펴봅니다.
 
-### 18.1.1 에이전트 체인의 필요성
+### 18.1.1 에이전트 시스템의 두 가지 유형
 
-- 복잡한 문제를 작은 단계로 분해
-- 전문화된 에이전트의 장점 활용
-- 확장성과 재사용성 증대
-- 실패 처리와 오류 복구 강화
+**1. 워크플로 (Workflows)**
+- LLM과 도구가 사전 정의된 코드 경로를 통해 오케스트레이션되는 시스템
+- 예측 가능하고 일관된 동작
+- 명확한 단계와 흐름을 가진 작업에 적합
 
-### 18.1.2 에이전트 워크플로의 종류
+**2. 에이전트 (Agents)**
+- LLM이 동적으로 자신의 프로세스와 도구 사용을 지시하는 시스템
+- 더 유연하지만 예측하기 어려움
+- 탐색적이고 적응적인 작업에 적합
 
-- 선형 체인 (Linear Chain)
-- 분기 워크플로 (Branching Workflow)
-- 병렬 처리 (Parallel Processing)
-- 반복 작업 (Iterative Processing)
-- 이벤트 기반 워크플로 (Event-driven Workflow)
+### 18.1.2 Spring AI의 접근 방식
 
-### 18.1.3 Spring AI의 워크플로 지원
+Spring AI는 다음과 같은 장점을 제공합니다:
 
-```java
-public interface AgentWorkflow<I, O> {
-    O execute(I input);
-    List<Agent> getAgents();
-    WorkflowMetadata getMetadata();
-}
-```
+- **모델 이식성**: 다양한 LLM 제공자 간 일관된 API
+- **구조화된 출력**: 타입 안전한 응답 처리
+- **단순한 패턴**: 복잡한 프레임워크 대신 명확한 패턴 사용
+- **구성 가능성**: 작은 구성 요소를 조합하여 복잡한 시스템 구축
 
-## 18.2 기본 에이전트 체인 구현
+### 18.1.3 5가지 기본 워크플로 패턴
 
-가장 단순한 형태의 에이전트 체인은 여러 에이전트를 순차적으로 실행하는 선형 체인입니다. 이 섹션에서는 기본적인 에이전트 체인을 구현하는 방법을 알아봅니다.
+1. **Chain Workflow**: 순차적 작업 처리
+2. **Parallelization Workflow**: 병렬 작업 실행
+3. **Routing Workflow**: 조건부 작업 분기
+4. **Orchestrator-Workers**: 동적 작업 분해
+5. **Evaluator-Optimizer**: 반복적 개선
 
-### 18.2.1 LinearAgentChain 구현
+## 18.2 Chain Workflow 패턴
 
-```java
-public class LinearAgentChain implements AgentWorkflow<AgentRequest, AgentResponse> {
-    
-    private final List<Agent> agents;
-    private final boolean stopOnError;
-    
-    public LinearAgentChain(List<Agent> agents, boolean stopOnError) {
-        this.agents = new ArrayList<>(agents);
-        this.stopOnError = stopOnError;
-    }
-    
-    @Override
-    public AgentResponse execute(AgentRequest initialRequest) {
-        AgentRequest currentRequest = initialRequest;
-        AgentResponse finalResponse = null;
-        
-        for (Agent agent : agents) {
-            try {
-                AgentResponse response = agent.execute(currentRequest);
-                finalResponse = response;
-                
-                // 다음 에이전트의 입력으로 현재 응답을 변환
-                currentRequest = transformResponseToRequest(response);
-                
-            } catch (Exception e) {
-                if (stopOnError) {
-                    throw new AgentWorkflowException("Chain execution failed at agent: " + agent, e);
-                }
-                // 오류 발생 시에도 계속 진행하는 경우 로깅 및 처리
-                log.error("Error in agent chain execution: {}", e.getMessage(), e);
-            }
-        }
-        
-        return finalResponse;
-    }
-    
-    private AgentRequest transformResponseToRequest(AgentResponse response) {
-        // 이전 에이전트의 응답을 다음 에이전트의 요청으로 변환
-        return AgentRequest.builder()
-            .prompt(response.getContent())
-            .messages(response.getMessages())
-            .metadata(response.getMetadata())
-            .build();
-    }
-    
-    @Override
-    public List<Agent> getAgents() {
-        return Collections.unmodifiableList(agents);
-    }
-    
-    @Override
-    public WorkflowMetadata getMetadata() {
-        return WorkflowMetadata.builder()
-            .name("LinearAgentChain")
-            .description("Sequential execution of multiple agents")
-            .build();
-    }
-}
-```
+**Chain Workflow**는 복잡한 작업을 더 단순하고 관리 가능한 단계로 분해하는 패턴입니다.
 
-### 18.2.2 에이전트 체인 생성 및 사용
+### 18.2.1 언제 사용하나?
 
-```java
-@Service
-public class SimpleChainService {
-    
-    private final Agent researchAgent;
-    private final Agent analysisAgent;
-    private final Agent reportingAgent;
-    
-    public String processResearchTopic(String topic) {
-        // 선형 체인 생성
-        LinearAgentChain researchChain = new LinearAgentChain(
-            Arrays.asList(researchAgent, analysisAgent, reportingAgent),
-            true // 오류 발생 시 중단
-        );
-        
-        // 초기 요청 생성
-        AgentRequest initialRequest = AgentRequest.builder()
-            .prompt("Research the following topic: " + topic)
-            .build();
-        
-        // 체인 실행
-        AgentResponse result = researchChain.execute(initialRequest);
-        
-        return result.getContent();
-    }
-}
-```
+- 명확한 순차적 단계가 있는 작업
+- 각 단계가 이전 단계의 출력을 기반으로 할 때
+- 정확성을 위해 지연 시간을 감수할 수 있을 때
 
-### 18.2.3 체인 결과 처리 및 포맷팅
-
-```java
-public class ChainResultProcessor {
-    
-    public ReportDocument processChainResult(AgentResponse chainResponse, String format) {
-        String content = chainResponse.getContent();
-        List<ToolExecution> toolExecutions = chainResponse.getToolExecutions();
-        
-        // 결과 처리 로직
-        Map<String, Object> processedData = extractDataFromResponse(content);
-        List<Attachment> attachments = generateAttachmentsFromToolExecutions(toolExecutions);
-        
-        // 요청된 형식으로 변환
-        return formatReport(processedData, attachments, format);
-    }
-    
-    private Map<String, Object> extractDataFromResponse(String content) {
-        // 응답 내용에서 구조화된 데이터 추출
-    }
-    
-    private List<Attachment> generateAttachmentsFromToolExecutions(List<ToolExecution> toolExecutions) {
-        // 도구 실행 결과에서 첨부 파일 생성
-    }
-    
-    private ReportDocument formatReport(Map<String, Object> data, List<Attachment> attachments, String format) {
-        // 지정된 형식으로 보고서 생성 (HTML, PDF, Markdown 등)
-    }
-}
-```
-
-## 18.3 분기 워크플로 구현
-
-복잡한 의사 결정이 필요한 경우 조건에 따라 다른 에이전트로 처리를 전달하는 분기 워크플로를 구현할 수 있습니다.
-
-### 18.3.1 BranchingAgentWorkflow 구현
-
-```java
-public class BranchingAgentWorkflow implements AgentWorkflow<AgentRequest, AgentResponse> {
-    
-    private final Agent initialAgent;
-    private final Map<String, Agent> branchAgents;
-    private final Function<AgentResponse, String> branchSelector;
-    private final Agent defaultAgent;
-    
-    public BranchingAgentWorkflow(
-            Agent initialAgent,
-            Map<String, Agent> branchAgents,
-            Function<AgentResponse, String> branchSelector,
-            Agent defaultAgent) {
-        this.initialAgent = initialAgent;
-        this.branchAgents = new HashMap<>(branchAgents);
-        this.branchSelector = branchSelector;
-        this.defaultAgent = defaultAgent;
-    }
-    
-    @Override
-    public AgentResponse execute(AgentRequest request) {
-        // 초기 에이전트 실행
-        AgentResponse initialResponse = initialAgent.execute(request);
-        
-        // 분기 결정
-        String branch = branchSelector.apply(initialResponse);
-        
-        // 선택된 분기에 따른 에이전트 실행
-        Agent nextAgent = branchAgents.getOrDefault(branch, defaultAgent);
-        AgentRequest nextRequest = transformResponseToRequest(initialResponse);
-        
-        return nextAgent.execute(nextRequest);
-    }
-    
-    private AgentRequest transformResponseToRequest(AgentResponse response) {
-        // 이전 에이전트의 응답을 다음 에이전트의 요청으로 변환
-    }
-    
-    @Override
-    public List<Agent> getAgents() {
-        List<Agent> allAgents = new ArrayList<>();
-        allAgents.add(initialAgent);
-        allAgents.addAll(branchAgents.values());
-        if (defaultAgent != null && !branchAgents.containsValue(defaultAgent)) {
-            allAgents.add(defaultAgent);
-        }
-        return Collections.unmodifiableList(allAgents);
-    }
-    
-    @Override
-    public WorkflowMetadata getMetadata() {
-        return WorkflowMetadata.builder()
-            .name("BranchingAgentWorkflow")
-            .description("Conditional branching workflow based on agent response")
-            .build();
-    }
-}
-```
-
-### 18.3.2 분기 선택 로직 구현
-
-```java
-@Service
-public class CustomerQueryRouter {
-    
-    private final Agent classifierAgent;
-    private final Agent productSupportAgent;
-    private final Agent billingAgent;
-    private final Agent technicalSupportAgent;
-    private final Agent generalInquiryAgent;
-    
-    public AgentResponse routeCustomerQuery(String query) {
-        // 분기 워크플로 생성
-        Function<AgentResponse, String> branchSelector = response -> {
-            // 분류 에이전트의 응답에서 카테고리 추출
-            String content = response.getContent().toLowerCase();
-            if (content.contains("product") || content.contains("item")) {
-                return "product";
-            } else if (content.contains("bill") || content.contains("payment")) {
-                return "billing";
-            } else if (content.contains("tech") || content.contains("error")) {
-                return "technical";
-            } else {
-                return "general";
-            }
-        };
-        
-        Map<String, Agent> branches = Map.of(
-            "product", productSupportAgent,
-            "billing", billingAgent,
-            "technical", technicalSupportAgent
-        );
-        
-        BranchingAgentWorkflow workflow = new BranchingAgentWorkflow(
-            classifierAgent,
-            branches,
-            branchSelector,
-            generalInquiryAgent
-        );
-        
-        // 워크플로 실행
-        return workflow.execute(AgentRequest.builder().prompt(query).build());
-    }
-}
-```
-
-### 18.3.3 복잡한 분기 패턴 구현
+### 18.2.2 기본 구현
 
 ```java
 @Component
-public class DecisionTreeWorkflow implements AgentWorkflow<AgentRequest, AgentResponse> {
+public class ChainWorkflow {
     
-    private final Agent rootAgent;
-    private final Map<String, DecisionNode> decisionTree;
+    private final ChatClient chatClient;
     
-    @Override
-    public AgentResponse execute(AgentRequest request) {
-        DecisionNode currentNode = decisionTree.get("root");
-        AgentResponse finalResponse = null;
-        
-        while (currentNode != null) {
-            // 현재 노드의 에이전트 실행
-            AgentRequest nodeRequest = currentNode.transformRequest(request, finalResponse);
-            finalResponse = currentNode.getAgent().execute(nodeRequest);
-            
-            // 다음 노드 결정
-            String nextNodeKey = currentNode.determineNextNode(finalResponse);
-            currentNode = nextNodeKey != null ? decisionTree.get(nextNodeKey) : null;
-        }
-        
-        return finalResponse;
+    public ChainWorkflow(ChatClient chatClient) {
+        this.chatClient = chatClient;
     }
     
-    // Decision node 클래스 (중첩 클래스 또는 별도 클래스로 구현)
-    public static class DecisionNode {
-        private final Agent agent;
-        private final Function<AgentResponse, String> nextNodeSelector;
+    public String chain(String userInput, String... systemPrompts) {
+        String response = userInput;
         
-        public Agent getAgent() {
-            return agent;
+        for (String prompt : systemPrompts) {
+            response = chatClient.prompt()
+                .system(prompt)
+                .user(response)
+                .call()
+                .content();
         }
         
-        public String determineNextNode(AgentResponse response) {
-            return nextNodeSelector.apply(response);
+        return response;
+    }
+}
+```
+
+### 18.2.3 실제 예제: 연구 보고서 생성
+
+```java
+@Service
+public class ResearchReportService {
+    
+    private final ChatClient chatClient;
+    
+    public String generateResearchReport(String topic) {
+        ChainWorkflow workflow = new ChainWorkflow(chatClient);
+        
+        return workflow.chain(
+            topic,
+            // 단계 1: 연구 주제 분석
+            "주어진 주제를 분석하고 핵심 연구 질문을 도출하세요. " +
+            "각 질문은 구체적이고 답변 가능해야 합니다.",
+            
+            // 단계 2: 정보 수집 계획
+            "연구 질문을 바탕으로 필요한 정보 소스와 " +
+            "데이터 수집 방법을 상세히 기술하세요.",
+            
+            // 단계 3: 분석 프레임워크 개발
+            "수집된 정보를 분석할 프레임워크를 개발하고 " +
+            "주요 평가 기준을 설정하세요.",
+            
+            // 단계 4: 보고서 작성
+            "분석 결과를 바탕으로 체계적인 연구 보고서를 작성하세요. " +
+            "서론, 방법론, 결과, 결론 섹션을 포함해야 합니다."
+        );
+    }
+}
+```
+
+### 18.2.4 고급 Chain 구현: 컨텍스트 전파
+
+```java
+@Component
+public class ContextAwareChainWorkflow {
+    
+    private final ChatClient chatClient;
+    
+    public ChainResult executeWithContext(String initialInput, List<ChainStep> steps) {
+        Map<String, Object> context = new HashMap<>();
+        String currentOutput = initialInput;
+        List<StepResult> stepResults = new ArrayList<>();
+        
+        for (ChainStep step : steps) {
+            // 이전 단계의 출력과 컨텍스트를 사용
+            String prompt = step.buildPrompt(currentOutput, context);
+            
+            String response = chatClient.prompt()
+                .system(step.getSystemPrompt())
+                .user(prompt)
+                .call()
+                .content();
+            
+            // 결과 저장 및 컨텍스트 업데이트
+            StepResult result = new StepResult(step.getName(), response);
+            stepResults.add(result);
+            
+            // 다음 단계를 위한 컨텍스트 업데이트
+            context.putAll(step.extractContext(response));
+            currentOutput = response;
         }
         
-        public AgentRequest transformRequest(AgentRequest originalRequest, AgentResponse previousResponse) {
-            // 이전 응답을 고려하여 현재 노드에 대한 요청 변환
+        return new ChainResult(currentOutput, stepResults, context);
+    }
+    
+    @Data
+    @Builder
+    public static class ChainStep {
+        private String name;
+        private String systemPrompt;
+        private Function<String, Map<String, Object>> contextExtractor;
+        
+        public String buildPrompt(String previousOutput, Map<String, Object> context) {
+            // 이전 출력과 컨텍스트를 기반으로 프롬프트 구성
+            return String.format(
+                "Previous output: %s\nContext: %s\nPlease proceed with: %s",
+                previousOutput, context, systemPrompt
+            );
+        }
+        
+        public Map<String, Object> extractContext(String output) {
+            return contextExtractor != null ? 
+                contextExtractor.apply(output) : 
+                Collections.emptyMap();
         }
     }
 }
 ```
 
-## 18.4 병렬 에이전트 워크플로 구현
+### 18.2.5 Chain Workflow의 장점
 
-독립적인 작업을 동시에 처리해야 하는 경우 병렬 에이전트 워크플로를 사용할 수 있습니다.
+1. **명확한 구조**: 각 단계가 명확히 정의됨
+2. **디버깅 용이**: 각 단계의 입출력을 추적 가능
+3. **재사용성**: 개별 단계를 다른 체인에서 재사용 가능
+4. **점진적 개선**: 특정 단계만 수정 가능
 
-### 18.4.1 ParallelAgentWorkflow 구현
+## 18.3 Parallelization Workflow 패턴
+
+**Parallelization Workflow**는 LLM이 여러 작업을 동시에 처리하고 결과를 프로그래밍 방식으로 집계할 수 있게 합니다.
+
+### 18.3.1 언제 사용하나?
+
+- 대량의 유사하지만 독립적인 항목 처리
+- 여러 독립적인 관점이 필요한 작업
+- 처리 시간이 중요하고 작업이 병렬화 가능할 때
+
+### 18.3.2 기본 구현
 
 ```java
-public class ParallelAgentWorkflow implements AgentWorkflow<AgentRequest, List<AgentResponse>> {
+@Component
+public class ParallelizationWorkflow {
     
-    private final List<Agent> agents;
-    private final Function<AgentRequest, List<AgentRequest>> requestSplitter;
-    private final Executor executor;
+    private final ChatClient chatClient;
+    private final ExecutorService executorService;
     
-    public ParallelAgentWorkflow(
-            List<Agent> agents,
-            Function<AgentRequest, List<AgentRequest>> requestSplitter,
-            Executor executor) {
-        this.agents = new ArrayList<>(agents);
-        this.requestSplitter = requestSplitter;
-        this.executor = executor;
+    public ParallelizationWorkflow(ChatClient chatClient) {
+        this.chatClient = chatClient;
+        this.executorService = Executors.newFixedThreadPool(10);
     }
     
-    @Override
-    public List<AgentResponse> execute(AgentRequest request) {
-        // 요청 분할
-        List<AgentRequest> splitRequests = requestSplitter.apply(request);
+    public List<String> parallel(String task, List<String> items, int maxConcurrency) {
+        List<CompletableFuture<String>> futures = items.stream()
+            .map(item -> CompletableFuture.supplyAsync(() -> 
+                processItem(task, item), executorService))
+            .collect(Collectors.toList());
         
-        // 에이전트 수와 요청 수가 일치하는지 확인
-        if (splitRequests.size() != agents.size()) {
-            throw new IllegalStateException("Number of split requests must match number of agents");
-        }
-        
-        // 병렬 처리를 위한 CompletableFuture 생성
-        List<CompletableFuture<AgentResponse>> futures = new ArrayList<>();
-        
-        for (int i = 0; i < agents.size(); i++) {
-            final int index = i;
-            CompletableFuture<AgentResponse> future = CompletableFuture.supplyAsync(
-                () -> agents.get(index).execute(splitRequests.get(index)),
-                executor
-            );
-            futures.add(future);
-        }
-        
-        // 모든 작업 완료 대기
-        CompletableFuture<Void> allFutures = CompletableFuture.allOf(
-            futures.toArray(new CompletableFuture[0])
+        return futures.stream()
+            .map(CompletableFuture::join)
+            .collect(Collectors.toList());
+    }
+    
+    private String processItem(String task, String item) {
+        return chatClient.prompt()
+            .system(task)
+            .user(item)
+            .call()
+            .content();
+    }
+}
+```
+
+### 18.3.3 실제 예제: 이해관계자 영향 분석
+
+```java
+@Service
+public class StakeholderAnalysisService {
+    
+    private final ParallelizationWorkflow workflow;
+    
+    public StakeholderAnalysisReport analyzeBusinessChange(String businessChange) {
+        List<String> stakeholders = Arrays.asList(
+            "고객: 제품 사용자와 구매자",
+            "직원: 내부 팀과 관리자",
+            "투자자: 주주와 이사회",
+            "공급업체: 파트너와 벤더"
         );
+        
+        String analysisPrompt = 
+            "다음 비즈니스 변화가 이해관계자 그룹에 미치는 영향을 분석하세요: " +
+            businessChange + "\n" +
+            "긍정적/부정적 영향, 단기/장기 효과, 권장 조치를 포함하세요.";
+        
+        List<String> analyses = workflow.parallel(
+            analysisPrompt,
+            stakeholders,
+            4
+        );
+        
+        return StakeholderAnalysisReport.builder()
+            .businessChange(businessChange)
+            .stakeholderAnalyses(mapToStakeholderAnalyses(stakeholders, analyses))
+            .summary(generateSummary(analyses))
+            .build();
+    }
+    
+    private String generateSummary(List<String> analyses) {
+        // 모든 분석을 종합하여 요약 생성
+        String combinedAnalyses = String.join("\n\n", analyses);
+        
+        return chatClient.prompt()
+            .system("다음 이해관계자 분석들을 종합하여 전체 요약을 작성하세요.")
+            .user(combinedAnalyses)
+            .call()
+            .content();
+    }
+}
+
+```
+
+### 18.3.4 고급: 결과 집계 전략
+
+```java
+@Component
+public class AdvancedParallelizationWorkflow {
+    
+    private final ChatClient chatClient;
+    
+    public <T> ParallelResult<T> executeWithAggregation(
+            String task,
+            List<String> items,
+            Function<String, T> resultParser,
+            BiFunction<List<T>, ChatClient, T> aggregator) {
+        
+        // 병렬 처리
+        List<CompletableFuture<T>> futures = items.stream()
+            .map(item -> CompletableFuture.supplyAsync(() -> {
+                String response = chatClient.prompt()
+                    .system(task)
+                    .user(item)
+                    .call()
+                    .content();
+                return resultParser.apply(response);
+            }))
+            .collect(Collectors.toList());
         
         // 결과 수집
-        try {
-            allFutures.get();
-            return futures.stream()
-                .map(f -> {
-                    try {
-                        return f.get();
-                    } catch (Exception e) {
-                        throw new AgentWorkflowException("Error getting parallel execution result", e);
-                    }
-                })
-                .collect(Collectors.toList());
-        } catch (Exception e) {
-            throw new AgentWorkflowException("Error in parallel workflow execution", e);
-        }
+        List<T> results = futures.stream()
+            .map(CompletableFuture::join)
+            .collect(Collectors.toList());
+        
+        // 집계
+        T aggregatedResult = aggregator.apply(results, chatClient);
+        
+        return new ParallelResult<>(results, aggregatedResult);
     }
     
-    @Override
-    public List<Agent> getAgents() {
-        return Collections.unmodifiableList(agents);
+    @Data
+    @AllArgsConstructor
+    public static class ParallelResult<T> {
+        private List<T> individualResults;
+        private T aggregatedResult;
+    }
+}
+```
+
+### 18.3.5 Parallelization의 장점
+
+1. **성능 향상**: 독립적인 작업을 동시에 처리
+2. **확장성**: 작업 수에 따라 동적으로 확장 가능
+3. **다양한 관점**: 여러 분석을 병렬로 수행하여 종합적인 결과 도출
+
+## 18.4 Routing Workflow 패턴
+
+**Routing Workflow**는 입력을 분류하고 적절한 전문 처리기로 라우팅하는 지능적인 작업 분배를 구현합니다.
+
+### 18.4.1 언제 사용하나?
+
+- 입력이 명확한 카테고리로 분류될 때
+- 각 카테고리가 특화된 처리를 필요로 할 때
+- 정확한 분류가 가능할 때
+
+### 18.4.2 기본 구현
+
+```java
+@Component
+public class RoutingWorkflow {
+    
+    private final ChatClient chatClient;
+    
+    public String route(String input, Map<String, String> routes) {
+        // 입력 분류
+        String classification = classify(input, routes.keySet());
+        
+        // 적절한 프롬프트 선택
+        String systemPrompt = routes.getOrDefault(classification, 
+            "You are a helpful assistant. Please help with the user's request.");
+        
+        // 전문 처리
+        return chatClient.prompt()
+            .system(systemPrompt)
+            .user(input)
+            .call()
+            .content();
     }
     
-    @Override
-    public WorkflowMetadata getMetadata() {
-        return WorkflowMetadata.builder()
-            .name("ParallelAgentWorkflow")
-            .description("Parallel execution of multiple agents")
+    private String classify(String input, Set<String> categories) {
+        String categoriesStr = String.join(", ", categories);
+        
+        return chatClient.prompt()
+            .system("Classify the following input into one of these categories: " + 
+                   categoriesStr + ". Respond with only the category name.")
+            .user(input)
+            .call()
+            .content()
+            .toLowerCase()
+            .trim();
+    }
+}
+```
+
+### 18.4.3 실제 예제: 고객 지원 라우터
+
+```java
+@Service
+public class CustomerSupportRouter {
+    
+    private final RoutingWorkflow routingWorkflow;
+    
+    public CustomerSupportResponse handleCustomerQuery(String query) {
+        Map<String, String> routes = Map.of(
+            "billing", "You are a billing specialist. Help resolve billing issues, " +
+                       "payment problems, and subscription questions. Be precise about amounts and dates.",
+            
+            "technical", "You are a technical support engineer. Help solve technical problems, " +
+                         "troubleshoot errors, and guide through technical configurations.",
+            
+            "product", "You are a product specialist. Provide detailed information about " +
+                       "product features, comparisons, and recommendations.",
+            
+            "general", "You are a customer service representative. Help with general " +
+                       "inquiries and direct customers to appropriate resources."
+        );
+        
+        String response = routingWorkflow.route(query, routes);
+        
+        return CustomerSupportResponse.builder()
+            .query(query)
+            .response(response)
+            .timestamp(LocalDateTime.now())
             .build();
     }
 }
 ```
 
-### 18.4.2 병렬 작업 분배 및 결과 병합
-
-```java
-@Service
-public class ComprehensiveAnalysisService {
-    
-    private final Agent financialAnalysisAgent;
-    private final Agent marketAnalysisAgent;
-    private final Agent competitorAnalysisAgent;
-    private final Agent trendAnalysisAgent;
-    
-    public AnalysisReport analyzeCompany(String companyName) {
-        // 병렬 요청 분배기 정의
-        Function<AgentRequest, List<AgentRequest>> requestSplitter = request -> {
-            String basePrompt = "Analyze " + companyName + " ";
-            
-            return Arrays.asList(
-                AgentRequest.builder().prompt(basePrompt + "financial data and performance").build(),
-                AgentRequest.builder().prompt(basePrompt + "market position and share").build(),
-                AgentRequest.builder().prompt(basePrompt + "competitors and competitive advantage").build(),
-                AgentRequest.builder().prompt(basePrompt + "industry trends and future outlook").build()
-            );
-        };
-        
-        // 병렬 워크플로 생성
-        ParallelAgentWorkflow workflow = new ParallelAgentWorkflow(
-            Arrays.asList(
-                financialAnalysisAgent,
-                marketAnalysisAgent,
-                competitorAnalysisAgent,
-                trendAnalysisAgent
-            ),
-            requestSplitter,
-            Executors.newFixedThreadPool(4)
-        );
-        
-        // 워크플로 실행
-        List<AgentResponse> results = workflow.execute(
-            AgentRequest.builder().prompt("Comprehensive analysis of " + companyName).build()
-        );
-        
-        // 결과 병합
-        return mergeAnalysisResults(results, companyName);
-    }
-    
-    private AnalysisReport mergeAnalysisResults(List<AgentResponse> results, String companyName) {
-        // 각 에이전트의 결과를 종합하여 최종 보고서 생성
-        AnalysisReport report = new AnalysisReport();
-        report.setCompanyName(companyName);
-        report.setGeneratedDate(LocalDate.now());
-        
-        // 결과 처리 로직...
-        
-        return report;
-    }
-}
-```
-
-### 18.4.3 오류 처리 및 결과 시각화
+### 18.4.4 고급: 다단계 라우팅
 
 ```java
 @Component
-public class ParallelWorkflowMonitor {
+public class HierarchicalRoutingWorkflow {
     
-    public <T> CompletableFuture<List<T>> executeWithMonitoring(
-            List<CompletableFuture<T>> futures,
-            Consumer<Map<Integer, WorkflowTaskStatus>> statusUpdateHandler) {
+    private final ChatClient chatClient;
+    
+    public String routeHierarchically(String input, RoutingTree routingTree) {
+        RoutingNode currentNode = routingTree.getRoot();
+        String currentInput = input;
         
-        // 각 작업의 상태를 추적하는 맵
-        Map<Integer, WorkflowTaskStatus> taskStatusMap = new ConcurrentHashMap<>();
-        for (int i = 0; i < futures.size(); i++) {
-            taskStatusMap.put(i, new WorkflowTaskStatus(i, "PENDING"));
-        }
-        
-        // 상태 업데이트 핸들러 호출
-        statusUpdateHandler.accept(Collections.unmodifiableMap(taskStatusMap));
-        
-        // 각 작업에 완료 및 오류 핸들러 추가
-        List<CompletableFuture<T>> monitoredFutures = new ArrayList<>();
-        for (int i = 0; i < futures.size(); i++) {
-            final int index = i;
-            CompletableFuture<T> monitoredFuture = futures.get(i)
-                .thenApply(result -> {
-                    taskStatusMap.put(index, new WorkflowTaskStatus(index, "COMPLETED"));
-                    statusUpdateHandler.accept(Collections.unmodifiableMap(taskStatusMap));
-                    return result;
-                })
-                .exceptionally(ex -> {
-                    taskStatusMap.put(index, new WorkflowTaskStatus(index, "FAILED", ex.getMessage()));
-                    statusUpdateHandler.accept(Collections.unmodifiableMap(taskStatusMap));
-                    throw new CompletionException(ex);
-                });
+        while (!currentNode.isLeaf()) {
+            // 현재 레벨에서 분류
+            String category = classify(currentInput, currentNode.getChildCategories());
+            currentNode = currentNode.getChild(category);
             
-            monitoredFutures.add(monitoredFuture);
+            if (currentNode == null) {
+                currentNode = routingTree.getDefaultNode();
+                break;
+            }
         }
         
-        // 모든 작업이 완료되면 결과 반환
-        return CompletableFuture.allOf(monitoredFutures.toArray(new CompletableFuture[0]))
-            .thenApply(v -> monitoredFutures.stream()
-                .map(CompletableFuture::join)
-                .collect(Collectors.toList()));
+        // 최종 노드의 프롬프트로 처리
+        return chatClient.prompt()
+            .system(currentNode.getSystemPrompt())
+            .user(input)
+            .call()
+            .content();
     }
     
-    public static class WorkflowTaskStatus {
-        private final int taskId;
-        private final String status;
-        private final String errorMessage;
+    @Data
+    @Builder
+    public static class RoutingNode {
+        private String category;
+        private String systemPrompt;
+        private Map<String, RoutingNode> children;
         
-        // 생성자, 게터 등...
+        public boolean isLeaf() {
+            return children == null || children.isEmpty();
+        }
+        
+        public Set<String> getChildCategories() {
+            return children != null ? children.keySet() : Collections.emptySet();
+        }
+        
+        public RoutingNode getChild(String category) {
+            return children != null ? children.get(category) : null;
+        }
+    }
+}
+
+```
+
+### 18.4.5 Routing의 장점
+
+1. **전문화**: 각 카테고리에 최적화된 처리
+2. **확장성**: 새로운 카테고리 추가가 용이
+3. **정확성**: 특화된 프롬프트로 더 나은 결과
+4. **유지보수성**: 각 라우트를 독립적으로 관리
+
+## 18.5 Orchestrator-Workers 패턴
+
+**Orchestrator-Workers**는 복잡한 작업을 동적으로 하위 작업으로 분해하고 조정하는 패턴입니다.
+
+### 18.5.1 언제 사용하나?
+
+- 하위 작업을 미리 예측할 수 없는 복잡한 작업
+- 다양한 접근 방식이나 관점이 필요한 작업
+- 적응적 문제 해결이 필요한 상황
+
+### 18.5.2 기본 구현
+
+```java
+@Component
+public class OrchestratorWorkersWorkflow {
+    
+    private final ChatClient chatClient;
+    
+    public WorkerResponse process(String taskDescription) {
+        // 1. Orchestrator가 작업을 분석하고 하위 작업 결정
+        OrchestratorResponse orchestration = analyzeAndDecompose(taskDescription);
+        
+        // 2. Workers가 병렬로 하위 작업 처리
+        List<String> workerResponses = executeWorkers(orchestration.getSubtasks());
+        
+        // 3. 결과를 최종 응답으로 결합
+        String finalResponse = combineResults(orchestration, workerResponses);
+        
+        return WorkerResponse.builder()
+            .analysis(orchestration.getAnalysis())
+            .workerResponses(workerResponses)
+            .finalResponse(finalResponse)
+            .build();
+    }
+    
+    private OrchestratorResponse analyzeAndDecompose(String taskDescription) {
+        String response = chatClient.prompt()
+            .system("""
+                You are an orchestrator. Analyze the given task and break it down into subtasks.
+                Return a JSON with:
+                - analysis: your understanding of the task
+                - subtasks: array of specific subtasks for workers
+                - integration_strategy: how to combine worker results
+                """)
+            .user(taskDescription)
+            .call()
+            .entity(OrchestratorResponse.class);
+        
+        return response;
+    }
+    
+    private List<String> executeWorkers(List<String> subtasks) {
+        return subtasks.parallelStream()
+            .map(subtask -> chatClient.prompt()
+                .system("You are a specialized worker. Complete the assigned subtask.")
+                .user(subtask)
+                .call()
+                .content())
+            .collect(Collectors.toList());
+    }
+    
+    private String combineResults(OrchestratorResponse orchestration, 
+                                 List<String> workerResponses) {
+        String combinedContext = String.format(
+            "Original task analysis: %s\n" +
+            "Integration strategy: %s\n" +
+            "Worker results:\n%s",
+            orchestration.getAnalysis(),
+            orchestration.getIntegrationStrategy(),
+            String.join("\n---\n", workerResponses)
+        );
+        
+        return chatClient.prompt()
+            .system("Combine the worker results into a cohesive final response.")
+            .user(combinedContext)
+            .call()
+            .content();
+    }
+    
+    @Data
+    public static class OrchestratorResponse {
+        private String analysis;
+        private List<String> subtasks;
+        private String integrationStrategy;
+    }
+    
+    @Data
+    @Builder
+    public static class WorkerResponse {
+        private String analysis;
+        private List<String> workerResponses;
+        private String finalResponse;
+    }
+}
+
+```
+
+### 18.5.3 실제 예제: API 문서 생성
+
+```java
+@Service
+public class APIDocumentationService {
+    
+    private final OrchestratorWorkersWorkflow workflow;
+    
+    public APIDocumentation generateDocumentation(String apiEndpointDescription) {
+        WorkerResponse response = workflow.process(
+            "Generate comprehensive documentation for this REST API endpoint: " +
+            apiEndpointDescription + "\n" +
+            "Include technical documentation for developers and " +
+            "user-friendly documentation for end users."
+        );
+        
+        // 워커 응답을 구조화된 문서로 변환
+        return APIDocumentation.builder()
+            .endpoint(apiEndpointDescription)
+            .technicalDocs(extractTechnicalDocs(response))
+            .userGuide(extractUserGuide(response))
+            .examples(extractExamples(response))
+            .generatedAt(LocalDateTime.now())
+            .build();
+    }
+}
+
+```
+
+### 18.5.4 Orchestrator-Workers의 장점
+
+1. **유연성**: 작업에 따라 동적으로 접근 방식 결정
+2. **전문화**: 각 워커가 특정 측면에 집중
+3. **확장성**: 필요에 따라 워커 추가/제거 가능
+4. **적응성**: 복잡하고 예측 불가능한 작업 처리
+
+## 18.6 Evaluator-Optimizer 패턴
+
+**Evaluator-Optimizer**는 반복적인 평가와 개선을 통해 결과의 품질을 향상시키는 패턴입니다.
+
+### 18.6.1 언제 사용하나?
+
+- 명확한 평가 기준이 존재할 때
+- 반복적 개선이 측정 가능한 가치를 제공할 때
+- 여러 라운드의 비평이 도움이 되는 작업
+
+### 18.6.2 기본 구현
+
+```java
+@Component
+public class EvaluatorOptimizerWorkflow {
+    
+    private final ChatClient chatClient;
+    private static final int MAX_ITERATIONS = 3;
+    
+    public RefinedResponse loop(String task) {
+        List<Generation> generations = new ArrayList<>();
+        Generation currentGeneration = generate(task, null);
+        generations.add(currentGeneration);
+        
+        for (int i = 0; i < MAX_ITERATIONS; i++) {
+            EvaluationResponse evaluation = evaluate(currentGeneration.getResponse(), task);
+            
+            if (evaluation.getScore() >= 0.9) {
+                break; // 충분히 좋은 결과
+            }
+            
+            currentGeneration = generate(task, evaluation.getFeedback());
+            generations.add(currentGeneration);
+        }
+        
+        return RefinedResponse.builder()
+            .finalSolution(currentGeneration.getResponse())
+            .chainOfThought(generations)
+            .build();
+    }
+    
+    private Generation generate(String task, String feedback) {
+        String prompt = feedback == null ?
+            "Complete this task: " + task :
+            "Improve your previous solution based on feedback:\n" +
+            "Task: " + task + "\n" +
+            "Feedback: " + feedback;
+        
+        String response = chatClient.prompt()
+            .system("You are an expert problem solver.")
+            .user(prompt)
+            .call()
+            .content();
+        
+        return new Generation(response, feedback);
+    }
+    
+    private EvaluationResponse evaluate(String solution, String task) {
+        return chatClient.prompt()
+            .system("""
+                Evaluate the solution for the given task.
+                Provide:
+                - score: 0.0 to 1.0
+                - issues: list of problems
+                - suggestions: specific improvements
+                """)
+            .user("Task: " + task + "\nSolution: " + solution)
+            .call()
+            .entity(EvaluationResponse.class);
+    }
+    
+    @Data
+    @AllArgsConstructor
+    public static class Generation {
+        private String response;
+        private String feedback;
+    }
+    
+    @Data
+    public static class EvaluationResponse {
+        private double score;
+        private List<String> issues;
+        private List<String> suggestions;
+        
+        public String getFeedback() {
+            return "Issues: " + String.join(", ", issues) + "\n" +
+                   "Suggestions: " + String.join(", ", suggestions);
+        }
+    }
+    
+    @Data
+    @Builder
+    public static class RefinedResponse {
+        private String finalSolution;
+        private List<Generation> chainOfThought;
+    }
+}
+
+```
+
+### 18.6.3 실제 예제: 코드 품질 개선
+
+```java
+@Service
+public class CodeQualityService {
+    
+    private final EvaluatorOptimizerWorkflow workflow;
+    
+    public ImprovedCode improveCode(String code, String requirements) {
+        String task = "Improve this code to meet the requirements:\n" +
+                     "Code:\n" + code + "\n" +
+                     "Requirements:\n" + requirements;
+        
+        RefinedResponse response = workflow.loop(task);
+        
+        return ImprovedCode.builder()
+            .originalCode(code)
+            .improvedCode(response.getFinalSolution())
+            .iterations(response.getChainOfThought().size())
+            .improvementSteps(extractImprovementSteps(response.getChainOfThought()))
+            .build();
+    }
+    
+    private List<String> extractImprovementSteps(List<Generation> generations) {
+        return generations.stream()
+            .filter(g -> g.getFeedback() != null)
+            .map(Generation::getFeedback)
+            .collect(Collectors.toList());
     }
 }
 ```
+
+### 18.6.4 Evaluator-Optimizer의 장점
+
+1. **품질 향상**: 반복적 개선으로 더 나은 결과
+2. **투명성**: 개선 과정을 추적 가능
+3. **객관적 평가**: 명확한 기준에 따른 평가
+4. **학습 가능**: 평가 피드백을 통한 개선
 
 ## 18.5 반복 워크플로 구현
 
@@ -822,622 +1044,538 @@ public class DistributedAgentWorkflowConfig {
 }
 ```
 
-## 18.7 워크플로 오케스트레이션 및 관리
+## 18.7 패턴 조합 전략
 
-복잡한 워크플로를 관리하고 모니터링하기 위한 오케스트레이션 도구와 관리 시스템을 구현할 수 있습니다.
+개별 워크플로 패턴은 강력하지만, 실제 복잡한 문제를 해결하려면 여러 패턴을 조합해야 합니다.
 
-### 18.7.1 WorkflowOrchestrator 구현
+### 18.7.1 하이브리드 워크플로 구현
 
 ```java
 @Service
-public class WorkflowOrchestrator {
+public class HybridWorkflowService {
     
-    private final Map<String, AgentWorkflow<?, ?>> registeredWorkflows;
-    private final WorkflowStateRepository stateRepository;
-    private final WorkflowMonitor monitor;
+    private final ChatClient chatClient;
     
-    public <I, O> String startWorkflow(String workflowName, I input) {
-        // 워크플로 검색
-        AgentWorkflow<I, O> workflow = (AgentWorkflow<I, O>) registeredWorkflows.get(workflowName);
-        if (workflow == null) {
-            throw new IllegalArgumentException("Workflow not found: " + workflowName);
-        }
+    public ResearchReport conductResearch(String topic) {
+        // 1단계: Chain을 사용하여 연구 계획 수립
+        String researchPlan = new ChainWorkflow(chatClient).chain(
+            topic,
+            "Analyze the research topic and identify key areas to investigate.",
+            "Create a structured research plan with specific questions."
+        );
         
-        // 워크플로 인스턴스 ID 생성
-        String instanceId = UUID.randomUUID().toString();
+        // 2단계: Parallelization을 사용하여 여러 소스에서 정보 수집
+        List<String> sources = Arrays.asList(
+            "Academic papers",
+            "Industry reports",
+            "Expert opinions",
+            "Case studies"
+        );
         
-        // 워크플로 상태 초기화
-        WorkflowState state = new WorkflowState();
-        state.setInstanceId(instanceId);
-        state.setWorkflowName(workflowName);
-        state.setStatus("RUNNING");
-        state.setStartTime(LocalDateTime.now());
-        stateRepository.save(state);
+        ParallelizationWorkflow parallelWorkflow = new ParallelizationWorkflow(chatClient);
+        List<String> researchData = parallelWorkflow.parallel(
+            "Research " + topic + " from the perspective of: ",
+            sources,
+            4
+        );
         
-        // 비동기 실행
-        CompletableFuture.runAsync(() -> {
-            try {
-                // 워크플로 실행
-                O result = workflow.execute(input);
-                
-                // 성공 처리
-                state.setStatus("COMPLETED");
-                state.setEndTime(LocalDateTime.now());
-                state.setResult(result);
-                stateRepository.save(state);
-                
-                // 모니터링 이벤트 발행
-                monitor.workflowCompleted(instanceId, workflow, result);
-                
-            } catch (Exception e) {
-                // 실패 처리
-                state.setStatus("FAILED");
-                state.setEndTime(LocalDateTime.now());
-                state.setErrorMessage(e.getMessage());
-                stateRepository.save(state);
-                
-                // 모니터링 이벤트 발행
-                monitor.workflowFailed(instanceId, workflow, e);
-            }
-        });
+        // 3단계: Evaluator-Optimizer로 결과 개선
+        String task = "Synthesize the research findings into a comprehensive report";
+        RefinedResponse refinedReport = new EvaluatorOptimizerWorkflow(chatClient)
+            .loop(task + "\nData: " + String.join("\n", researchData));
         
-        return instanceId;
-    }
-    
-    public WorkflowState getWorkflowState(String instanceId) {
-        return stateRepository.findById(instanceId)
-            .orElseThrow(() -> new IllegalArgumentException("Workflow instance not found: " + instanceId));
-    }
-    
-    public void cancelWorkflow(String instanceId) {
-        // 워크플로 취소 로직
-    }
-    
-    public void registerWorkflow(String name, AgentWorkflow<?, ?> workflow) {
-        registeredWorkflows.put(name, workflow);
+        return ResearchReport.builder()
+            .topic(topic)
+            .plan(researchPlan)
+            .sources(researchData)
+            .finalReport(refinedReport.getFinalSolution())
+            .iterations(refinedReport.getChainOfThought().size())
+            .build();
     }
 }
 ```
 
-### 18.7.2 워크플로 상태 관리 및 모니터링
+### 18.7.2 적응형 워크플로 선택
+
+```java
+@Component
+public class AdaptiveWorkflowSelector {
+    
+    private final ChatClient chatClient;
+    
+    public String selectAndExecuteWorkflow(String task) {
+        // 작업 분석
+        String taskAnalysis = chatClient.prompt()
+            .system("Analyze the task and determine the best workflow pattern.")
+            .user(task)
+            .call()
+            .entity(TaskAnalysis.class);
+        
+        // 분석 결과에 따라 적절한 워크플로 선택
+        return switch (taskAnalysis.getRecommendedPattern()) {
+            case CHAIN -> executeChainWorkflow(task);
+            case PARALLEL -> executeParallelWorkflow(task);
+            case ROUTING -> executeRoutingWorkflow(task);
+            case ORCHESTRATOR -> executeOrchestratorWorkflow(task);
+            case EVALUATOR -> executeEvaluatorWorkflow(task);
+            default -> executeDefaultWorkflow(task);
+        };
+    }
+    
+    @Data
+    static class TaskAnalysis {
+        enum Pattern { CHAIN, PARALLEL, ROUTING, ORCHESTRATOR, EVALUATOR }
+        private Pattern recommendedPattern;
+        private String reasoning;
+        private List<String> subtasks;
+    }
+}
+```
+
+### 18.7.3 중첩 워크플로 구현
+
+```java
+@Service
+public class NestedWorkflowService {
+    
+    private final ChatClient chatClient;
+    
+    public ProductAnalysis analyzeProduct(String productDescription) {
+        // 최상위 Orchestrator
+        OrchestratorWorkersWorkflow orchestrator = new OrchestratorWorkersWorkflow(chatClient);
+        
+        WorkerResponse mainAnalysis = orchestrator.process(
+            "Analyze this product from multiple perspectives: " + productDescription
+        );
+        
+        // 각 워커 응답에 대해 추가 분석 수행
+        List<DetailedAnalysis> detailedAnalyses = mainAnalysis.getWorkerResponses()
+            .parallelStream()
+            .map(workerResponse -> {
+                // 중첩된 Chain Workflow
+                String refined = new ChainWorkflow(chatClient).chain(
+                    workerResponse,
+                    "Extract key insights from this analysis.",
+                    "Identify actionable recommendations.",
+                    "Prioritize recommendations by impact."
+                );
+                
+                return new DetailedAnalysis(workerResponse, refined);
+            })
+            .collect(Collectors.toList());
+        
+        // 최종 통합 (Evaluator-Optimizer 사용)
+        String consolidationTask = "Consolidate all analyses into executive summary";
+        RefinedResponse summary = new EvaluatorOptimizerWorkflow(chatClient)
+            .loop(consolidationTask + "\n" + detailedAnalyses);
+        
+        return ProductAnalysis.builder()
+            .product(productDescription)
+            .mainAnalysis(mainAnalysis)
+            .detailedAnalyses(detailedAnalyses)
+            .executiveSummary(summary.getFinalSolution())
+            .build();
+    }
+}
+```
+
+## 18.8 성능 최적화와 모니터링
+
+효과적인 워크플로를 구축하려면 성능 최적화와 적절한 모니터링이 필수적입니다.
+
+### 18.8.1 성능 최적화 전략
+
+```java
+@Component
+public class WorkflowOptimizer {
+    
+    private final ChatClient chatClient;
+    private final MeterRegistry meterRegistry;
+    
+    // 1. 캐싱을 통한 중복 호출 최소화
+    private final Cache<String, String> responseCache = Caffeine.newBuilder()
+        .maximumSize(1000)
+        .expireAfterWrite(10, TimeUnit.MINUTES)
+        .build();
+    
+    public String optimizedChain(String input, String... prompts) {
+        String response = input;
+        
+        for (String prompt : prompts) {
+            String cacheKey = prompt + "::" + response.hashCode();
+            
+            response = responseCache.get(cacheKey, key -> {
+                Timer.Sample sample = Timer.start(meterRegistry);
+                
+                String result = chatClient.prompt()
+                    .system(prompt)
+                    .user(response)
+                    .call()
+                    .content();
+                
+                sample.stop(Timer.builder("workflow.step.duration")
+                    .tag("prompt", prompt.substring(0, Math.min(prompt.length(), 50)))
+                    .register(meterRegistry));
+                
+                return result;
+            });
+        }
+        
+        return response;
+    }
+    
+    // 2. 배치 처리를 통한 처리량 향상
+    public List<String> batchProcess(List<String> items, String prompt, int batchSize) {
+        return Lists.partition(items, batchSize).stream()
+            .flatMap(batch -> {
+                String batchPrompt = String.format(
+                    "%s\n\nProcess these items:\n%s",
+                    prompt,
+                    String.join("\n", batch)
+                );
+                
+                String response = chatClient.prompt()
+                    .user(batchPrompt)
+                    .call()
+                    .content();
+                
+                // Parse batch response
+                return parseBatchResponse(response).stream();
+            })
+            .collect(Collectors.toList());
+    }
+    
+    // 3. 동적 타임아웃 조정
+    public String adaptiveTimeout(String prompt, Duration initialTimeout) {
+        AtomicReference<Duration> timeout = new AtomicReference<>(initialTimeout);
+        
+        return Retry.decorateSupplier(
+            Retry.of("adaptive-retry", RetryConfig.custom()
+                .maxAttempts(3)
+                .waitDuration(Duration.ofSeconds(1))
+                .build()),
+            () -> {
+                try {
+                    return chatClient.prompt()
+                        .user(prompt)
+                        .options(ChatOptions.builder()
+                            .timeout(timeout.get())
+                            .build())
+                        .call()
+                        .content();
+                } catch (TimeoutException e) {
+                    // 타임아웃 발생 시 시간 증가
+                    timeout.updateAndGet(d -> d.multipliedBy(2));
+                    throw new RuntimeException(e);
+                }
+            }
+        ).get();
+    }
+}
+```
+
+### 18.8.2 워크플로 모니터링
 
 ```java
 @Component
 public class WorkflowMonitor {
     
+    private final MeterRegistry meterRegistry;
     private final ApplicationEventPublisher eventPublisher;
-    private final WorkflowMetricsCollector metricsCollector;
     
-    public <O> void workflowCompleted(String instanceId, AgentWorkflow<?, O> workflow, O result) {
-        // 완료 이벤트 발행
-        eventPublisher.publishEvent(
-            new WorkflowCompletedEvent(this, instanceId, workflow.getMetadata(), result)
-        );
+    @EventListener
+    public void handleWorkflowEvent(WorkflowEvent event) {
+        // 메트릭 수집
+        meterRegistry.counter("workflow.executions",
+            "type", event.getWorkflowType(),
+            "status", event.getStatus()
+        ).increment();
         
-        // 메트릭 기록
-        metricsCollector.recordWorkflowExecution(
-            workflow.getMetadata().getName(),
-            "COMPLETED",
-            calculateDuration(instanceId)
-        );
-    }
-    
-    public void workflowFailed(String instanceId, AgentWorkflow<?, ?> workflow, Exception exception) {
-        // 실패 이벤트 발행
-        eventPublisher.publishEvent(
-            new WorkflowFailedEvent(this, instanceId, workflow.getMetadata(), exception)
-        );
-        
-        // 메트릭 기록
-        metricsCollector.recordWorkflowExecution(
-            workflow.getMetadata().getName(),
-            "FAILED",
-            calculateDuration(instanceId)
-        );
-    }
-    
-    private Duration calculateDuration(String instanceId) {
-        // 워크플로 실행 시간 계산
-    }
-}
-```
-
-### 18.7.3 워크플로 시각화 및 대시보드
-
-```java
-@RestController
-@RequestMapping("/workflow")
-public class WorkflowDashboardController {
-    
-    private final WorkflowOrchestrator orchestrator;
-    private final WorkflowMetricsCollector metricsCollector;
-    private final WorkflowVisualizer visualizer;
-    
-    @GetMapping("/instances")
-    public List<WorkflowInstanceDto> getAllInstances() {
-        // 모든 워크플로 인스턴스 조회
-    }
-    
-    @GetMapping("/instances/{id}")
-    public WorkflowDetailsDto getWorkflowDetails(@PathVariable String id) {
-        // 특정 워크플로 인스턴스 상세 정보 조회
-    }
-    
-    @GetMapping("/metrics")
-    public WorkflowMetricsDto getWorkflowMetrics() {
-        // 워크플로 메트릭 조회
-    }
-    
-    @GetMapping("/instances/{id}/visualize")
-    public WorkflowVisualizationDto visualizeWorkflow(@PathVariable String id) {
-        // 워크플로 시각화 데이터 생성
-        return visualizer.generateVisualization(id);
-    }
-}
-```
-
-## 18.8 실전 패턴: 복합 워크플로 구현
-
-여러 워크플로 패턴을 조합하여 복잡한 비즈니스 프로세스를 구현하는 방법을 알아봅니다.
-
-### 18.8.1 마케팅 캠페인 분석 워크플로
-
-다양한 데이터 소스를 수집하고 분석하여 마케팅 캠페인의 효과를 평가하는 복합 워크플로를 구현합니다.
-
-```java
-@Service
-public class MarketingCampaignAnalysisService {
-    
-    private final Agent dataCollectionAgent;
-    private final Agent dataPreprocessingAgent;
-    private final Agent segmentationAgent;
-    private final Agent performanceAnalysisAgent;
-    private final Agent insightGenerationAgent;
-    private final Agent recommendationAgent;
-    
-    public CampaignAnalysisReport analyzeCampaign(String campaignId) {
-        // 1. 데이터 수집 단계
-        LinearAgentChain dataCollectionChain = new LinearAgentChain(
-            Arrays.asList(dataCollectionAgent, dataPreprocessingAgent),
-            true
-        );
-        
-        AgentRequest initialRequest = AgentRequest.builder()
-            .prompt("Collect and preprocess data for campaign: " + campaignId)
-            .build();
-        
-        AgentResponse preprocessedData = dataCollectionChain.execute(initialRequest);
-        
-        // 2. 병렬 분석 단계
-        ParallelAgentWorkflow analysisWorkflow = createAnalysisWorkflow(preprocessedData);
-        List<AgentResponse> analysisResults = analysisWorkflow.execute(
-            AgentRequest.builder()
-                .prompt("Run parallel analysis on campaign data")
-                .metadata(Map.of("preprocessedData", preprocessedData.getContent()))
-                .build()
-        );
-        
-        // 3. 최종 권장사항 및 보고서 생성 단계
-        BranchingAgentWorkflow recommendationWorkflow = createRecommendationWorkflow(analysisResults);
-        AgentResponse finalRecommendation = recommendationWorkflow.execute(
-            AgentRequest.builder()
-                .prompt("Generate final insights and recommendations")
-                .metadata(Map.of("analysisResults", analysisResults))
-                .build()
-        );
-        
-        // 결과 변환 및 반환
-        return generateFinalReport(campaignId, preprocessedData, analysisResults, finalRecommendation);
-    }
-    
-    private ParallelAgentWorkflow createAnalysisWorkflow(AgentResponse preprocessedData) {
-        // 병렬 분석 워크플로 구성
-    }
-    
-    private BranchingAgentWorkflow createRecommendationWorkflow(List<AgentResponse> analysisResults) {
-        // 분기 권장사항 워크플로 구성
-    }
-    
-    private CampaignAnalysisReport generateFinalReport(
-            String campaignId,
-            AgentResponse preprocessedData,
-            List<AgentResponse> analysisResults,
-            AgentResponse recommendation) {
-        // 최종 보고서 생성
-    }
-}
-```
-
-### 18.8.2 문서 처리 및 지식 추출 워크플로
-
-대량의 문서에서 지식을 추출하고 구조화하는 복합 워크플로를 구현합니다.
-
-```java
-@Service
-public class DocumentProcessingService {
-    
-    private final Agent documentClassifierAgent;
-    private final Agent textExtractionAgent;
-    private final Agent structuringAgent;
-    private final Agent entityExtractionAgent;
-    private final Agent relationExtractionAgent;
-    private final Agent knowledgeBaseUpdaterAgent;
-    
-    public void processDocumentBatch(List<Document> documents) {
-        // 문서 분류 워크플로 구성
-        BranchingAgentWorkflow classificationWorkflow = new BranchingAgentWorkflow(
-            documentClassifierAgent,
-            classifyDocumentsByType(),
-            Map.of(
-                "invoice", createInvoiceProcessingChain(),
-                "contract", createContractProcessingChain(),
-                "report", createReportProcessingChain()
-            ),
-            createGeneralDocumentProcessingChain()
-        );
-        
-        // 각 문서 처리
-        for (Document document : documents) {
-            AgentRequest request = AgentRequest.builder()
-                .prompt("Process document: " + document.getTitle())
-                .metadata(Map.of("document", document))
-                .build();
+        if (event instanceof WorkflowCompletedEvent) {
+            WorkflowCompletedEvent completed = (WorkflowCompletedEvent) event;
             
-            try {
-                // 분류 및 처리 워크플로 실행
-                AgentResponse result = classificationWorkflow.execute(request);
-                
-                // 추출된 지식을 지식 베이스에 업데이트
-                updateKnowledgeBase(document, result);
-                
-            } catch (Exception e) {
-                // 문서 처리 실패 처리
-                log.error("Failed to process document: {}", document.getTitle(), e);
-            }
+            meterRegistry.timer("workflow.duration",
+                "type", completed.getWorkflowType()
+            ).record(completed.getDuration());
+            
+            // 토큰 사용량 추적
+            meterRegistry.gauge("workflow.tokens.used",
+                Tags.of("type", completed.getWorkflowType()),
+                completed.getTokensUsed()
+            );
         }
     }
     
-    private Function<AgentResponse, String> classifyDocumentsByType() {
-        // 문서 유형에 따른 분류 로직
-    }
-    
-    private Agent createInvoiceProcessingChain() {
-        // 청구서 처리 체인 구성
-    }
-    
-    private Agent createContractProcessingChain() {
-        // 계약서 처리 체인 구성
-    }
-    
-    private Agent createReportProcessingChain() {
-        // 보고서 처리 체인 구성
-    }
-    
-    private Agent createGeneralDocumentProcessingChain() {
-        // 일반 문서 처리 체인 구성
-    }
-    
-    private void updateKnowledgeBase(Document document, AgentResponse processingResult) {
-        // 지식 베이스 업데이트 로직
+    // 실시간 모니터링 대시보드용 엔드포인트
+    @RestController
+    @RequestMapping("/workflow/metrics")
+    public class MetricsController {
+        
+        @GetMapping("/current")
+        public WorkflowMetrics getCurrentMetrics() {
+            return WorkflowMetrics.builder()
+                .activeWorkflows(getActiveWorkflowCount())
+                .averageResponseTime(getAverageResponseTime())
+                .errorRate(getErrorRate())
+                .tokenUsageRate(getTokenUsageRate())
+                .build();
+        }
+        
+        @GetMapping("/health")
+        public WorkflowHealth checkHealth() {
+            return WorkflowHealth.builder()
+                .status(determineHealthStatus())
+                .latency(measureLatency())
+                .throughput(calculateThroughput())
+                .errorThreshold(checkErrorThreshold())
+                .build();
+        }
     }
 }
 ```
 
-### 18.8.3 고객 여정 최적화 워크플로
-
-고객 데이터를 분석하고 개인화된 여정을 최적화하는 복합 워크플로를 구현합니다.
+### 18.8.3 비용 최적화
 
 ```java
 @Service
-public class CustomerJourneyOptimizationService {
+public class CostOptimizationService {
     
-    private final Agent customerProfilerAgent;
-    private final Agent behaviorAnalysisAgent;
-    private final Agent segmentationAgent;
-    private final Agent journeyMappingAgent;
-    private final Agent touchpointOptimizationAgent;
-    private final Agent personalizedContentAgent;
+    private final ChatClient chatClient;
+    private final TokenCounter tokenCounter;
     
-    public OptimizedJourneyPlan optimizeCustomerJourney(String customerId) {
-        // 고객 프로필링 및 행동 분석 (선형 체인)
-        LinearAgentChain profilingChain = new LinearAgentChain(
-            Arrays.asList(customerProfilerAgent, behaviorAnalysisAgent),
-            true
-        );
+    public OptimizedResponse executeWithBudget(String task, double maxCost) {
+        // 1. 작업 복잡도 평가
+        TaskComplexity complexity = evaluateComplexity(task);
         
-        AgentResponse profileData = profilingChain.execute(
-            AgentRequest.builder()
-                .prompt("Profile customer: " + customerId)
-                .build()
-        );
+        // 2. 모델 선택 최적화
+        String model = selectOptimalModel(complexity, maxCost);
         
-        // 세분화 및 여정 매핑 (반복적 개선)
-        IterativeAgentWorkflow segmentationWorkflow = new IterativeAgentWorkflow(
-            segmentationAgent,
-            response -> needsRefinement(response),
-            response -> createRefinementRequest(response),
-            3 // 최대 3회 반복
-        );
+        // 3. 프롬프트 압축
+        String compressedPrompt = compressPrompt(task);
         
-        AgentResponse segmentationResult = segmentationWorkflow.execute(
-            AgentRequest.builder()
-                .prompt("Segment customer based on profile data")
-                .metadata(Map.of("profileData", profileData.getContent()))
-                .build()
-        );
+        // 4. 실행 및 비용 추적
+        CostTracker costTracker = new CostTracker(maxCost);
         
-        // 접점 최적화 및 개인화 콘텐츠 추천 (병렬 처리)
-        ParallelAgentWorkflow optimizationWorkflow = new ParallelAgentWorkflow(
-            Arrays.asList(journeyMappingAgent, touchpointOptimizationAgent, personalizedContentAgent),
-            request -> createOptimizationRequests(request, segmentationResult),
-            Executors.newFixedThreadPool(3)
-        );
+        String response = chatClient.prompt()
+            .user(compressedPrompt)
+            .options(ChatOptions.builder()
+                .model(model)
+                .maxTokens(calculateMaxTokens(costTracker.getRemainingBudget()))
+                .build())
+            .call()
+            .content();
         
-        List<AgentResponse> optimizationResults = optimizationWorkflow.execute(
-            AgentRequest.builder()
-                .prompt("Optimize customer journey")
-                .metadata(Map.of(
-                    "profileData", profileData.getContent(),
-                    "segmentationResult", segmentationResult.getContent()
-                ))
-                .build()
-        );
-        
-        // 최종 최적화된 여정 계획 생성
-        return generateOptimizedJourneyPlan(customerId, profileData, segmentationResult, optimizationResults);
+        return OptimizedResponse.builder()
+            .response(response)
+            .actualCost(costTracker.getCurrentCost())
+            .tokensUsed(tokenCounter.count(compressedPrompt + response))
+            .modelUsed(model)
+            .build();
     }
     
-    private boolean needsRefinement(AgentResponse response) {
-        // 세분화 결과가 충분히 정교한지 평가
-    }
-    
-    private AgentRequest createRefinementRequest(AgentResponse response) {
-        // 세분화 개선을 위한 요청 생성
-    }
-    
-    private List<AgentRequest> createOptimizationRequests(
-            AgentRequest originalRequest,
-            AgentResponse segmentationResult) {
-        // 최적화 작업을 위한 병렬 요청 생성
-    }
-    
-    private OptimizedJourneyPlan generateOptimizedJourneyPlan(
-            String customerId,
-            AgentResponse profileData,
-            AgentResponse segmentationResult,
-            List<AgentResponse> optimizationResults) {
-        // 최적화된 여정 계획 생성
+    private String compressPrompt(String original) {
+        // 프롬프트 압축 기법 적용
+        return chatClient.prompt()
+            .system("Compress this prompt while preserving all essential information.")
+            .user(original)
+            .options(ChatOptions.builder()
+                .model("gpt-3.5-turbo") // 저렴한 모델 사용
+                .build())
+            .call()
+            .content();
     }
 }
 ```
 
-## 18.9 단위 테스트 및 통합 테스트
+## 18.9 테스트 전략
 
-에이전트 체인과 워크플로를 효과적으로 테스트하는 방법을 알아봅니다.
+워크플로 패턴을 효과적으로 테스트하려면 단위 테스트와 통합 테스트 전략이 필요합니다.
 
-### 18.9.1 워크플로 단위 테스트 구현
+### 18.9.1 워크플로 단위 테스트
 
 ```java
 @ExtendWith(MockitoExtension.class)
-public class LinearAgentChainTest {
+class WorkflowPatternTest {
     
     @Mock
-    private Agent firstAgent;
+    private ChatClient chatClient;
     
     @Mock
-    private Agent secondAgent;
+    private ChatClient.ChatClientRequest chatClientRequest;
     
-    @Test
-    public void testLinearChainExecution() {
-        // 테스트 요청 및 응답 설정
-        AgentRequest initialRequest = AgentRequest.builder()
-            .prompt("Initial request")
-            .build();
-        
-        AgentResponse firstResponse = AgentResponse.builder()
-            .content("First agent response")
-            .build();
-        
-        AgentRequest expectedSecondRequest = AgentRequest.builder()
-            .prompt("First agent response")
-            .build();
-        
-        AgentResponse secondResponse = AgentResponse.builder()
-            .content("Second agent response")
-            .build();
-        
-        // Mock 설정
-        when(firstAgent.execute(initialRequest)).thenReturn(firstResponse);
-        when(secondAgent.execute(any())).thenReturn(secondResponse);
-        
-        // 체인 생성 및 실행
-        LinearAgentChain chain = new LinearAgentChain(
-            Arrays.asList(firstAgent, secondAgent),
-            true
-        );
-        
-        AgentResponse result = chain.execute(initialRequest);
-        
-        // 검증
-        verify(firstAgent).execute(initialRequest);
-        verify(secondAgent).execute(argThat(request ->
-            request.getPrompt().equals(expectedSecondRequest.getPrompt())
-        ));
-        
-        assertEquals("Second agent response", result.getContent());
+    @Mock
+    private ChatClient.CallResponseSpec callResponseSpec;
+    
+    @BeforeEach
+    void setUp() {
+        // ChatClient 모킹 체인 설정
+        when(chatClient.prompt()).thenReturn(chatClientRequest);
+        when(chatClientRequest.system(anyString())).thenReturn(chatClientRequest);
+        when(chatClientRequest.user(anyString())).thenReturn(chatClientRequest);
+        when(chatClientRequest.call()).thenReturn(callResponseSpec);
     }
     
     @Test
-    public void testErrorHandlingWithStopOnError() {
-        // Mock 설정 - 첫 번째 에이전트에서 오류 발생
-        when(firstAgent.execute(any())).thenThrow(new RuntimeException("Test error"));
+    void testChainWorkflow() {
+        // Given
+        String[] responses = {"Step 1 complete", "Step 2 complete", "Final result"};
+        AtomicInteger callCount = new AtomicInteger(0);
         
-        // 체인 생성 및 실행
-        LinearAgentChain chain = new LinearAgentChain(
-            Arrays.asList(firstAgent, secondAgent),
-            true // 오류 발생 시 중단
+        when(callResponseSpec.content()).thenAnswer(invocation -> 
+            responses[callCount.getAndIncrement()]
         );
         
-        // 검증 - 예외 발생 확인
-        assertThrows(AgentWorkflowException.class, () ->
-            chain.execute(AgentRequest.builder().prompt("Test").build())
+        // When
+        ChainWorkflow workflow = new ChainWorkflow(chatClient);
+        String result = workflow.chain(
+            "Initial input",
+            "Process step 1",
+            "Process step 2",
+            "Finalize"
         );
         
-        // 두 번째 에이전트는 호출되지 않음
-        verify(secondAgent, never()).execute(any());
+        // Then
+        assertEquals("Final result", result);
+        verify(chatClient, times(3)).prompt();
+    }
+    
+    @Test
+    void testParallelizationWorkflow() {
+        // Given
+        List<String> items = Arrays.asList("Item1", "Item2", "Item3");
+        when(callResponseSpec.content()).thenReturn("Processed");
+        
+        // When
+        ParallelizationWorkflow workflow = new ParallelizationWorkflow(chatClient);
+        List<String> results = workflow.parallel(
+            "Process each item",
+            items,
+            3
+        );
+        
+        // Then
+        assertEquals(3, results.size());
+        results.forEach(result -> assertEquals("Processed", result));
     }
 }
 ```
 
-### 18.9.2 모의 에이전트를 이용한 워크플로 테스트
+### 18.9.2 통합 테스트
 
 ```java
 @SpringBootTest
-public class AgentWorkflowIntegrationTest {
+@AutoConfigureMockMvc
+class WorkflowIntegrationTest {
     
     @Autowired
-    private WorkflowOrchestrator orchestrator;
+    private ChatClient.Builder chatClientBuilder;
     
     @MockBean
-    private Agent researchAgent;
-    
-    @MockBean
-    private Agent analysisAgent;
-    
-    @MockBean
-    private Agent reportingAgent;
+    private ChatModel chatModel;
     
     @Test
-    public void testResearchWorkflowEndToEnd() {
-        // 모의 에이전트 동작 설정
-        when(researchAgent.execute(any())).thenReturn(
-            AgentResponse.builder()
-                .content("Research data about topic")
-                .build()
+    void testCompleteWorkflowExecution() {
+        // Given
+        ChatResponse mockResponse = new ChatResponse(
+            List.of(new Generation(new AssistantMessage("Test response")))
         );
         
-        when(analysisAgent.execute(any())).thenReturn(
-            AgentResponse.builder()
-                .content("Analysis of research data")
-                .build()
+        when(chatModel.call(any(Prompt.class))).thenReturn(mockResponse);
+        
+        ChatClient chatClient = chatClientBuilder.build();
+        
+        // When - 복합 워크플로 실행
+        OrchestratorWorkersWorkflow workflow = new OrchestratorWorkersWorkflow(chatClient);
+        WorkerResponse response = workflow.process(
+            "Analyze the impact of climate change on global agriculture"
         );
         
-        when(reportingAgent.execute(any())).thenReturn(
-            AgentResponse.builder()
-                .content("Final report")
-                .build()
-        );
-        
-        // 워크플로 실행
-        String instanceId = orchestrator.startWorkflow(
-            "researchWorkflow",
-            AgentRequest.builder().prompt("Research topic").build()
-        );
-        
-        // 완료 대기
-        await().atMost(5, TimeUnit.SECONDS).until(
-            () -> orchestrator.getWorkflowState(instanceId).getStatus().equals("COMPLETED")
-        );
-        
-        // 결과 검증
-        WorkflowState state = orchestrator.getWorkflowState(instanceId);
-        assertEquals("COMPLETED", state.getStatus());
-        
-        AgentResponse result = (AgentResponse) state.getResult();
-        assertEquals("Final report", result.getContent());
-        
-        // 에이전트 호출 순서 검증
-        InOrder inOrder = inOrder(researchAgent, analysisAgent, reportingAgent);
-        inOrder.verify(researchAgent).execute(any());
-        inOrder.verify(analysisAgent).execute(any());
-        inOrder.verify(reportingAgent).execute(any());
+        // Then
+        assertNotNull(response);
+        assertNotNull(response.getAnalysis());
+        assertFalse(response.getWorkerResponses().isEmpty());
+        assertNotNull(response.getFinalResponse());
     }
 }
 ```
 
-### 18.9.3 성능 및 부하 테스트
+### 18.9.3 성능 테스트
 
 ```java
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class WorkflowPerformanceTest {
-    
-    private WorkflowOrchestrator orchestrator;
-    private WorkflowMetricsCollector metricsCollector;
-    
-    @BeforeEach
-    public void setup() {
-        // 테스트용 오케스트레이터 및 에이전트 설정
-    }
+@Test
+class WorkflowPerformanceTest {
     
     @Test
-    @Order(1)
-    public void testSingleWorkflowPerformance() {
-        // 단일 워크플로 성능 측정
-        long startTime = System.currentTimeMillis();
+    void measureWorkflowLatency() {
+        ChatClient chatClient = createTestChatClient();
         
-        orchestrator.startWorkflow("testWorkflow", createTestRequest());
+        // 각 패턴의 지연 시간 측정
+        Map<String, Duration> latencies = new HashMap<>();
         
-        await().atMost(10, TimeUnit.SECONDS).until(
-            () -> metricsCollector.getCompletedWorkflows("testWorkflow") == 1
+        // Chain Workflow
+        Instant start = Instant.now();
+        new ChainWorkflow(chatClient).chain(
+            "Test input",
+            "Step 1", "Step 2", "Step 3"
         );
+        latencies.put("Chain", Duration.between(start, Instant.now()));
         
-        long endTime = System.currentTimeMillis();
-        long executionTime = endTime - startTime;
-        
-        // 성능 기준 검증
-        assertTrue(executionTime < 5000, "Workflow execution should complete in less than 5 seconds");
-    }
-    
-    @Test
-    @Order(2)
-    public void testConcurrentWorkflowPerformance() {
-        // 동시 워크플로 부하 테스트
-        int concurrentWorkflows = 10;
-        CountDownLatch latch = new CountDownLatch(concurrentWorkflows);
-        
-        long startTime = System.currentTimeMillis();
-        
-        for (int i = 0; i < concurrentWorkflows; i++) {
-            int index = i;
-            new Thread(() -> {
-                try {
-                    orchestrator.startWorkflow("testWorkflow", createTestRequest(index));
-                } finally {
-                    latch.countDown();
-                }
-            }).start();
-        }
-        
-        try {
-            latch.await(30, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            fail("Test interrupted");
-        }
-        
-        await().atMost(30, TimeUnit.SECONDS).until(
-            () -> metricsCollector.getCompletedWorkflows("testWorkflow") >= concurrentWorkflows
+        // Parallelization Workflow
+        start = Instant.now();
+        new ParallelizationWorkflow(chatClient).parallel(
+            "Process",
+            Arrays.asList("A", "B", "C"),
+            3
         );
+        latencies.put("Parallel", Duration.between(start, Instant.now()));
         
-        long endTime = System.currentTimeMillis();
-        long totalExecutionTime = endTime - startTime;
-        
-        // 성능 기준 검증
-        double avgExecutionTime = totalExecutionTime / (double) concurrentWorkflows;
-        assertTrue(avgExecutionTime < 8000, "Average workflow execution should complete in less than 8 seconds under load");
+        // 결과 분석
+        latencies.forEach((pattern, duration) -> {
+            System.out.printf("%s: %d ms%n", pattern, duration.toMillis());
+            assertTrue(duration.toMillis() < 5000, 
+                pattern + " should complete within 5 seconds");
+        });
     }
 }
-```
 
 ## 18.10 결론
 
-이 장에서는 Spring AI를 사용하여 다양한 유형의 에이전트 체인과 워크플로를 구축하는 방법을 살펴보았습니다. 선형 체인, 분기 워크플로, 병렬 처리, 반복 워크플로, 이벤트 기반 워크플로 등 다양한 패턴을 사용하여 복잡한 AI 애플리케이션을 구조화하고 관리하는 방법을 알아보았습니다.
+이 장에서는 Anthropic의 "Building Effective Agents" 연구를 바탕으로 Spring AI를 사용하여 효과적인 에이전트 워크플로를 구축하는 방법을 살펴보았습니다. 
 
-에이전트 체인과 워크플로를 효과적으로 구현함으로써 복잡한 문제를 해결하는 강력한 AI 애플리케이션을 구축할 수 있습니다. 다음 장에서는 이러한 에이전트와 워크플로를 평가, 디버깅, 모니터링하는 방법에 대해 알아보겠습니다.
+### 핵심 요점
 
-## 연습 문제
+1. **단순성과 구성 가능성**: 복잡한 프레임워크보다 단순하고 구성 가능한 패턴이 더 효과적입니다.
 
-1. 세 개의 에이전트(질문 분류, 정보 검색, 응답 생성)를 연결하는 선형 체인을 구현하고, 사용자 질문에 대한 답변을 생성하는 시스템을 구축해 보세요.
-2. 사용자 입력을 분석하여 기술적 질문, 일반적 질문, 불만 사항 중 하나로 분류한 후 각각 다른 에이전트로 라우팅하는 분기 워크플로를 구현해 보세요.
-3. 문서 요약, 감정 분석, 키워드 추출, 주제 분류를 병렬로 수행하는 문서 분석 워크플로를 구현해 보세요.
-4. 사용자 피드백에 따라 반복적으로 콘텐츠를 개선하는 반복 워크플로를 설계하고 구현해 보세요.
-5. 이벤트 기반 아키텍처를 사용하여 새로운 문서가 업로드되면 자동으로 처리되는 워크플로를 구현해 보세요.
+2. **5가지 기본 패턴**:
+   - Chain: 순차적 작업 처리
+   - Parallelization: 병렬 작업 실행
+   - Routing: 지능적 작업 분배
+   - Orchestrator-Workers: 동적 작업 분해
+   - Evaluator-Optimizer: 반복적 개선
+
+3. **Spring AI의 장점**: 모델 이식성, 구조화된 출력, 일관된 API를 통해 패턴 구현이 용이합니다.
+
+4. **실전 활용**: 개별 패턴을 조합하여 복잡한 비즈니스 요구사항을 해결할 수 있습니다.
+
+### 향후 발전 방향
+
+- 고급 메모리 관리 기법
+- 도구 통합 및 MCP(Model Context Protocol) 활용
+- 더 정교한 패턴 조합 전략
+- 실시간 적응형 워크플로
+
+효과적인 에이전트 시스템을 구축하는 핵심은 복잡성을 추가하는 것이 아니라, 적절한 패턴을 선택하고 조합하는 것입니다.
+
+## 18.11 연습 문제
+
+1. **Chain Workflow 실습**: 뉴스 기사를 분석하는 3단계 체인을 구현하세요 (요약 → 감정 분석 → 핵심 인사이트 추출).
+
+2. **Parallelization 활용**: 제품 리뷰를 여러 관점(품질, 가격, 디자인, 서비스)에서 동시에 분석하는 워크플로를 구현하세요.
+
+3. **Routing Pattern**: 고객 문의를 카테고리별로 분류하고 적절한 전문 프롬프트로 라우팅하는 시스템을 구축하세요.
+
+4. **Orchestrator-Workers**: 복잡한 연구 주제를 하위 질문으로 분해하고 병렬로 조사한 후 통합하는 워크플로를 구현하세요.
+
+5. **Evaluator-Optimizer**: 마케팅 카피를 반복적으로 개선하는 시스템을 구축하세요 (명확성, 설득력, 간결성 기준).
+
+6. **패턴 조합**: 위의 패턴 중 2개 이상을 조합하여 실제 비즈니스 문제를 해결하는 복합 워크플로를 설계하고 구현하세요.
