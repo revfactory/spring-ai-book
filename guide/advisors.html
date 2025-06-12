@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advisors 가이드 - Spring AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .code-block { background: #2d3748; border-radius: 8px; }
+        .copy-button { transition: all 0.2s ease; }
+        .copy-button:hover { background-color: #4a5568; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <a href="../index.html" class="flex items-center text-xl font-bold text-gray-800">
+                        <i class="fab fa-spring text-green-600 mr-2"></i>
+                        Spring AI Hub
+                    </a>
+                    <span class="mx-3 text-gray-400">/</span>
+                    <span class="text-gray-600">Advisors 가이드</span>
+                </div>
+                <a href="../index.html" class="text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-home"></i> 홈으로
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-4xl font-bold mb-4">🧭 Advisors 가이드</h1>
+            <p class="text-gray-600 mb-8">Spring AI Advisor API를 사용한 RAG 시스템 구축과 고급 패턴</p>
+
+            <!-- Introduction -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">개요</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <p class="mb-4">
+                        Spring AI의 <strong>Advisor API</strong>는 ChatClient의 요청/응답 플로우에 사용자 정의 로직을 주입할 수 있는 강력한 메커니즘입니다. 
+                        Advisor를 통해 RAG(Retrieval Augmented Generation), 메모리 관리, 콘텐츠 필터링 등의 고급 기능을 쉽게 구현할 수 있습니다.
+                    </p>
+                    
+                    <div class="bg-blue-50 p-4 rounded-lg mb-4">
+                        <h3 class="font-semibold mb-2">주요 특징:</h3>
+                        <ul class="space-y-1">
+                            <li>✅ 요청 전처리 및 응답 후처리</li>
+                            <li>✅ RAG 시스템 자동화</li>
+                            <li>✅ 대화 메모리 관리</li>
+                            <li>✅ 콘텐츠 필터링 및 검증</li>
+                            <li>✅ 모듈형 아키텍처</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-gray-100 p-4 rounded-lg">
+                        <h3 class="font-semibold mb-2">Advisor 실행 순서:</h3>
+                        <pre class="text-sm font-mono">
+사용자 요청
+    ↓
+Request Advisors (순서대로 실행)
+    ↓
+AI 모델 호출
+    ↓
+Response Advisors (역순으로 실행)
+    ↓
+최종 응답
+                        </pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- QuestionAnswerAdvisor -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">QuestionAnswerAdvisor</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">기본 RAG 구현</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('qa-advisor-basic')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="qa-advisor-basic"><code class="language-java">@Configuration
+public class AdvisorConfig {
+    
+    @Bean
+    public QuestionAnswerAdvisor questionAnswerAdvisor(VectorStore vectorStore) {
+        return QuestionAnswerAdvisor.builder(vectorStore)
+            .searchRequest(SearchRequest.builder()
+                .similarityThreshold(0.8)
+                .topK(5)
+                .build())
+            .build();
+    }
+}
+
+@Service
+public class RAGChatService {
+    
+    private final ChatClient chatClient;
+    
+    public RAGChatService(ChatClient.Builder chatClientBuilder, 
+                         QuestionAnswerAdvisor qaAdvisor) {
+        this.chatClient = chatClientBuilder
+            .defaultAdvisors(qaAdvisor)
+            .build();
+    }
+    
+    public String chat(String userMessage) {
+        return chatClient.prompt()
+            .user(userMessage)
+            .call()
+            .content();
+    }
+    
+    // 동적 필터링
+    public String chatWithFilter(String userMessage, String category) {
+        return chatClient.prompt()
+            .user(userMessage)
+            .advisors(a -&gt; a.param(
+                QuestionAnswerAdvisor.FILTER_EXPRESSION, 
+                "category == '" + category + "'"
+            ))
+            .call()
+            .content();
+    }
+}</code></pre>
+                    </div>
+                </div>
+
+                <!-- Custom Template -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">커스텀 프롬프트 템플릿</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('qa-advisor-template')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="qa-advisor-template"><code class="language-java">@Bean
+public QuestionAnswerAdvisor customQuestionAnswerAdvisor(VectorStore vectorStore) {
+    
+    PromptTemplate customTemplate = PromptTemplate.builder()
+        .template("""
+            당신은 전문 상담원입니다. 다음 문서들을 참고하여 정확하고 도움이 되는 답변을 제공하세요.
+            
+            참고 문서:
+            {question_answer_context}
+            
+            사용자 질문: {query}
+            
+            답변 규칙:
+            1. 제공된 문서에 기반하여 답변하세요
+            2. 확실하지 않은 정보는 추측하지 마세요
+            3. 출처를 명시하여 신뢰성을 높이세요
+            4. 친근하고 전문적인 톤을 유지하세요
+            
+            답변:
+            """)
+        .build();
+    
+    return QuestionAnswerAdvisor.builder(vectorStore)
+        .searchRequest(SearchRequest.builder()
+            .similarityThreshold(0.75)
+            .topK(3)
+            .build())
+        .promptTemplate(customTemplate)
+        .build();
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VectorStoreChatMemoryAdvisor -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">VectorStoreChatMemoryAdvisor</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">대화 메모리 관리</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('memory-advisor')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="memory-advisor"><code class="language-java">@Configuration
+public class MemoryAdvisorConfig {
+    
+    @Bean
+    public VectorStoreChatMemoryAdvisor chatMemoryAdvisor(
+            VectorStore vectorStore,
+            ChatMemoryStore chatMemoryStore) {
+        
+        return VectorStoreChatMemoryAdvisor.builder(vectorStore)
+            .chatMemoryStore(chatMemoryStore)
+            .defaultConversationId("global")
+            .order(0) // QuestionAnswerAdvisor보다 먼저 실행
+            .build();
+    }
+    
+    @Bean
+    public ChatMemoryStore chatMemoryStore() {
+        return new InMemoryChatMemoryStore();
+    }
+}
+
+@Service
+public class ConversationalRAGService {
+    
+    private final ChatClient chatClient;
+    
+    public ConversationalRAGService(
+            ChatClient.Builder chatClientBuilder,
+            QuestionAnswerAdvisor qaAdvisor,
+            VectorStoreChatMemoryAdvisor memoryAdvisor) {
+        
+        this.chatClient = chatClientBuilder
+            .defaultAdvisors(memoryAdvisor, qaAdvisor)
+            .build();
+    }
+    
+    public String chat(String conversationId, String userMessage) {
+        return chatClient.prompt()
+            .user(userMessage)
+            .advisors(a -&gt; a.param(
+                VectorStoreChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY,
+                conversationId
+            ))
+            .call()
+            .content();
+    }
+    
+    // 대화 히스토리 조회
+    public List&lt;Message&gt; getConversationHistory(String conversationId) {
+        ChatMemory chatMemory = chatMemoryStore.get(conversationId, "default");
+        return chatMemory.getMessages();
+    }
+    
+    // 대화 초기화
+    public void clearConversation(String conversationId) {
+        chatMemoryStore.clear(conversationId, "default");
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RetrievalAugmentationAdvisor -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">RetrievalAugmentationAdvisor</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">고급 RAG 파이프라인</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('retrieval-advisor')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="retrieval-advisor"><code class="language-java">@Configuration
+public class AdvancedRAGConfig {
+    
+    @Bean
+    public RetrievalAugmentationAdvisor retrievalAugmentationAdvisor(
+            VectorStore vectorStore,
+            ChatClient.Builder chatClientBuilder) {
+        
+        return RetrievalAugmentationAdvisor.builder()
+            // 쿼리 전처리
+            .queryTransformers(
+                RewriteQueryTransformer.builder()
+                    .chatClientBuilder(chatClientBuilder)
+                    .build(),
+                TranslationQueryTransformer.builder()
+                    .chatClientBuilder(chatClientBuilder)
+                    .targetLanguage("korean")
+                    .build()
+            )
+            // 문서 검색
+            .documentRetriever(
+                VectorStoreDocumentRetriever.builder()
+                    .vectorStore(vectorStore)
+                    .similarityThreshold(0.7)
+                    .topK(8)
+                    .build()
+            )
+            // 문서 후처리
+            .documentPostProcessors(
+                new RerankingDocumentPostProcessor(),
+                new DeduplicationDocumentPostProcessor()
+            )
+            // 쿼리 보강
+            .queryAugmenter(
+                ContextualQueryAugmenter.builder()
+                    .allowEmptyContext(false)
+                    .build()
+            )
+            .build();
+    }
+}
+
+// 커스텀 문서 후처리기
+@Component
+public class RerankingDocumentPostProcessor implements DocumentPostProcessor {
+    
+    private final ChatClient rerankClient;
+    
+    @Override
+    public List&lt;Document&gt; process(List&lt;Document&gt; documents, Query query) {
+        if (documents.size() &lt;= 3) {
+            return documents; // 재순위화 불필요
+        }
+        
+        String rerankPrompt = buildRerankPrompt(documents, query);
+        
+        List&lt;Integer&gt; rankedIndices = rerankClient.prompt()
+            .system("문서들을 질문과의 관련성에 따라 순위를 매기세요.")
+            .user(rerankPrompt)
+            .call()
+            .entity(new ParameterizedTypeReference&lt;List&lt;Integer&gt;&gt;() {});
+        
+        return rankedIndices.stream()
+            .map(documents::get)
+            .toList();
+    }
+    
+    private String buildRerankPrompt(List&lt;Document&gt; documents, Query query) {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("질문: ").append(query.getText()).append("\n\n");
+        prompt.append("문서들:\n");
+        
+        for (int i = 0; i &lt; documents.size(); i++) {
+            prompt.append(i).append(". ")
+                  .append(documents.get(i).getContent().substring(0, 200))
+                  .append("...\n");
+        }
+        
+        prompt.append("\n가장 관련성이 높은 순서대로 문서 번호를 JSON 배열로 반환하세요.");
+        return prompt.toString();
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Custom Advisors -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">커스텀 Advisor 개발</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">Advisor 인터페이스 구현</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('custom-advisor')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="custom-advisor"><code class="language-java">// 콘텐츠 필터링 Advisor
+@Component
+public class ContentFilteringAdvisor implements RequestResponseAdvisor {
+    
+    private final ProfanityFilter profanityFilter;
+    private final ToxicityDetector toxicityDetector;
+    
+    @Override
+    public AdvisedRequest adviseRequest(AdvisedRequest request, Map&lt;String, Object&gt; context) {
+        UserMessage userMessage = request.userMessage();
+        String content = userMessage.getContent();
+        
+        // 1. 욕설 필터링
+        if (profanityFilter.containsProfanity(content)) {
+            content = profanityFilter.cleanText(content);
+        }
+        
+        // 2. 독성 콘텐츠 검사
+        ToxicityScore score = toxicityDetector.analyze(content);
+        if (score.isHighToxicity()) {
+            throw new ContentViolationException("부적절한 콘텐츠가 감지되었습니다.");
+        }
+        
+        // 3. 메타데이터 추가
+        context.put("original_content", userMessage.getContent());
+        context.put("toxicity_score", score.getScore());
+        
+        UserMessage cleanedMessage = new UserMessage(content, userMessage.getMedia());
+        return AdvisedRequest.from(request).withUserMessage(cleanedMessage).build();
+    }
+    
+    @Override
+    public ChatResponse adviseResponse(ChatResponse response, Map&lt;String, Object&gt; context) {
+        // 응답 후처리
+        String responseContent = response.getResult().getOutput().getContent();
+        
+        // 민감한 정보 마스킹
+        String maskedContent = maskSensitiveInfo(responseContent);
+        
+        // 응답 품질 검증
+        QualityScore quality = assessResponseQuality(maskedContent, context);
+        
+        if (quality.isLowQuality()) {
+            // 저품질 응답 개선
+            maskedContent = improveResponse(maskedContent, context);
+        }
+        
+        return ChatResponse.builder()
+            .from(response)
+            .withContent(maskedContent)
+            .withMetadata("quality_score", quality.getScore())
+            .build();
+    }
+    
+    @Override
+    public int getOrder() {
+        return 100; // 높은 우선순위
+    }
+    
+    private String maskSensitiveInfo(String content) {
+        // 이메일, 전화번호, 주민번호 등 마스킹
+        return content
+            .replaceAll("\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b", "***@***.***")
+            .replaceAll("\\b\\d{3}-\\d{4}-\\d{4}\\b", "***-****-****")
+            .replaceAll("\\b\\d{6}-\\d{7}\\b", "******-*******");
+    }
+    
+    private String improveResponse(String response, Map&lt;String, Object&gt; context) {
+        // AI를 사용한 응답 개선 로직
+        return response + "\n\n(답변이 불충분한 경우 더 자세한 정보를 요청해 주세요.)";
+    }
+}
+
+// 로깅 및 분석 Advisor
+@Component
+public class AnalyticsAdvisor implements RequestResponseAdvisor {
+    
+    private final ChatAnalyticsService analyticsService;
+    
+    @Override
+    public AdvisedRequest adviseRequest(AdvisedRequest request, Map&lt;String, Object&gt; context) {
+        // 요청 로깅 및 분석
+        ChatRequest chatRequest = ChatRequest.builder()
+            .userId(getCurrentUserId())
+            .sessionId(getSessionId(context))
+            .userMessage(request.userMessage().getContent())
+            .timestamp(Instant.now())
+            .build();
+        
+        analyticsService.logRequest(chatRequest);
+        
+        // 컨텍스트에 추적 정보 저장
+        context.put("request_id", chatRequest.getId());
+        context.put("start_time", System.currentTimeMillis());
+        
+        return request;
+    }
+    
+    @Override
+    public ChatResponse adviseResponse(ChatResponse response, Map&lt;String, Object&gt; context) {
+        // 응답 로깅 및 메트릭 수집
+        String requestId = (String) context.get("request_id");
+        long startTime = (Long) context.get("start_time");
+        long responseTime = System.currentTimeMillis() - startTime;
+        
+        ChatResponse chatResponse = ChatResponse.builder()
+            .requestId(requestId)
+            .responseContent(response.getResult().getOutput().getContent())
+            .responseTime(responseTime)
+            .tokenUsage(response.getMetadata().getUsage())
+            .timestamp(Instant.now())
+            .build();
+        
+        analyticsService.logResponse(chatResponse);
+        
+        // 성능 메트릭 기록
+        analyticsService.recordMetrics(
+            responseTime,
+            response.getMetadata().getUsage().getTotalTokens()
+        );
+        
+        return response;
+    }
+    
+    @Override
+    public int getOrder() {
+        return Integer.MAX_VALUE; // 가장 낮은 우선순위 (마지막 실행)
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Advanced Patterns -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">고급 패턴</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">조건부 Advisor 실행</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('conditional-advisor')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="conditional-advisor"><code class="language-java">@Component
+public class ConditionalRAGAdvisor implements RequestResponseAdvisor {
+    
+    private final QuestionAnswerAdvisor qaAdvisor;
+    private final ChatClient intentClassifier;
+    
+    @Override
+    public AdvisedRequest adviseRequest(AdvisedRequest request, Map&lt;String, Object&gt; context) {
+        String userMessage = request.userMessage().getContent();
+        
+        // 의도 분류
+        QueryIntent intent = classifyIntent(userMessage);
+        context.put("query_intent", intent);
+        
+        // RAG가 필요한 경우에만 실행
+        if (intent.requiresKnowledgeBase()) {
+            return qaAdvisor.adviseRequest(request, context);
+        }
+        
+        return request;
+    }
+    
+    @Override
+    public ChatResponse adviseResponse(ChatResponse response, Map&lt;String, Object&gt; context) {
+        QueryIntent intent = (QueryIntent) context.get("query_intent");
+        
+        if (intent.requiresKnowledgeBase()) {
+            return qaAdvisor.adviseResponse(response, context);
+        }
+        
+        return response;
+    }
+    
+    private QueryIntent classifyIntent(String message) {
+        String classification = intentClassifier.prompt()
+            .system("""
+                사용자 메시지를 다음 카테고리로 분류하세요:
+                - KNOWLEDGE_QUERY: 지식베이스 검색이 필요한 질문
+                - GENERAL_CHAT: 일반적인 대화
+                - TASK_REQUEST: 특정 작업 요청
+                
+                JSON 형식으로 응답하세요: {"type": "KNOWLEDGE_QUERY", "confidence": 0.95}
+                """)
+            .user(message)
+            .call()
+            .content();
+        
+        return parseIntentClassification(classification);
+    }
+}
+
+// 멀티 소스 RAG Advisor
+@Component
+public class MultiSourceRAGAdvisor implements RequestResponseAdvisor {
+    
+    private final Map&lt;String, QuestionAnswerAdvisor&gt; sourceAdvisors;
+    private final SourceSelector sourceSelector;
+    
+    public MultiSourceRAGAdvisor(
+            @Qualifier("documentStore") VectorStore documentStore,
+            @Qualifier("codeStore") VectorStore codeStore,
+            @Qualifier("faqStore") VectorStore faqStore) {
+        
+        this.sourceAdvisors = Map.of(
+            "documents", new QuestionAnswerAdvisor(documentStore),
+            "code", new QuestionAnswerAdvisor(codeStore),
+            "faq", new QuestionAnswerAdvisor(faqStore)
+        );
+    }
+    
+    @Override
+    public AdvisedRequest adviseRequest(AdvisedRequest request, Map&lt;String, Object&gt; context) {
+        String userMessage = request.userMessage().getContent();
+        
+        // 최적 소스 선택
+        List&lt;String&gt; selectedSources = sourceSelector.selectSources(userMessage);
+        context.put("selected_sources", selectedSources);
+        
+        // 선택된 소스들에서 검색
+        List&lt;Document&gt; allDocuments = new ArrayList&lt;&gt;();
+        
+        for (String source : selectedSources) {
+            QuestionAnswerAdvisor advisor = sourceAdvisors.get(source);
+            if (advisor != null) {
+                AdvisedRequest sourceRequest = advisor.adviseRequest(request, context);
+                // 각 소스별 결과를 수집
+                List&lt;Document&gt; sourceDocuments = extractDocumentsFromContext(context, source);
+                allDocuments.addAll(sourceDocuments);
+            }
+        }
+        
+        // 통합된 컨텍스트 생성
+        String combinedContext = buildCombinedContext(allDocuments);
+        context.put("combined_context", combinedContext);
+        
+        return request;
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Best Practices -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">🎯 Best Practices</h2>
+                
+                <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-lg font-semibold mb-4">설계 원칙</h3>
+                            <ul class="space-y-2 text-sm">
+                                <li>✅ <strong>단일 책임</strong>: 각 Advisor는 하나의 명확한 목적</li>
+                                <li>✅ <strong>순서 고려</strong>: getOrder()로 실행 순서 제어</li>
+                                <li>✅ <strong>상태 비저장</strong>: Advisor는 stateless하게 설계</li>
+                                <li>✅ <strong>예외 처리</strong>: 실패해도 전체 플로우 중단 방지</li>
+                                <li>✅ <strong>성능 최적화</strong>: 불필요한 연산 최소화</li>
+                            </ul>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-lg font-semibold mb-4">구현 팁</h3>
+                            <ul class="space-y-2 text-sm">
+                                <li>✅ <strong>컨텍스트 활용</strong>: Advisor 간 데이터 공유</li>
+                                <li>✅ <strong>조건부 실행</strong>: 필요시에만 Advisor 동작</li>
+                                <li>✅ <strong>로깅</strong>: 디버깅을 위한 상세 로그</li>
+                                <li>✅ <strong>테스트</strong>: 각 Advisor 단위 테스트</li>
+                                <li>✅ <strong>모니터링</strong>: 성능 및 오류 추적</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 bg-yellow-100 p-4 rounded-lg">
+                        <h4 class="font-semibold mb-2">⚠️ 주의사항</h4>
+                        <ul class="space-y-1 text-sm">
+                            <li>• Advisor 체인이 너무 길면 응답 지연 발생</li>
+                            <li>• 컨텍스트 크기 관리 (메모리 사용량)</li>
+                            <li>• 순환 의존성 방지</li>
+                            <li>• 예외 발생 시 graceful degradation</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Navigation -->
+            <section class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4">관련 가이드</h2>
+                
+                <div class="grid md:grid-cols-3 gap-4">
+                    <a href="rag.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-blue-600 mb-2">RAG 시스템</h3>
+                        <p class="text-sm text-gray-600">RAG 구현 상세 가이드</p>
+                    </a>
+                    
+                    <a href="vectorstore.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-green-600 mb-2">VectorStore</h3>
+                        <p class="text-sm text-gray-600">벡터 데이터베이스 설정</p>
+                    </a>
+                    
+                    <a href="tools.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-purple-600 mb-2">Tool Calling</h3>
+                        <p class="text-sm text-gray-600">함수 호출 기능</p>
+                    </a>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <script>
+        function copyCode(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('코드가 복사되었습니다!');
+            });
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg z-50';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
