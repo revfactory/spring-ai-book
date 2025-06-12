@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring AI 성능 최적화 가이드</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .code-block { background: #2d3748; border-radius: 8px; }
+        .copy-button { transition: all 0.2s ease; }
+        .copy-button:hover { background-color: #4a5568; }
+        .metric-card { transition: all 0.3s ease; }
+        .metric-card:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <a href="../index.html" class="flex items-center text-xl font-bold text-gray-800">
+                        <i class="fab fa-spring text-green-600 mr-2"></i>
+                        Spring AI Hub
+                    </a>
+                    <span class="mx-3 text-gray-400">/</span>
+                    <span class="text-gray-600">성능 최적화 가이드</span>
+                </div>
+                <a href="../index.html" class="text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-home"></i> 홈으로
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-6xl mx-auto">
+            <h1 class="text-4xl font-bold mb-4">⚡ Spring AI 성능 최적화 가이드</h1>
+            <p class="text-gray-600 mb-8">AI 애플리케이션의 성능을 극대화하고 비용을 최적화하는 전략과 기법</p>
+
+            <!-- Table of Contents -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+                <h2 class="text-xl font-semibold mb-4">목차</h2>
+                <ul class="space-y-2 text-blue-600">
+                    <li><a href="#latency-optimization" class="hover:underline">1. 응답 시간 최적화</a></li>
+                    <li><a href="#throughput" class="hover:underline">2. 처리량 향상</a></li>
+                    <li><a href="#caching" class="hover:underline">3. 캐싱 전략</a></li>
+                    <li><a href="#token-optimization" class="hover:underline">4. 토큰 사용 최적화</a></li>
+                    <li><a href="#parallel-processing" class="hover:underline">5. 병렬 처리</a></li>
+                    <li><a href="#vector-optimization" class="hover:underline">6. 벡터 검색 최적화</a></li>
+                    <li><a href="#monitoring-performance" class="hover:underline">7. 성능 모니터링</a></li>
+                    <li><a href="#benchmarking" class="hover:underline">8. 벤치마킹</a></li>
+                </ul>
+            </div>
+
+            <!-- Section 1: Latency Optimization -->
+            <section id="latency-optimization" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">1. 응답 시간 최적화</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">스트리밍 응답</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('streaming-response')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="streaming-response"><code class="language-java">@RestController
+@RequestMapping("/api/chat")
+public class StreamingChatController {
+    
+    private final ChatClient chatClient;
+    
+    @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<String>> streamChat(@RequestBody ChatRequest request) {
+        return chatClient.prompt()
+            .user(request.getMessage())
+            .stream()
+            .content()
+            .map(chunk -> ServerSentEvent.<String>builder()
+                .id(UUID.randomUUID().toString())
+                .event("message")
+                .data(chunk)
+                .build())
+            .doOnComplete(() -> log.info("Streaming completed"))
+            .doOnError(error -> log.error("Streaming error", error));
+    }
+    
+    // 부분 응답 처리
+    @Service
+    public class PartialResponseHandler {
+        
+        private final WebClient webClient;
+        
+        public Mono<String> processWithPartialResponse(String prompt) {
+            return webClient.post()
+                .uri("/chat/completions")
+                .bodyValue(ChatRequest.of(prompt))
+                .retrieve()
+                .bodyToFlux(String.class)
+                .buffer(Duration.ofMillis(100))
+                .map(this::processChunks)
+                .reduce(String::concat);
+        }
+        
+        private String processChunks(List<String> chunks) {
+            // 청크 단위로 처리하여 사용자에게 빠른 피드백 제공
+            String combined = String.join("", chunks);
+            publishPartialResult(combined);
+            return combined;
+        }
+    }
+}</code></pre>
+                    </div>
+
+                    <h3 class="text-lg font-semibold mb-3 mt-6">연결 풀링</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('connection-pooling')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="connection-pooling"><code class="language-java">@Configuration
+public class HttpClientConfig {
+    
+    @Bean
+    public RestClient restClient() {
+        // 연결 풀 설정
+        PoolingHttpClientConnectionManager connectionManager = 
+            new PoolingHttpClientConnectionManager();
+        connectionManager.setMaxTotal(100);
+        connectionManager.setDefaultMaxPerRoute(20);
+        
+        // Keep-alive 전략
+        ConnectionKeepAliveStrategy keepAliveStrategy = (response, context) -> {
+            HeaderElementIterator it = new BasicHeaderElementIterator(
+                response.headerIterator(HTTP.CONN_KEEP_ALIVE));
+            
+            while (it.hasNext()) {
+                HeaderElement he = it.nextElement();
+                String param = he.getName();
+                String value = he.getValue();
+                
+                if (value != null && param.equalsIgnoreCase("timeout")) {
+                    return Long.parseLong(value) * 1000;
+                }
+            }
+            
+            return 30 * 1000; // 기본 30초
+        };
+        
+        CloseableHttpClient httpClient = HttpClients.custom()
+            .setConnectionManager(connectionManager)
+            .setKeepAliveStrategy(keepAliveStrategy)
+            .evictIdleConnections(60, TimeUnit.SECONDS)
+            .build();
+        
+        return RestClient.builder()
+            .requestFactory(new HttpComponentsClientHttpRequestFactory(httpClient))
+            .build();
+    }
+    
+    // WebClient 설정
+    @Bean
+    public WebClient webClient() {
+        ConnectionProvider provider = ConnectionProvider.builder("custom")
+            .maxConnections(100)
+            .maxIdleTime(Duration.ofSeconds(20))
+            .maxLifeTime(Duration.ofMinutes(5))
+            .pendingAcquireTimeout(Duration.ofSeconds(60))
+            .evictInBackground(Duration.ofSeconds(120))
+            .build();
+        
+        HttpClient httpClient = HttpClient.create(provider)
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
+            .doOnConnected(conn -> 
+                conn.addHandlerLast(new ReadTimeoutHandler(60))
+                    .addHandlerLast(new WriteTimeoutHandler(60)));
+        
+        return WebClient.builder()
+            .clientConnector(new ReactorClientHttpConnector(httpClient))
+            .build();
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: Throughput -->
+            <section id="throughput" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">2. 처리량 향상</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">배치 처리</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('batch-processing')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="batch-processing"><code class="language-java">@Service
+public class BatchProcessingService {
+    
+    private final ChatClient chatClient;
+    private final ExecutorService executorService;
+    
+    public BatchProcessingService(ChatClient chatClient) {
+        this.chatClient = chatClient;
+        this.executorService = new ForkJoinPool(
+            Runtime.getRuntime().availableProcessors()
+        );
+    }
+    
+    // 배치 임베딩 생성
+    public List<float[]> generateEmbeddingsBatch(List<String> texts) {
+        // 배치 크기 최적화 (OpenAI는 최대 2048개)
+        int batchSize = Math.min(texts.size(), 100);
+        List<List<String>> batches = Lists.partition(texts, batchSize);
+        
+        return batches.parallelStream()
+            .map(batch -> embeddingModel.embed(batch))
+            .flatMap(List::stream)
+            .collect(Collectors.toList());
+    }
+    
+    // 배치 프롬프트 처리
+    public CompletableFuture<List<ChatResponse>> processBatchAsync(
+            List<ChatRequest> requests) {
+        
+        List<CompletableFuture<ChatResponse>> futures = requests.stream()
+            .map(request -> CompletableFuture.supplyAsync(
+                () -> processWithRetry(request),
+                executorService
+            ))
+            .toList();
+        
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+            .thenApply(v -> futures.stream()
+                .map(CompletableFuture::join)
+                .toList());
+    }
+    
+    // 스마트 배치 큐
+    @Component
+    public class SmartBatchQueue {
+        
+        private final BlockingQueue<BatchItem> queue = new LinkedBlockingQueue<>();
+        private final ScheduledExecutorService scheduler = 
+            Executors.newScheduledThreadPool(2);
+        
+        @PostConstruct
+        public void init() {
+            // 100ms마다 또는 배치 크기 도달시 처리
+            scheduler.scheduleWithFixedDelay(
+                this::processBatch, 0, 100, TimeUnit.MILLISECONDS
+            );
+        }
+        
+        public CompletableFuture<String> submit(String prompt) {
+            CompletableFuture<String> future = new CompletableFuture<>();
+            queue.offer(new BatchItem(prompt, future));
+            return future;
+        }
+        
+        private void processBatch() {
+            List<BatchItem> batch = new ArrayList<>();
+            queue.drainTo(batch, 50); // 최대 50개씩 처리
+            
+            if (!batch.isEmpty()) {
+                try {
+                    List<String> prompts = batch.stream()
+                        .map(BatchItem::getPrompt)
+                        .toList();
+                    
+                    List<String> responses = batchProcess(prompts);
+                    
+                    for (int i = 0; i < batch.size(); i++) {
+                        batch.get(i).getFuture().complete(responses.get(i));
+                    }
+                } catch (Exception e) {
+                    batch.forEach(item -> 
+                        item.getFuture().completeExceptionally(e)
+                    );
+                }
+            }
+        }
+    }
+}</code></pre>
+                    </div>
+
+                    <h3 class="text-lg font-semibold mb-3 mt-6">비동기 처리</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('async-processing')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="async-processing"><code class="language-java">@Service
+public class AsyncAIService {
+    
+    @Async("aiTaskExecutor")
+    public CompletableFuture<AnalysisResult> analyzeDocument(Document document) {
+        // 문서 분석 (긴 작업)
+        String summary = summarizeDocument(document);
+        List<String> keyPoints = extractKeyPoints(document);
+        Map<String, Float> sentiments = analyzeSentiment(document);
+        
+        return CompletableFuture.completedFuture(
+            AnalysisResult.builder()
+                .summary(summary)
+                .keyPoints(keyPoints)
+                .sentiments(sentiments)
+                .build()
+        );
+    }
+    
+    // 파이프라인 처리
+    public Mono<ProcessingResult> processPipeline(String input) {
+        return Mono.fromCallable(() -> preprocessInput(input))
+            .subscribeOn(Schedulers.parallel())
+            .flatMap(processed -> 
+                Mono.zip(
+                    generateEmbedding(processed),
+                    classifyIntent(processed),
+                    extractEntities(processed)
+                )
+            )
+            .map(tuple -> ProcessingResult.builder()
+                .embedding(tuple.getT1())
+                .intent(tuple.getT2())
+                .entities(tuple.getT3())
+                .build())
+            .timeout(Duration.ofSeconds(30))
+            .retry(2);
+    }
+    
+    @Configuration
+    @EnableAsync
+    public class AsyncConfig {
+        
+        @Bean(name = "aiTaskExecutor")
+        public TaskExecutor aiTaskExecutor() {
+            ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+            executor.setCorePoolSize(10);
+            executor.setMaxPoolSize(50);
+            executor.setQueueCapacity(100);
+            executor.setThreadNamePrefix("AI-Task-");
+            executor.setRejectedExecutionHandler(
+                new ThreadPoolExecutor.CallerRunsPolicy()
+            );
+            executor.initialize();
+            return executor;
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: Caching -->
+            <section id="caching" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">3. 캐싱 전략</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">프롬프트 캐싱</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('prompt-caching')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="prompt-caching"><code class="language-java">@Service
+@Slf4j
+public class CachedAIService {
+    
+    private final ChatClient chatClient;
+    private final RedisTemplate<String, String> redisTemplate;
+    private final LoadingCache<String, String> localCache;
+    
+    public CachedAIService(ChatClient chatClient, RedisTemplate<String, String> redisTemplate) {
+        this.chatClient = chatClient;
+        this.redisTemplate = redisTemplate;
+        
+        // 로컬 캐시 (L1)
+        this.localCache = Caffeine.newBuilder()
+            .maximumSize(1000)
+            .expireAfterWrite(5, TimeUnit.MINUTES)
+            .recordStats()
+            .build(this::loadFromRedis);
+    }
+    
+    public String getResponse(String prompt, CacheStrategy strategy) {
+        String cacheKey = generateCacheKey(prompt);
+        
+        return switch (strategy) {
+            case CACHE_FIRST -> getCacheFirst(cacheKey, prompt);
+            case CACHE_ASIDE -> getCacheAside(cacheKey, prompt);
+            case CACHE_THROUGH -> getCacheThrough(cacheKey, prompt);
+        };
+    }
+    
+    private String getCacheFirst(String key, String prompt) {
+        // L1 캐시 확인
+        String cached = localCache.getIfPresent(key);
+        if (cached != null) {
+            log.debug("L1 cache hit: {}", key);
+            return cached;
+        }
+        
+        // L2 캐시 (Redis) 확인
+        cached = redisTemplate.opsForValue().get(key);
+        if (cached != null) {
+            log.debug("L2 cache hit: {}", key);
+            localCache.put(key, cached);
+            return cached;
+        }
+        
+        // 캐시 미스 - AI 호출
+        String response = chatClient.prompt()
+            .user(prompt)
+            .call()
+            .content();
+        
+        // 캐시 저장
+        cacheResponse(key, response);
+        
+        return response;
+    }
+    
+    private void cacheResponse(String key, String response) {
+        // 응답 품질 검증
+        if (isValidResponse(response)) {
+            // L1 캐시
+            localCache.put(key, response);
+            
+            // L2 캐시 (TTL 설정)
+            redisTemplate.opsForValue().set(
+                key, 
+                response, 
+                1, 
+                TimeUnit.HOURS
+            );
+        }
+    }
+    
+    // 시맨틱 캐싱
+    @Component
+    public class SemanticCache {
+        
+        private final VectorStore vectorStore;
+        private final EmbeddingModel embeddingModel;
+        
+        public Optional<String> findSimilar(String prompt, float threshold) {
+            // 프롬프트 임베딩
+            float[] promptEmbedding = embeddingModel.embed(prompt);
+            
+            // 유사한 캐시된 프롬프트 검색
+            List<Document> similar = vectorStore.similaritySearch(
+                SearchRequest.query(prompt)
+                    .withTopK(1)
+                    .withSimilarityThreshold(threshold)
+            );
+            
+            if (!similar.isEmpty()) {
+                Document cached = similar.get(0);
+                float similarity = cached.getMetadata().get("similarity", Float.class);
+                
+                if (similarity > threshold) {
+                    log.info("Semantic cache hit with similarity: {}", similarity);
+                    return Optional.of(cached.getContent());
+                }
+            }
+            
+            return Optional.empty();
+        }
+        
+        public void store(String prompt, String response) {
+            Document doc = new Document(response);
+            doc.getMetadata().put("prompt", prompt);
+            doc.getMetadata().put("timestamp", Instant.now());
+            doc.getMetadata().put("usage_count", 1);
+            
+            vectorStore.add(List.of(doc));
+        }
+    }
+}</code></pre>
+                    </div>
+
+                    <h3 class="text-lg font-semibold mb-3 mt-6">임베딩 캐싱</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('embedding-cache')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="embedding-cache"><code class="language-java">@Service
+public class EmbeddingCacheService {
+    
+    private final EmbeddingModel embeddingModel;
+    private final Map<String, float[]> embeddingCache;
+    private final BloomFilter<String> bloomFilter;
+    
+    public EmbeddingCacheService(EmbeddingModel embeddingModel) {
+        this.embeddingModel = embeddingModel;
+        this.embeddingCache = new ConcurrentHashMap<>();
+        this.bloomFilter = BloomFilter.create(
+            Funnels.stringFunnel(Charsets.UTF_8),
+            100000,
+            0.01
+        );
+    }
+    
+    public float[] getEmbedding(String text) {
+        String normalized = normalizeText(text);
+        
+        // Bloom filter로 빠른 존재 확인
+        if (!bloomFilter.mightContain(normalized)) {
+            return generateAndCache(normalized);
+        }
+        
+        // 캐시 확인
+        return embeddingCache.computeIfAbsent(
+            normalized, 
+            this::generateAndCache
+        );
+    }
+    
+    private float[] generateAndCache(String text) {
+        float[] embedding = embeddingModel.embed(text);
+        bloomFilter.put(text);
+        
+        // 캐시 크기 제한
+        if (embeddingCache.size() > 10000) {
+            evictOldEntries();
+        }
+        
+        return embedding;
+    }
+    
+    // 분산 임베딩 캐시
+    @Component
+    public class DistributedEmbeddingCache {
+        
+        private final HazelcastInstance hazelcast;
+        private final IMap<String, float[]> distributedCache;
+        
+        public DistributedEmbeddingCache() {
+            Config config = new Config();
+            config.getMapConfig("embeddings")
+                .setMaxSizeConfig(new MaxSizeConfig(10000, MaxSizeConfig.MaxSizePolicy.PER_NODE))
+                .setEvictionConfig(new EvictionConfig()
+                    .setEvictionPolicy(EvictionPolicy.LRU)
+                    .setMaxSizePolicy(MaxSizePolicy.ENTRY_COUNT));
+            
+            this.hazelcast = Hazelcast.newHazelcastInstance(config);
+            this.distributedCache = hazelcast.getMap("embeddings");
+        }
+        
+        public float[] get(String key) {
+            return distributedCache.get(key);
+        }
+        
+        public void put(String key, float[] embedding) {
+            distributedCache.put(key, embedding, 1, TimeUnit.HOURS);
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 4: Token Optimization -->
+            <section id="token-optimization" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">4. 토큰 사용 최적화</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">프롬프트 압축</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('prompt-compression')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="prompt-compression"><code class="language-java">@Service
+public class PromptOptimizer {
+    
+    private final TokenCounter tokenCounter;
+    
+    // 프롬프트 압축
+    public String compressPrompt(String prompt, int maxTokens) {
+        int currentTokens = tokenCounter.count(prompt);
+        
+        if (currentTokens <= maxTokens) {
+            return prompt;
+        }
+        
+        // 압축 전략 적용
+        String compressed = prompt;
+        
+        // 1. 중복 제거
+        compressed = removeDuplicates(compressed);
+        
+        // 2. 불필요한 공백 제거
+        compressed = removeExtraWhitespace(compressed);
+        
+        // 3. 약어 사용
+        compressed = applyAbbreviations(compressed);
+        
+        // 4. 문장 요약 (여전히 길면)
+        if (tokenCounter.count(compressed) > maxTokens) {
+            compressed = summarizeSentences(compressed, maxTokens);
+        }
+        
+        return compressed;
+    }
+    
+    // 컨텍스트 윈도우 관리
+    @Component
+    public class ContextWindowManager {
+        
+        private final int maxContextTokens = 4000;
+        private final Deque<ContextEntry> contextWindow = new LinkedList<>();
+        
+        public String buildContext(String newMessage) {
+            // 새 메시지 토큰 계산
+            int newTokens = tokenCounter.count(newMessage);
+            
+            // 기존 컨텍스트 정리
+            int currentTokens = contextWindow.stream()
+                .mapToInt(ContextEntry::getTokenCount)
+                .sum();
+            
+            // 공간 확보
+            while (currentTokens + newTokens > maxContextTokens && !contextWindow.isEmpty()) {
+                ContextEntry removed = contextWindow.removeFirst();
+                currentTokens -= removed.getTokenCount();
+            }
+            
+            // 새 메시지 추가
+            contextWindow.addLast(new ContextEntry(newMessage, newTokens));
+            
+            // 컨텍스트 구성
+            return contextWindow.stream()
+                .map(ContextEntry::getContent)
+                .collect(Collectors.joining("\n"));
+        }
+        
+        // 중요도 기반 압축
+        public String compressWithImportance(List<String> messages) {
+            List<ScoredMessage> scored = messages.stream()
+                .map(msg -> new ScoredMessage(msg, calculateImportance(msg)))
+                .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()))
+                .toList();
+            
+            StringBuilder compressed = new StringBuilder();
+            int totalTokens = 0;
+            
+            for (ScoredMessage msg : scored) {
+                int tokens = tokenCounter.count(msg.getMessage());
+                if (totalTokens + tokens <= maxContextTokens) {
+                    compressed.append(msg.getMessage()).append("\n");
+                    totalTokens += tokens;
+                }
+            }
+            
+            return compressed.toString();
+        }
+    }
+    
+    // 동적 프롬프트 생성
+    public String generateOptimalPrompt(PromptTemplate template, Map<String, Object> variables) {
+        // 기본 프롬프트 생성
+        String basePrompt = template.format(variables);
+        
+        // 토큰 수 확인
+        int tokens = tokenCounter.count(basePrompt);
+        
+        // 모델별 최적 토큰 수
+        int optimalTokens = getOptimalTokensForModel(template.getModel());
+        
+        if (tokens > optimalTokens) {
+            // 긴 변수 요약
+            variables = summarizeVariables(variables, optimalTokens - template.getBaseTokens());
+            basePrompt = template.format(variables);
+        }
+        
+        return basePrompt;
+    }
+}</code></pre>
+                    </div>
+
+                    <div class="bg-yellow-50 p-4 rounded-lg">
+                        <h4 class="font-semibold mb-2">토큰 최적화 팁</h4>
+                        <ul class="space-y-1 text-sm">
+                            <li>• 반복적인 컨텍스트 제거</li>
+                            <li>• 예시는 최소한으로</li>
+                            <li>• 명확하고 간결한 지시문</li>
+                            <li>• 결과 형식 명시로 불필요한 설명 방지</li>
+                            <li>• 시스템 프롬프트 재사용</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 5: Parallel Processing -->
+            <section id="parallel-processing" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">5. 병렬 처리</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">병렬 API 호출</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('parallel-calls')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="parallel-calls"><code class="language-java">@Service
+public class ParallelAIService {
+    
+    private final ChatClient chatClient;
+    private final ExecutorService executorService;
+    
+    public ParallelAIService(ChatClient chatClient) {
+        this.chatClient = chatClient;
+        this.executorService = new ThreadPoolExecutor(
+            10, 50,
+            60L, TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(100),
+            new ThreadFactoryBuilder()
+                .setNameFormat("ai-parallel-%d")
+                .build(),
+            new ThreadPoolExecutor.CallerRunsPolicy()
+        );
+    }
+    
+    // 병렬 멀티 모델 호출
+    public MultiModelResult queryMultipleModels(String prompt) {
+        List<ModelConfig> models = List.of(
+            new ModelConfig("gpt-4o", 0.7f),
+            new ModelConfig("gpt-4o-mini", 0.5f),
+            new ModelConfig("claude-3-5-sonnet", 0.6f)
+        );
+        
+        Map<String, CompletableFuture<String>> futures = models.stream()
+            .collect(Collectors.toMap(
+                ModelConfig::getName,
+                model -> CompletableFuture.supplyAsync(
+                    () -> queryModel(prompt, model),
+                    executorService
+                )
+            ));
+        
+        // 모든 결과 수집
+        CompletableFuture<Void> allFutures = CompletableFuture.allOf(
+            futures.values().toArray(new CompletableFuture[0])
+        );
+        
+        // 타임아웃 설정
+        try {
+            allFutures.get(30, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            log.warn("Some model queries timed out");
+        }
+        
+        Map<String, String> results = futures.entrySet().stream()
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                entry -> {
+                    try {
+                        return entry.getValue().getNow("Error: Timeout");
+                    } catch (Exception e) {
+                        return "Error: " + e.getMessage();
+                    }
+                }
+            ));
+        
+        return new MultiModelResult(results);
+    }
+    
+    // 병렬 문서 처리
+    public List<ProcessedDocument> processDocumentsBatch(List<Document> documents) {
+        // 문서를 청크로 분할
+        int chunkSize = Math.max(1, documents.size() / Runtime.getRuntime().availableProcessors());
+        List<List<Document>> chunks = Lists.partition(documents, chunkSize);
+        
+        // 병렬 스트림으로 처리
+        return chunks.parallelStream()
+            .flatMap(chunk -> processChunk(chunk).stream())
+            .collect(Collectors.toList());
+    }
+    
+    // Fork/Join 프레임워크 활용
+    @Component
+    public class DocumentAnalysisTask extends RecursiveTask<AnalysisResult> {
+        
+        private static final int THRESHOLD = 10;
+        private final List<Document> documents;
+        
+        @Override
+        protected AnalysisResult compute() {
+            if (documents.size() <= THRESHOLD) {
+                // 직접 처리
+                return analyzeDocuments(documents);
+            }
+            
+            // 분할 정복
+            int mid = documents.size() / 2;
+            DocumentAnalysisTask leftTask = new DocumentAnalysisTask(
+                documents.subList(0, mid)
+            );
+            DocumentAnalysisTask rightTask = new DocumentAnalysisTask(
+                documents.subList(mid, documents.size())
+            );
+            
+            leftTask.fork();
+            AnalysisResult rightResult = rightTask.compute();
+            AnalysisResult leftResult = leftTask.join();
+            
+            return mergeResults(leftResult, rightResult);
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 6: Vector Optimization -->
+            <section id="vector-optimization" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">6. 벡터 검색 최적화</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">인덱스 최적화</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('vector-optimization')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="vector-optimization"><code class="language-java">@Service
+public class OptimizedVectorSearch {
+    
+    private final VectorStore vectorStore;
+    private final JdbcTemplate jdbcTemplate;
+    
+    // HNSW 인덱스 최적화
+    public void optimizeHNSWIndex() {
+        // 인덱스 파라미터 조정
+        jdbcTemplate.execute("""
+            ALTER INDEX vector_idx SET (
+                m = 32,                -- 더 많은 연결 (정확도 향상)
+                ef_construction = 128  -- 구축시 더 많은 탐색
+            );
+        """);
+        
+        // 검색 파라미터 동적 조정
+        int dataSize = getVectorCount();
+        int optimalEf = calculateOptimalEf(dataSize);
+        
+        jdbcTemplate.execute(
+            "SET hnsw.ef_search = " + optimalEf
+        );
+    }
+    
+    // 계층적 검색
+    public List<Document> hierarchicalSearch(String query, int topK) {
+        // 1단계: 빠른 사전 필터링 (IVF)
+        List<String> candidateIds = roughFilter(query, topK * 10);
+        
+        // 2단계: 정밀 검색 (HNSW)
+        return preciseSearch(query, candidateIds, topK);
+    }
+    
+    // 하이브리드 검색 최적화
+    @Component
+    public class HybridSearchOptimizer {
+        
+        private final LoadingCache<String, SearchPlan> searchPlanCache;
+        
+        public HybridSearchOptimizer() {
+            this.searchPlanCache = Caffeine.newBuilder()
+                .maximumSize(100)
+                .expireAfterWrite(1, TimeUnit.HOURS)
+                .build(this::createSearchPlan);
+        }
+        
+        public List<Document> optimizedHybridSearch(
+                String query, 
+                SearchContext context) {
+            
+            // 쿼리 유형에 따른 최적 계획 선택
+            SearchPlan plan = searchPlanCache.get(context.getQueryType());
+            
+            // 병렬 실행
+            CompletableFuture<List<Document>> vectorFuture = 
+                CompletableFuture.supplyAsync(() -> 
+                    vectorSearch(query, plan.getVectorWeight())
+                );
+            
+            CompletableFuture<List<Document>> keywordFuture = 
+                CompletableFuture.supplyAsync(() -> 
+                    keywordSearch(query, plan.getKeywordWeight())
+                );
+            
+            // 결과 병합
+            return CompletableFuture.allOf(vectorFuture, keywordFuture)
+                .thenApply(v -> mergeResults(
+                    vectorFuture.join(),
+                    keywordFuture.join(),
+                    plan
+                ))
+                .join();
+        }
+    }
+    
+    // 벡터 양자화
+    public class QuantizedVectorStore {
+        
+        public void storeWithQuantization(String id, float[] vector) {
+            // Product Quantization
+            byte[] quantized = quantizeVector(vector);
+            
+            // 원본과 양자화 버전 모두 저장
+            storeOriginal(id, vector);
+            storeQuantized(id, quantized);
+        }
+        
+        public List<String> searchWithQuantization(float[] query, int topK) {
+            // 1단계: 양자화된 벡터로 빠른 검색
+            byte[] quantizedQuery = quantizeVector(query);
+            List<String> candidates = searchQuantized(quantizedQuery, topK * 5);
+            
+            // 2단계: 원본 벡터로 재순위화
+            return rerankWithOriginal(query, candidates, topK);
+        }
+        
+        private byte[] quantizeVector(float[] vector) {
+            // 간단한 스칼라 양자화 예시
+            byte[] quantized = new byte[vector.length];
+            for (int i = 0; i < vector.length; i++) {
+                quantized[i] = (byte) (vector[i] * 127);
+            }
+            return quantized;
+        }
+    }
+}</code></pre>
+                    </div>
+
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h4 class="font-semibold mb-2">벡터 검색 최적화 전략</h4>
+                        <ul class="space-y-1 text-sm">
+                            <li>• 적절한 인덱스 타입 선택 (HNSW vs IVF)</li>
+                            <li>• ef_search 파라미터 튜닝</li>
+                            <li>• 벡터 차원 축소 고려</li>
+                            <li>• 필터링 조건 최적화</li>
+                            <li>• 캐싱 적극 활용</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 7: Monitoring Performance -->
+            <section id="monitoring-performance" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">7. 성능 모니터링</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">실시간 성능 추적</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('performance-monitoring')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="performance-monitoring"><code class="language-java">@Component
+@Slf4j
+public class PerformanceMonitor {
+    
+    private final MeterRegistry meterRegistry;
+    private final Map<String, PerformanceStats> operationStats = new ConcurrentHashMap<>();
+    
+    @EventListener
+    public void handlePerformanceEvent(AIOperationEvent event) {
+        String operation = event.getOperationType();
+        
+        // 응답 시간 기록
+        meterRegistry.timer("ai.operation.duration",
+            "operation", operation,
+            "model", event.getModel()
+        ).record(event.getDuration());
+        
+        // 토큰 사용량
+        if (event.getTokensUsed() > 0) {
+            meterRegistry.counter("ai.tokens.used",
+                "operation", operation,
+                "model", event.getModel()
+            ).increment(event.getTokensUsed());
+        }
+        
+        // 성능 통계 업데이트
+        updateStats(operation, event);
+        
+        // 성능 이상 감지
+        detectPerformanceAnomaly(operation, event);
+    }
+    
+    private void detectPerformanceAnomaly(String operation, AIOperationEvent event) {
+        PerformanceStats stats = operationStats.get(operation);
+        
+        if (stats != null) {
+            double avgDuration = stats.getAverageDuration();
+            double currentDuration = event.getDuration().toMillis();
+            
+            // 평균의 3배 이상이면 경고
+            if (currentDuration > avgDuration * 3) {
+                log.warn("Performance anomaly detected for {}: {}ms (avg: {}ms)",
+                    operation, currentDuration, avgDuration);
+                
+                alertManager.sendAlert(PerformanceAlert.builder()
+                    .operation(operation)
+                    .duration(currentDuration)
+                    .threshold(avgDuration * 3)
+                    .build());
+            }
+        }
+    }
+    
+    // 성능 리포트 생성
+    @Scheduled(cron = "0 0 * * * *") // 매시간
+    public void generatePerformanceReport() {
+        PerformanceReport report = PerformanceReport.builder()
+            .timestamp(Instant.now())
+            .operationMetrics(collectOperationMetrics())
+            .modelComparison(compareModelPerformance())
+            .bottlenecks(identifyBottlenecks())
+            .recommendations(generateRecommendations())
+            .build();
+        
+        performanceReportService.save(report);
+        
+        if (report.hasSignificantIssues()) {
+            notificationService.sendPerformanceReport(report);
+        }
+    }
+    
+    // 실시간 대시보드 데이터
+    @RestController
+    @RequestMapping("/api/performance")
+    public class PerformanceDashboardController {
+        
+        @GetMapping(value = "/metrics/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+        public Flux<ServerSentEvent<PerformanceMetrics>> streamMetrics() {
+            return Flux.interval(Duration.ofSeconds(1))
+                .map(tick -> {
+                    PerformanceMetrics metrics = PerformanceMetrics.builder()
+                        .avgResponseTime(getAverageResponseTime())
+                        .throughput(getCurrentThroughput())
+                        .errorRate(getErrorRate())
+                        .activeRequests(getActiveRequests())
+                        .queueSize(getQueueSize())
+                        .cacheHitRate(getCacheHitRate())
+                        .build();
+                    
+                    return ServerSentEvent.<PerformanceMetrics>builder()
+                        .id(String.valueOf(tick))
+                        .event("metrics")
+                        .data(metrics)
+                        .build();
+                });
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 8: Benchmarking -->
+            <section id="benchmarking" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">8. 벤치마킹</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">성능 벤치마크</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('benchmarking')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="benchmarking"><code class="language-java">@Component
+public class AIPerformanceBenchmark {
+    
+    private final List<BenchmarkScenario> scenarios = List.of(
+        new SimpleChatScenario(),
+        new RAGScenario(),
+        new ToolCallingScenario(),
+        new StreamingScenario()
+    );
+    
+    public BenchmarkReport runCompleteBenchmark() {
+        Map<String, ScenarioResult> results = new HashMap<>();
+        
+        for (BenchmarkScenario scenario : scenarios) {
+            log.info("Running benchmark: {}", scenario.getName());
+            ScenarioResult result = runScenario(scenario);
+            results.put(scenario.getName(), result);
+        }
+        
+        return BenchmarkReport.builder()
+            .timestamp(Instant.now())
+            .results(results)
+            .summary(generateSummary(results))
+            .build();
+    }
+    
+    private ScenarioResult runScenario(BenchmarkScenario scenario) {
+        // 워밍업
+        warmup(scenario, 10);
+        
+        // 실제 벤치마크
+        List<Long> latencies = new ArrayList<>();
+        List<Integer> tokenCounts = new ArrayList<>();
+        int errors = 0;
+        
+        for (int i = 0; i < scenario.getIterations(); i++) {
+            try {
+                long start = System.nanoTime();
+                BenchmarkResult result = scenario.execute();
+                long duration = System.nanoTime() - start;
+                
+                latencies.add(duration / 1_000_000); // ms
+                tokenCounts.add(result.getTokensUsed());
+                
+            } catch (Exception e) {
+                errors++;
+                log.error("Benchmark iteration failed", e);
+            }
+        }
+        
+        return ScenarioResult.builder()
+            .scenarioName(scenario.getName())
+            .iterations(scenario.getIterations())
+            .errors(errors)
+            .latencyStats(calculateStats(latencies))
+            .tokenStats(calculateTokenStats(tokenCounts))
+            .throughput(calculateThroughput(latencies))
+            .build();
+    }
+    
+    // JMH 벤치마크
+    @State(Scope.Benchmark)
+    public class ChatClientBenchmark {
+        
+        private ChatClient chatClient;
+        private List<String> testPrompts;
+        
+        @Setup
+        public void setup() {
+            this.chatClient = createOptimizedChatClient();
+            this.testPrompts = loadTestPrompts();
+        }
+        
+        @Benchmark
+        @BenchmarkMode(Mode.AverageTime)
+        @OutputTimeUnit(TimeUnit.MILLISECONDS)
+        public String benchmarkSimpleChat() {
+            return chatClient.prompt()
+                .user(getRandomPrompt())
+                .call()
+                .content();
+        }
+        
+        @Benchmark
+        @BenchmarkMode(Mode.Throughput)
+        @OutputTimeUnit(TimeUnit.SECONDS)
+        public List<String> benchmarkBatchProcessing() {
+            return testPrompts.parallelStream()
+                .map(prompt -> chatClient.prompt()
+                    .user(prompt)
+                    .call()
+                    .content())
+                .collect(Collectors.toList());
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Best Practices -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">🎯 성능 최적화 Best Practices</h2>
+                
+                <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="font-semibold mb-3">응답 시간 단축</h3>
+                            <ul class="space-y-1 text-sm">
+                                <li>✅ 스트리밍 응답 활용</li>
+                                <li>✅ 적절한 모델 선택</li>
+                                <li>✅ 프롬프트 최적화</li>
+                                <li>✅ 병렬 처리 구현</li>
+                                <li>✅ 캐싱 전략 수립</li>
+                            </ul>
+                        </div>
+                        
+                        <div>
+                            <h3 class="font-semibold mb-3">비용 최적화</h3>
+                            <ul class="space-y-1 text-sm">
+                                <li>✅ 토큰 사용량 모니터링</li>
+                                <li>✅ 배치 처리로 API 호출 감소</li>
+                                <li>✅ 캐싱으로 중복 호출 방지</li>
+                                <li>✅ 모델별 비용/성능 분석</li>
+                                <li>✅ 프롬프트 압축 기법</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6">
+                        <h3 class="font-semibold mb-3">성능 모니터링 체크리스트</h3>
+                        <div class="bg-white p-4 rounded-lg">
+                            <ul class="space-y-1 text-sm">
+                                <li>□ 응답 시간 분포 (P50, P95, P99) 추적</li>
+                                <li>□ 토큰 사용량 및 비용 모니터링</li>
+                                <li>□ 캐시 히트율 측정</li>
+                                <li>□ 에러율 및 재시도 횟수 추적</li>
+                                <li>□ 동시 요청 수 및 큐 크기 모니터링</li>
+                                <li>□ 정기적인 성능 벤치마크 실행</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Next Steps -->
+            <section class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4">다음 단계</h2>
+                
+                <div class="grid md:grid-cols-3 gap-4">
+                    <a href="monitoring.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-blue-600 mb-2">모니터링</h3>
+                        <p class="text-sm text-gray-600">성능 메트릭 추적 및 분석</p>
+                    </a>
+                    
+                    <a href="troubleshooting.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-green-600 mb-2">문제 해결</h3>
+                        <p class="text-sm text-gray-600">성능 문제 진단 및 해결</p>
+                    </a>
+                    
+                    <a href="patterns.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-purple-600 mb-2">최적화 패턴</h3>
+                        <p class="text-sm text-gray-600">검증된 성능 최적화 패턴</p>
+                    </a>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <script>
+        function copyCode(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('코드가 복사되었습니다!');
+            });
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg z-50';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

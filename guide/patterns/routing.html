@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Routing 패턴 - Spring AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .code-block { background: #2d3748; border-radius: 8px; }
+        .copy-button { transition: all 0.2s ease; }
+        .copy-button:hover { background-color: #4a5568; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <a href="../../index.html" class="flex items-center text-xl font-bold text-gray-800">
+                        <i class="fab fa-spring text-green-600 mr-2"></i>
+                        Spring AI Hub
+                    </a>
+                    <span class="mx-3 text-gray-400">/</span>
+                    <a href="../patterns.html" class="text-gray-600 hover:text-gray-800">패턴 가이드</a>
+                    <span class="mx-3 text-gray-400">/</span>
+                    <span class="text-gray-600">Smart Routing</span>
+                </div>
+                <a href="../../index.html" class="text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-home"></i> 홈으로
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-4xl font-bold mb-4">🚦 Smart Routing 패턴</h1>
+            <p class="text-gray-600 mb-8">요청 내용에 따라 최적의 AI 모델이나 에이전트로 라우팅하는 지능형 패턴</p>
+
+            <!-- Overview -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">개요</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <p class="mb-4">
+                        Smart Routing 패턴은 입력 요청의 특성을 분석하여 가장 적합한 처리 경로로 자동 라우팅하는 패턴입니다. 
+                        각 모델이나 에이전트의 강점을 활용하여 최적의 결과를 얻을 수 있습니다.
+                    </p>
+                    
+                    <div class="bg-purple-50 p-4 rounded-lg mb-4">
+                        <h3 class="font-semibold mb-2">주요 특징:</h3>
+                        <ul class="space-y-1">
+                            <li>✅ 요청 유형별 최적 모델 자동 선택</li>
+                            <li>✅ 비용 및 성능 최적화</li>
+                            <li>✅ 동적 라우팅 규칙 업데이트</li>
+                            <li>✅ 폴백 메커니즘으로 안정성 보장</li>
+                            <li>✅ A/B 테스트 및 성능 추적</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-gray-100 p-4 rounded-lg">
+                        <h3 class="font-semibold mb-2">라우팅 플로우:</h3>
+                        <pre class="text-sm font-mono">
+     요청 입력
+         │
+    ┌────▼────┐
+    │ 분류기  │ ← 요청 유형 분석
+    └────┬────┘
+         │
+    ┌────▼────┐
+    │ 라우터  │ ← 최적 경로 결정
+    └────┬────┘
+         │
+    ┌────┴────┬────────┬────────┐
+    ▼         ▼        ▼        ▼
+┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐
+│ Model A│ │ Model B│ │ Agent C│ │ Agent D│
+│ (빠름) │ │ (정확) │ │ (전문) │ │ (창의) │
+└────────┘ └────────┘ └────────┘ └────────┘
+    │         │        │        │
+    └────┬────┴────────┴────────┘
+         ▼
+    결과 반환
+                        </pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Basic Implementation -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">기본 구현</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">스마트 라우터 구현</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('smart-router')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="smart-router"><code class="language-java">@Service
+@Slf4j
+public class SmartRouter {
+    
+    private final RequestClassifier classifier;
+    private final Map<RequestType, ModelHandler> handlers;
+    private final RoutingMetrics metrics;
+    
+    public SmartRouter() {
+        this.handlers = initializeHandlers();
+        this.classifier = new MLRequestClassifier();
+        this.metrics = new RoutingMetrics();
+    }
+    
+    public RouterResponse route(RouterRequest request) {
+        // 1. 요청 분류
+        RequestClassification classification = classifier.classify(request);
+        log.info("Request classified as: {} with confidence: {}", 
+            classification.getType(), classification.getConfidence());
+        
+        // 2. 최적 핸들러 선택
+        ModelHandler handler = selectHandler(classification);
+        
+        // 3. 메트릭 기록
+        metrics.recordRouting(classification, handler.getName());
+        
+        // 4. 요청 처리
+        try {
+            return handler.handle(request);
+        } catch (Exception e) {
+            // 5. 폴백 처리
+            return handleWithFallback(request, classification, e);
+        }
+    }
+    
+    private ModelHandler selectHandler(RequestClassification classification) {
+        RequestType type = classification.getType();
+        
+        // 신뢰도가 낮으면 범용 모델 사용
+        if (classification.getConfidence() < 0.7) {
+            return handlers.get(RequestType.GENERAL);
+        }
+        
+        // 유형별 최적 핸들러 반환
+        return handlers.getOrDefault(type, handlers.get(RequestType.GENERAL));
+    }
+    
+    private Map<RequestType, ModelHandler> initializeHandlers() {
+        return Map.of(
+            RequestType.SIMPLE_QUERY, new FastModelHandler(),      // GPT-4o-mini
+            RequestType.COMPLEX_ANALYSIS, new PowerfulModelHandler(), // GPT-4o
+            RequestType.CREATIVE_TASK, new CreativeModelHandler(),   // Claude
+            RequestType.CODE_GENERATION, new CodeModelHandler(),     // CodeLlama
+            RequestType.TRANSLATION, new TranslationModelHandler(),  // 전문 번역 모델
+            RequestType.GENERAL, new GeneralModelHandler()          // 범용 모델
+        );
+    }
+}
+
+// 요청 분류기
+@Component
+public class MLRequestClassifier implements RequestClassifier {
+    
+    private final ChatClient classifierClient;
+    private final FeatureExtractor featureExtractor;
+    
+    @Override
+    public RequestClassification classify(RouterRequest request) {
+        // 특징 추출
+        RequestFeatures features = featureExtractor.extract(request);
+        
+        // 규칙 기반 빠른 분류
+        RequestType quickType = quickClassify(features);
+        if (quickType != null) {
+            return new RequestClassification(quickType, 0.95);
+        }
+        
+        // AI 기반 정밀 분류
+        String classification = classifierClient.prompt()
+            .system("""
+                요청을 다음 카테고리 중 하나로 분류하세요:
+                - SIMPLE_QUERY: 간단한 질문이나 정보 요청
+                - COMPLEX_ANALYSIS: 복잡한 분석이나 추론 필요
+                - CREATIVE_TASK: 창작이나 아이디어 생성
+                - CODE_GENERATION: 코드 작성이나 프로그래밍
+                - TRANSLATION: 번역 작업
+                - GENERAL: 기타 일반적인 작업
+                
+                응답 형식: {type: "...", confidence: 0.XX}
+                """)
+            .user(request.getContent())
+            .call()
+            .content();
+        
+        return parseClassification(classification);
+    }
+    
+    private RequestType quickClassify(RequestFeatures features) {
+        // 명확한 패턴 빠른 분류
+        if (features.containsCodeKeywords()) {
+            return RequestType.CODE_GENERATION;
+        }
+        if (features.isTranslationRequest()) {
+            return RequestType.TRANSLATION;
+        }
+        if (features.getWordCount() < 20 && features.isQuestion()) {
+            return RequestType.SIMPLE_QUERY;
+        }
+        return null;
+    }
+}</code></pre>
+                    </div>
+                </div>
+
+                <!-- Dynamic Routing Rules -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">동적 라우팅 규칙</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('dynamic-routing')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="dynamic-routing"><code class="language-java">@Service
+public class DynamicRoutingEngine {
+    
+    private final RoutingRuleRepository ruleRepository;
+    private final PerformanceAnalyzer performanceAnalyzer;
+    private final LoadingCache<String, CompiledRule> ruleCache;
+    
+    public DynamicRoutingEngine() {
+        this.ruleCache = Caffeine.newBuilder()
+            .maximumSize(100)
+            .expireAfterWrite(5, TimeUnit.MINUTES)
+            .build(this::compileRule);
+    }
+    
+    public RoutingDecision makeDecision(RouterRequest request) {
+        // 활성 규칙 로드
+        List<RoutingRule> activeRules = ruleRepository.findActiveRules();
+        
+        // 규칙 평가
+        for (RoutingRule rule : activeRules) {
+            if (evaluateRule(rule, request)) {
+                return RoutingDecision.builder()
+                    .targetHandler(rule.getTargetHandler())
+                    .rule(rule)
+                    .confidence(rule.getConfidence())
+                    .reason(rule.getDescription())
+                    .build();
+            }
+        }
+        
+        // 기본 라우팅
+        return defaultRouting(request);
+    }
+    
+    private boolean evaluateRule(RoutingRule rule, RouterRequest request) {
+        try {
+            CompiledRule compiled = ruleCache.get(rule.getId());
+            return compiled.evaluate(request);
+        } catch (Exception e) {
+            log.error("Rule evaluation failed: {}", rule.getId(), e);
+            return false;
+        }
+    }
+    
+    // 성능 기반 규칙 자동 조정
+    @Scheduled(fixedDelay = 300000) // 5분마다
+    public void optimizeRules() {
+        Map<String, PerformanceStats> stats = performanceAnalyzer.getStats();
+        
+        for (RoutingRule rule : ruleRepository.findAll()) {
+            PerformanceStats perf = stats.get(rule.getId());
+            
+            if (perf != null) {
+                // 성능이 좋은 규칙은 신뢰도 증가
+                if (perf.getSuccessRate() > 0.9 && perf.getAvgLatency() < 1000) {
+                    rule.setConfidence(Math.min(1.0, rule.getConfidence() + 0.05));
+                }
+                // 성능이 나쁜 규칙은 신뢰도 감소
+                else if (perf.getSuccessRate() < 0.7 || perf.getAvgLatency() > 5000) {
+                    rule.setConfidence(Math.max(0.1, rule.getConfidence() - 0.1));
+                }
+                
+                ruleRepository.save(rule);
+            }
+        }
+    }
+}
+
+// 조건부 라우팅
+@Component
+public class ConditionalRouter {
+    
+    public RouterResponse routeWithConditions(RouterRequest request) {
+        // 비즈니스 조건 확인
+        if (isVIPCustomer(request.getUserId())) {
+            return routeToPremiumModel(request);
+        }
+        
+        // 시간대별 라우팅
+        if (isPeakHour()) {
+            return routeToFastModel(request);
+        }
+        
+        // 비용 기반 라우팅
+        if (request.getBudget() < 0.01) {
+            return routeToEconomicModel(request);
+        }
+        
+        // 콘텐츠 기반 라우팅
+        ContentAnalysis analysis = analyzeContent(request);
+        
+        if (analysis.requiresExpertise()) {
+            return routeToExpertModel(request, analysis.getDomain());
+        }
+        
+        if (analysis.isMultilingual()) {
+            return routeToMultilingualModel(request);
+        }
+        
+        // 기본 라우팅
+        return routeToDefaultModel(request);
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Advanced Patterns -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">고급 패턴</h2>
+                
+                <!-- Load Balancing -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">로드 밸런싱 라우팅</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('load-balancing')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="load-balancing"><code class="language-java">@Service
+public class LoadBalancingRouter {
+    
+    private final Map<String, ModelEndpoint> endpoints;
+    private final LoadBalancer loadBalancer;
+    private final HealthChecker healthChecker;
+    
+    public LoadBalancingRouter() {
+        this.endpoints = initializeEndpoints();
+        this.loadBalancer = new WeightedRoundRobinBalancer();
+        this.healthChecker = new HealthChecker();
+    }
+    
+    public RouterResponse routeWithLoadBalancing(RouterRequest request) {
+        RequestType type = classifyRequest(request);
+        List<ModelEndpoint> availableEndpoints = getHealthyEndpoints(type);
+        
+        if (availableEndpoints.isEmpty()) {
+            throw new NoAvailableEndpointException(
+                "No healthy endpoints for type: " + type
+            );
+        }
+        
+        // 로드 밸런싱 알고리즘으로 엔드포인트 선택
+        ModelEndpoint selected = loadBalancer.select(
+            availableEndpoints, 
+            request
+        );
+        
+        // 요청 처리
+        return processWithEndpoint(request, selected);
+    }
+    
+    private List<ModelEndpoint> getHealthyEndpoints(RequestType type) {
+        return endpoints.values().stream()
+            .filter(ep -> ep.supportsType(type))
+            .filter(healthChecker::isHealthy)
+            .sorted(Comparator.comparing(ModelEndpoint::getCurrentLoad))
+            .toList();
+    }
+    
+    // 가중치 기반 라운드 로빈
+    public static class WeightedRoundRobinBalancer implements LoadBalancer {
+        
+        private final Map<String, AtomicInteger> counters = new ConcurrentHashMap<>();
+        
+        @Override
+        public ModelEndpoint select(List<ModelEndpoint> endpoints, RouterRequest request) {
+            // 가중치 계산
+            Map<ModelEndpoint, Double> weights = calculateWeights(endpoints, request);
+            
+            // 가중치 기반 선택
+            double totalWeight = weights.values().stream()
+                .mapToDouble(Double::doubleValue)
+                .sum();
+            
+            double random = Math.random() * totalWeight;
+            double cumulative = 0;
+            
+            for (Map.Entry<ModelEndpoint, Double> entry : weights.entrySet()) {
+                cumulative += entry.getValue();
+                if (random <= cumulative) {
+                    return entry.getKey();
+                }
+            }
+            
+            return endpoints.get(0); // 폴백
+        }
+        
+        private Map<ModelEndpoint, Double> calculateWeights(
+                List<ModelEndpoint> endpoints, 
+                RouterRequest request) {
+            
+            Map<ModelEndpoint, Double> weights = new HashMap<>();
+            
+            for (ModelEndpoint endpoint : endpoints) {
+                double weight = 1.0;
+                
+                // 성능 가중치
+                weight *= (1.0 / (endpoint.getAvgLatency() / 1000.0 + 1));
+                
+                // 부하 가중치
+                weight *= (1.0 - endpoint.getCurrentLoad() / 100.0);
+                
+                // 비용 가중치
+                if (request.isCostSensitive()) {
+                    weight *= (1.0 / (endpoint.getCostPerRequest() + 1));
+                }
+                
+                // 성공률 가중치
+                weight *= endpoint.getSuccessRate();
+                
+                weights.put(endpoint, weight);
+            }
+            
+            return weights;
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+
+                <!-- A/B Testing Router -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">A/B 테스트 라우터</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('ab-testing')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="ab-testing"><code class="language-java">@Service
+public class ABTestingRouter {
+    
+    private final ExperimentService experimentService;
+    private final MetricsCollector metricsCollector;
+    
+    public RouterResponse routeWithABTest(RouterRequest request) {
+        // 활성 실험 확인
+        List<Experiment> activeExperiments = experimentService
+            .getActiveExperiments(request.getUserId());
+        
+        for (Experiment experiment : activeExperiments) {
+            if (experiment.matches(request)) {
+                // 실험 그룹 할당
+                ExperimentGroup group = assignToGroup(
+                    request.getUserId(), 
+                    experiment
+                );
+                
+                // 그룹별 라우팅
+                RouterResponse response = routeToVariant(
+                    request, 
+                    group.getVariant()
+                );
+                
+                // 실험 메트릭 수집
+                collectExperimentMetrics(experiment, group, response);
+                
+                return response;
+            }
+        }
+        
+        // 기본 라우팅 (대조군)
+        return routeToControl(request);
+    }
+    
+    private ExperimentGroup assignToGroup(String userId, Experiment experiment) {
+        // 일관된 그룹 할당을 위한 해싱
+        int hash = (userId + experiment.getId()).hashCode();
+        double bucket = (Math.abs(hash) % 100) / 100.0;
+        
+        double cumulative = 0;
+        for (ExperimentGroup group : experiment.getGroups()) {
+            cumulative += group.getTrafficPercentage();
+            if (bucket < cumulative) {
+                return group;
+            }
+        }
+        
+        return experiment.getControlGroup();
+    }
+    
+    private void collectExperimentMetrics(
+            Experiment experiment, 
+            ExperimentGroup group, 
+            RouterResponse response) {
+        
+        ExperimentMetric metric = ExperimentMetric.builder()
+            .experimentId(experiment.getId())
+            .groupId(group.getId())
+            .userId(response.getUserId())
+            .latency(response.getLatency())
+            .tokenCount(response.getTokenCount())
+            .cost(response.getCost())
+            .qualityScore(evaluateQuality(response))
+            .timestamp(Instant.now())
+            .build();
+        
+        metricsCollector.collect(metric);
+        
+        // 실시간 통계 업데이트
+        updateExperimentStats(experiment, group, metric);
+    }
+    
+    // 실험 결과 분석
+    @Scheduled(cron = "0 0 * * * *") // 매시간
+    public void analyzeExperiments() {
+        List<Experiment> experiments = experimentService.getRunningExperiments();
+        
+        for (Experiment experiment : experiments) {
+            ExperimentAnalysis analysis = analyzeExperiment(experiment);
+            
+            if (analysis.hasSignificantResults()) {
+                if (analysis.getWinner() != null) {
+                    // 승자 변형을 기본으로 설정
+                    promoteWinner(experiment, analysis.getWinner());
+                } else if (analysis.shouldStop()) {
+                    // 실험 중단
+                    experimentService.stopExperiment(experiment.getId());
+                }
+            }
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+
+                <!-- Contextual Routing -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">컨텍스트 기반 라우팅</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('contextual-routing')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="contextual-routing"><code class="language-java">@Service
+public class ContextualRouter {
+    
+    private final UserContextService userContextService;
+    private final ConversationHistoryService historyService;
+    private final DomainDetector domainDetector;
+    
+    public RouterResponse routeWithContext(RouterRequest request) {
+        // 사용자 컨텍스트 로드
+        UserContext userContext = userContextService.getContext(request.getUserId());
+        
+        // 대화 히스토리 분석
+        ConversationContext convContext = historyService.analyze(
+            request.getConversationId()
+        );
+        
+        // 도메인 감지
+        Domain domain = domainDetector.detect(request, convContext);
+        
+        // 컨텍스트 기반 라우팅 결정
+        RoutingDecision decision = makeContextualDecision(
+            request, 
+            userContext, 
+            convContext, 
+            domain
+        );
+        
+        return executeWithContext(request, decision);
+    }
+    
+    private RoutingDecision makeContextualDecision(
+            RouterRequest request,
+            UserContext userContext,
+            ConversationContext convContext,
+            Domain domain) {
+        
+        // 전문 도메인 요청
+        if (domain.requiresExpertise()) {
+            return RoutingDecision.toExpert(domain.getExpertModel());
+        }
+        
+        // 연속 대화
+        if (convContext.isContinuation()) {
+            // 이전과 동일한 모델 사용으로 일관성 유지
+            return RoutingDecision.toPrevious(convContext.getLastModel());
+        }
+        
+        // 사용자 선호도
+        if (userContext.hasPreference()) {
+            ModelPreference preference = userContext.getModelPreference();
+            if (isAvailable(preference.getPreferredModel())) {
+                return RoutingDecision.toPreferred(preference);
+            }
+        }
+        
+        // 작업 복잡도 분석
+        ComplexityAnalysis complexity = analyzeComplexity(request);
+        
+        return switch (complexity.getLevel()) {
+            case LOW -> RoutingDecision.toFast("gpt-4o-mini");
+            case MEDIUM -> RoutingDecision.toBalanced("gpt-4o");
+            case HIGH -> RoutingDecision.toPowerful("claude-3-opus");
+            case EXPERT -> RoutingDecision.toSpecialist(complexity.getDomain());
+        };
+    }
+    
+    // 다중 단계 라우팅
+    public MultiStageResponse routeMultiStage(ComplexRequest request) {
+        List<Stage> stages = planStages(request);
+        Map<String, StageResult> results = new LinkedHashMap<>();
+        
+        for (Stage stage : stages) {
+            // 이전 단계 결과를 컨텍스트로 포함
+            StageContext context = buildStageContext(stage, results);
+            
+            // 단계별 최적 모델 선택
+            ModelSelection selection = selectModelForStage(stage, context);
+            
+            // 실행
+            StageResult result = executeStage(stage, selection, context);
+            results.put(stage.getName(), result);
+            
+            // 조기 종료 조건 확인
+            if (shouldTerminateEarly(stage, result)) {
+                break;
+            }
+        }
+        
+        return MultiStageResponse.builder()
+            .request(request)
+            .stages(stages)
+            .results(results)
+            .finalOutput(combineSt ageResults(results))
+            .build();
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Real-World Examples -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">실전 예제</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">고객 지원 라우팅 시스템</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('customer-support')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="customer-support"><code class="language-java">@Service
+public class CustomerSupportRouter {
+    
+    private final Map<SupportCategory, SupportAgent> specializedAgents;
+    private final EmotionDetector emotionDetector;
+    private final UrgencyClassifier urgencyClassifier;
+    
+    public SupportResponse routeSupport(SupportRequest request) {
+        // 감정 상태 분석
+        EmotionState emotion = emotionDetector.detect(request.getMessage());
+        
+        // 긴급도 분류
+        UrgencyLevel urgency = urgencyClassifier.classify(request);
+        
+        // 카테고리 자동 분류
+        SupportCategory category = categorizeRequest(request);
+        
+        // 라우팅 결정
+        if (urgency == UrgencyLevel.CRITICAL || emotion.isNegative()) {
+            // 긴급하거나 부정적 감정이면 인간 상담원에게
+            return routeToHumanAgent(request, category);
+        }
+        
+        // 전문 AI 에이전트 선택
+        SupportAgent agent = selectSpecializedAgent(category, request);
+        
+        // 맥락 정보 추가
+        EnrichedRequest enriched = enrichRequest(request, category, emotion);
+        
+        return agent.handleRequest(enriched);
+    }
+    
+    private SupportAgent selectSpecializedAgent(
+            SupportCategory category, 
+            SupportRequest request) {
+        
+        return switch (category) {
+            case TECHNICAL -> new TechnicalSupportAgent();
+            case BILLING -> new BillingSupportAgent();
+            case PRODUCT_INFO -> new ProductInfoAgent();
+            case COMPLAINT -> new ComplaintHandlingAgent();
+            case GENERAL -> new GeneralSupportAgent();
+        };
+    }
+    
+    // 기술 지원 전문 에이전트
+    @Component
+    public class TechnicalSupportAgent extends SupportAgent {
+        
+        @Override
+        public SupportResponse handleRequest(EnrichedRequest request) {
+            // 문제 유형 세분화
+            TechIssueType issueType = analyzeTechIssue(request);
+            
+            return switch (issueType) {
+                case INSTALLATION -> handleInstallation(request);
+                case CONFIGURATION -> handleConfiguration(request);
+                case BUG_REPORT -> handleBugReport(request);
+                case PERFORMANCE -> handlePerformance(request);
+                case INTEGRATION -> handleIntegration(request);
+            };
+        }
+        
+        private SupportResponse handleBugReport(EnrichedRequest request) {
+            // 버그 재현 단계 추출
+            List<String> reproSteps = extractReproductionSteps(request);
+            
+            // 알려진 이슈 검색
+            List<KnownIssue> similarIssues = searchKnownIssues(request);
+            
+            if (!similarIssues.isEmpty()) {
+                return provideSolution(similarIssues.get(0));
+            }
+            
+            // 새로운 버그 리포트 생성
+            BugReport report = createBugReport(request, reproSteps);
+            
+            return SupportResponse.builder()
+                .message("버그 리포트가 접수되었습니다.")
+                .ticketId(report.getId())
+                .expectedResolution("24-48시간")
+                .workaround(suggestWorkaround(request))
+                .build();
+        }
+    }
+}
+
+// 언어별 라우팅
+@Service
+public class MultilingualRouter {
+    
+    private final Map<Language, ChatClient> languageModels;
+    private final LanguageDetector languageDetector;
+    
+    public RouterResponse routeByLanguage(RouterRequest request) {
+        // 언어 감지
+        Language detected = languageDetector.detect(request.getContent());
+        
+        // 언어별 최적 모델 선택
+        ChatClient client = languageModels.get(detected);
+        
+        if (client == null) {
+            // 지원하지 않는 언어는 번역 후 처리
+            String translated = translateToEnglish(request.getContent());
+            RouterResponse response = processInEnglish(translated);
+            return translateBack(response, detected);
+        }
+        
+        // 해당 언어 전문 모델로 직접 처리
+        return processWithNativeModel(request, client, detected);
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Monitoring and Optimization -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">모니터링 및 최적화</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-semibold mb-3">라우팅 성능 모니터링</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('routing-monitoring')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="routing-monitoring"><code class="language-java">@Component
+@Slf4j
+public class RoutingMonitor {
+    
+    private final MeterRegistry meterRegistry;
+    private final RoutingAnalytics analytics;
+    
+    @EventListener
+    public void onRoutingDecision(RoutingEvent event) {
+        // 라우팅 결정 메트릭
+        meterRegistry.counter("routing.decisions",
+            "type", event.getRequestType(),
+            "target", event.getTargetModel(),
+            "reason", event.getRoutingReason()
+        ).increment();
+        
+        // 라우팅 시간
+        meterRegistry.timer("routing.decision.time",
+            "type", event.getRequestType()
+        ).record(event.getDecisionTime());
+    }
+    
+    @EventListener
+    public void onRoutingComplete(RoutingCompleteEvent event) {
+        // 엔드투엔드 메트릭
+        meterRegistry.timer("routing.total.time",
+            "model", event.getModel(),
+            "success", String.valueOf(event.isSuccess())
+        ).record(event.getTotalTime());
+        
+        // 비용 추적
+        meterRegistry.gauge("routing.cost",
+            Tags.of("model", event.getModel()),
+            event.getCost()
+        );
+        
+        // 품질 점수
+        if (event.hasQualityScore()) {
+            meterRegistry.gauge("routing.quality",
+                Tags.of("model", event.getModel()),
+                event.getQualityScore()
+            );
+        }
+    }
+    
+    // 라우팅 효율성 분석
+    @Scheduled(fixedDelay = 600000) // 10분마다
+    public void analyzeRoutingEfficiency() {
+        RoutingStats stats = analytics.calculateStats();
+        
+        // 모델별 성능 비교
+        Map<String, ModelPerformance> modelStats = stats.getModelPerformance();
+        
+        modelStats.forEach((model, perf) -> {
+            log.info("Model {} - Success: {}, Avg Latency: {}ms, Cost/Request: ${}",
+                model, 
+                perf.getSuccessRate(),
+                perf.getAvgLatency(),
+                perf.getAvgCost()
+            );
+            
+            // 비효율적 라우팅 감지
+            if (perf.getSuccessRate() < 0.8) {
+                alertManager.sendAlert(
+                    "Low success rate for model: " + model
+                );
+            }
+            
+            if (perf.getAvgLatency() > 5000) {
+                alertManager.sendAlert(
+                    "High latency for model: " + model
+                );
+            }
+        });
+        
+        // 라우팅 패턴 분석
+        analyzeRoutingPatterns(stats);
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Best Practices -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">🎯 Best Practices</h2>
+                
+                <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">스마트 라우팅 설계 원칙</h3>
+                    
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-semibold mb-2">라우팅 전략</h4>
+                            <ul class="space-y-1 text-sm">
+                                <li>✅ 명확한 분류 기준 정의</li>
+                                <li>✅ 폴백 메커니즘 필수 구현</li>
+                                <li>✅ 실시간 성능 모니터링</li>
+                                <li>✅ 비용과 성능의 균형 고려</li>
+                                <li>✅ 사용자 맥락 정보 활용</li>
+                            </ul>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-semibold mb-2">최적화 포인트</h4>
+                            <ul class="space-y-1 text-sm">
+                                <li>✅ 분류 로직 캐싱</li>
+                                <li>✅ 빠른 규칙 기반 사전 필터링</li>
+                                <li>✅ 로드 밸런싱으로 부하 분산</li>
+                                <li>✅ A/B 테스트로 지속적 개선</li>
+                                <li>✅ 실패 패턴 학습 및 개선</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6">
+                        <h4 class="font-semibold mb-2">라우팅 결정 체크리스트</h4>
+                        <div class="bg-white p-4 rounded-lg">
+                            <ul class="space-y-1 text-sm">
+                                <li>□ 요청 유형이 명확히 분류되는가?</li>
+                                <li>□ 적절한 모델/에이전트가 선택되는가?</li>
+                                <li>□ 폴백 옵션이 준비되어 있는가?</li>
+                                <li>□ 라우팅 결정이 추적 가능한가?</li>
+                                <li>□ 성능 메트릭이 수집되는가?</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Next Steps -->
+            <section class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4">다음 단계</h2>
+                
+                <div class="grid md:grid-cols-3 gap-4">
+                    <a href="chain.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-blue-600 mb-2">Chain Workflow</h3>
+                        <p class="text-sm text-gray-600">순차 처리 패턴 알아보기</p>
+                    </a>
+                    
+                    <a href="parallel.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-green-600 mb-2">Parallel Processing</h3>
+                        <p class="text-sm text-gray-600">병렬 처리 패턴</p>
+                    </a>
+                    
+                    <a href="../patterns.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-purple-600 mb-2">패턴 목록</h3>
+                        <p class="text-sm text-gray-600">전체 패턴 보기</p>
+                    </a>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <script>
+        function copyCode(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('코드가 복사되었습니다!');
+            });
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg z-50';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

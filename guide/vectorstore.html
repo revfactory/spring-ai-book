@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring AI 벡터 스토어 가이드</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .code-block { background: #2d3748; border-radius: 8px; }
+        .copy-button { transition: all 0.2s ease; }
+        .copy-button:hover { background-color: #4a5568; }
+        .comparison-table { font-size: 0.875rem; }
+        .comparison-table td, .comparison-table th { padding: 0.75rem; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <a href="../index.html" class="flex items-center text-xl font-bold text-gray-800">
+                        <i class="fab fa-spring text-green-600 mr-2"></i>
+                        Spring AI Hub
+                    </a>
+                    <span class="mx-3 text-gray-400">/</span>
+                    <span class="text-gray-600">벡터 스토어 가이드</span>
+                </div>
+                <a href="../index.html" class="text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-home"></i> 홈으로
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-6xl mx-auto">
+            <h1 class="text-4xl font-bold mb-4">🗄️ 벡터 스토어 완벽 가이드</h1>
+            <p class="text-gray-600 mb-8">Spring AI에서 지원하는 모든 벡터 데이터베이스의 설정과 사용법</p>
+
+            <!-- Table of Contents -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+                <h2 class="text-xl font-semibold mb-4">목차</h2>
+                <ul class="space-y-2 text-blue-600">
+                    <li><a href="#introduction" class="hover:underline">1. 벡터 스토어란?</a></li>
+                    <li><a href="#comparison" class="hover:underline">2. 벡터 스토어 비교</a></li>
+                    <li><a href="#pgvector" class="hover:underline">3. PostgreSQL + PGVector</a></li>
+                    <li><a href="#chroma" class="hover:underline">4. Chroma</a></li>
+                    <li><a href="#pinecone" class="hover:underline">5. Pinecone</a></li>
+                    <li><a href="#qdrant" class="hover:underline">6. Qdrant</a></li>
+                    <li><a href="#optimization" class="hover:underline">7. 성능 최적화</a></li>
+                    <li><a href="#migration" class="hover:underline">8. 마이그레이션 가이드</a></li>
+                </ul>
+            </div>
+
+            <!-- Section 1: Introduction -->
+            <section id="introduction" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">1. 벡터 스토어란?</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <p class="mb-4">
+                        벡터 스토어는 고차원 벡터 데이터를 효율적으로 저장하고 검색하는 특수한 데이터베이스입니다.
+                        AI 애플리케이션에서 텍스트, 이미지, 오디오 등의 임베딩을 저장하고 유사도 검색을 수행하는 데 사용됩니다.
+                    </p>
+                    
+                    <div class="bg-blue-50 p-4 rounded-lg mb-4">
+                        <h3 class="font-semibold mb-2">핵심 기능:</h3>
+                        <ul class="space-y-1">
+                            <li>📊 <strong>고차원 벡터 저장</strong>: 수백~수천 차원의 벡터 효율적 저장</li>
+                            <li>🔍 <strong>유사도 검색</strong>: 코사인 유사도, 유클리드 거리 등</li>
+                            <li>⚡ <strong>빠른 검색</strong>: 인덱싱을 통한 밀리초 단위 검색</li>
+                            <li>🔧 <strong>메타데이터 지원</strong>: 벡터와 함께 추가 정보 저장</li>
+                            <li>📈 <strong>확장성</strong>: 수백만~수십억 개의 벡터 처리</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-gray-100 p-4 rounded-lg">
+                        <h3 class="font-semibold mb-2">벡터 스토어 워크플로우:</h3>
+                        <pre class="text-sm">
+1. 텍스트/이미지/오디오 입력
+    ↓
+2. 임베딩 모델로 벡터 변환 (예: 1536차원)
+    ↓
+3. 벡터 + 메타데이터 저장
+    ↓
+4. 쿼리를 벡터로 변환
+    ↓
+5. 유사도 기반 검색
+    ↓
+6. Top-K 결과 반환
+                        </pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: Comparison -->
+            <section id="comparison" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">2. 벡터 스토어 비교</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 overflow-x-auto">
+                    <table class="w-full comparison-table">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="text-left font-semibold">벡터 스토어</th>
+                                <th class="text-left">타입</th>
+                                <th class="text-left">특징</th>
+                                <th class="text-left">적합한 경우</th>
+                                <th class="text-left">비용</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y">
+                            <tr>
+                                <td class="font-medium">PGVector</td>
+                                <td>오픈소스</td>
+                                <td>PostgreSQL 확장, ACID 지원</td>
+                                <td>기존 PostgreSQL 사용 중</td>
+                                <td>무료</td>
+                            </tr>
+                            <tr>
+                                <td class="font-medium">Chroma</td>
+                                <td>오픈소스</td>
+                                <td>경량, 로컬 개발 최적화</td>
+                                <td>프로토타입, 로컬 개발</td>
+                                <td>무료</td>
+                            </tr>
+                            <tr>
+                                <td class="font-medium">Pinecone</td>
+                                <td>관리형 SaaS</td>
+                                <td>완전 관리형, 자동 확장</td>
+                                <td>대규모 프로덕션</td>
+                                <td>유료</td>
+                            </tr>
+                            <tr>
+                                <td class="font-medium">Qdrant</td>
+                                <td>오픈소스/클라우드</td>
+                                <td>고성능, 필터링 강력</td>
+                                <td>복잡한 필터링 필요</td>
+                                <td>무료/유료</td>
+                            </tr>
+                            <tr>
+                                <td class="font-medium">Weaviate</td>
+                                <td>오픈소스/클라우드</td>
+                                <td>GraphQL API, 모듈식</td>
+                                <td>그래프 기반 검색</td>
+                                <td>무료/유료</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6 mt-6">
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <h3 class="font-semibold mb-2">로컬 개발 추천</h3>
+                        <ul class="space-y-1 text-sm">
+                            <li>🥇 <strong>Chroma</strong>: 가장 간단한 설정</li>
+                            <li>🥈 <strong>PGVector</strong>: 기존 PostgreSQL 활용</li>
+                            <li>🥉 <strong>Qdrant</strong>: Docker로 쉽게 시작</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h3 class="font-semibold mb-2">프로덕션 추천</h3>
+                        <ul class="space-y-1 text-sm">
+                            <li>🥇 <strong>Pinecone</strong>: 관리 부담 최소화</li>
+                            <li>🥈 <strong>PGVector</strong>: 비용 효율적</li>
+                            <li>🥉 <strong>Qdrant Cloud</strong>: 균형잡힌 선택</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: PGVector -->
+            <section id="pgvector" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">3. PostgreSQL + PGVector</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">설치 및 설정</h3>
+                    
+                    <!-- Docker Setup -->
+                    <div class="mb-6">
+                        <h4 class="font-semibold mb-2">Docker로 설치</h4>
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('pgvector-docker')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="pgvector-docker"><code class="language-bash"># Docker Compose 파일
+cat > docker-compose.yml << EOF
+version: '3.8'
+services:
+  postgres:
+    image: ankane/pgvector:latest
+    environment:
+      POSTGRES_USER: vectoruser
+      POSTGRES_PASSWORD: vectorpass
+      POSTGRES_DB: vectordb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgvector_data:/var/lib/postgresql/data
+
+volumes:
+  pgvector_data:
+EOF
+
+# 실행
+docker-compose up -d</code></pre>
+                        </div>
+                    </div>
+
+                    <!-- Spring Configuration -->
+                    <div class="mb-6">
+                        <h4 class="font-semibold mb-2">Spring 설정</h4>
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('pgvector-config')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="pgvector-config"><code class="language-yaml">spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/vectordb
+    username: vectoruser
+    password: vectorpass
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  
+  ai:
+    vectorstore:
+      pgvector:
+        index-type: HNSW  # HNSW, IVFFLAT 중 선택
+        distance-type: COSINE_DISTANCE  # COSINE_DISTANCE, L2_DISTANCE, INNER_PRODUCT
+        dimensions: 1536  # OpenAI 임베딩 차원
+        
+        # HNSW 인덱스 파라미터
+        hnsw:
+          m: 16  # 연결 수 (기본값: 16)
+          ef-construction: 64  # 구축 시 검색 범위 (기본값: 64)
+          
+        # 테이블 설정
+        schema-name: public
+        table-name: vector_store
+        initialize-schema: true</code></pre>
+                        </div>
+                    </div>
+
+                    <!-- Service Implementation -->
+                    <div class="mb-6">
+                        <h4 class="font-semibold mb-2">서비스 구현</h4>
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('pgvector-service')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="pgvector-service"><code class="language-java">@Service
+@Slf4j
+public class PGVectorService {
+    
+    private final VectorStore vectorStore;
+    private final JdbcTemplate jdbcTemplate;
+    
+    public PGVectorService(VectorStore vectorStore, JdbcTemplate jdbcTemplate) {
+        this.vectorStore = vectorStore;
+        this.jdbcTemplate = jdbcTemplate;
+    }
+    
+    // 문서 저장
+    public void saveDocuments(List<Document> documents) {
+        // 메타데이터 추가
+        documents.forEach(doc -> {
+            doc.getMetadata().put("created_at", Instant.now().toString());
+            doc.getMetadata().put("version", "1.0");
+        });
+        
+        vectorStore.add(documents);
+        log.info("Saved {} documents to PGVector", documents.size());
+    }
+    
+    // 유사도 검색
+    public List<Document> search(String query, SearchOptions options) {
+        return vectorStore.similaritySearch(
+            SearchRequest.query(query)
+                .withTopK(options.getTopK())
+                .withSimilarityThreshold(options.getThreshold())
+                .withFilterExpression(options.getFilter())
+        );
+    }
+    
+    // 직접 SQL 쿼리 (고급 기능)
+    public List<SimilarityResult> advancedSearch(String queryVector, int limit) {
+        String sql = """
+            SELECT 
+                content,
+                metadata,
+                1 - (embedding <=> ?::vector) as similarity
+            FROM vector_store
+            WHERE 1 - (embedding <=> ?::vector) > 0.7
+            ORDER BY embedding <=> ?::vector
+            LIMIT ?
+            """;
+        
+        return jdbcTemplate.query(sql, 
+            new Object[]{queryVector, queryVector, queryVector, limit},
+            (rs, rowNum) -> SimilarityResult.builder()
+                .content(rs.getString("content"))
+                .metadata(parseJsonb(rs.getString("metadata")))
+                .similarity(rs.getDouble("similarity"))
+                .build()
+        );
+    }
+    
+    // 인덱스 최적화
+    @Scheduled(cron = "0 0 2 * * *") // 매일 새벽 2시
+    public void optimizeIndex() {
+        log.info("Starting PGVector index optimization");
+        
+        // VACUUM ANALYZE 실행
+        jdbcTemplate.execute("VACUUM ANALYZE vector_store");
+        
+        // 인덱스 리빌드 (필요시)
+        long tableSize = getTableSize();
+        if (tableSize > 1_000_000) { // 100만 개 이상
+            jdbcTemplate.execute("REINDEX INDEX vector_store_embedding_idx");
+        }
+        
+        log.info("PGVector index optimization completed");
+    }
+    
+    // 통계 정보
+    public VectorStoreStats getStats() {
+        String sql = """
+            SELECT 
+                COUNT(*) as total_vectors,
+                pg_size_pretty(pg_relation_size('vector_store')) as table_size,
+                pg_size_pretty(pg_relation_size('vector_store_embedding_idx')) as index_size
+            FROM vector_store
+            """;
+        
+        return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> 
+            VectorStoreStats.builder()
+                .totalVectors(rs.getLong("total_vectors"))
+                .tableSize(rs.getString("table_size"))
+                .indexSize(rs.getString("index_size"))
+                .build()
+        );
+    }
+}</code></pre>
+                        </div>
+                    </div>
+
+                    <!-- Performance Tips -->
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h4 class="font-semibold mb-2">성능 최적화 팁</h4>
+                        <ul class="space-y-1 text-sm">
+                            <li>• HNSW 인덱스는 구축이 느리지만 검색이 빠름 (대규모 데이터)</li>
+                            <li>• IVFFlat은 구축이 빠르지만 정확도가 약간 낮음 (중소규모)</li>
+                            <li>• ef_search 파라미터로 속도/정확도 트레이드오프 조정</li>
+                            <li>• 정기적인 VACUUM ANALYZE로 성능 유지</li>
+                            <li>• 파티셔닝으로 대규모 데이터 관리</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 4: Chroma -->
+            <section id="chroma" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">4. Chroma</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">설치 및 설정</h3>
+                    
+                    <!-- Local Setup -->
+                    <div class="mb-6">
+                        <h4 class="font-semibold mb-2">로컬 설치</h4>
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('chroma-setup')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="chroma-setup"><code class="language-bash"># Python으로 Chroma 서버 실행
+pip install chromadb
+
+# 서버 시작
+chroma run --host localhost --port 8000
+
+# 또는 Docker 사용
+docker run -p 8000:8000 ghcr.io/chroma-core/chroma:latest</code></pre>
+                        </div>
+                    </div>
+
+                    <!-- Spring Configuration -->
+                    <div class="mb-6">
+                        <h4 class="font-semibold mb-2">Spring 설정</h4>
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('chroma-config')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="chroma-config"><code class="language-yaml">spring:
+  ai:
+    vectorstore:
+      chroma:
+        host: localhost
+        port: 8000
+        collection-name: spring-ai-collection
+        
+        # 임베딩 설정
+        embedding-dimension: 1536
+        
+        # 선택적 설정
+        log-requests: true
+        timeout: 30s</code></pre>
+                        </div>
+                    </div>
+
+                    <!-- Service Implementation -->
+                    <div class="mb-6">
+                        <h4 class="font-semibold mb-2">서비스 구현</h4>
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('chroma-service')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="chroma-service"><code class="language-java">@Service
+@Slf4j
+public class ChromaVectorService {
+    
+    private final VectorStore vectorStore;
+    private final ChromaApi chromaApi;
+    
+    public ChromaVectorService(@Qualifier("chromaVectorStore") VectorStore vectorStore) {
+        this.vectorStore = vectorStore;
+        this.chromaApi = ((ChromaVectorStore) vectorStore).getChromaApi();
+    }
+    
+    // 컬렉션 관리
+    public void createCollection(String name, Map<String, Object> metadata) {
+        chromaApi.createCollection(
+            CreateCollectionRequest.builder()
+                .name(name)
+                .metadata(metadata)
+                .build()
+        );
+        log.info("Created Chroma collection: {}", name);
+    }
+    
+    // 문서 추가 (배치)
+    public void addDocumentsBatch(List<Document> documents, int batchSize) {
+        List<List<Document>> batches = partition(documents, batchSize);
+        
+        batches.parallelStream().forEach(batch -> {
+            vectorStore.add(batch);
+            log.debug("Added batch of {} documents", batch.size());
+        });
+        
+        log.info("Added {} documents in {} batches", documents.size(), batches.size());
+    }
+    
+    // 메타데이터 필터링 검색
+    public List<Document> searchWithMetadata(String query, Map<String, Object> metadataFilter) {
+        // Chroma의 where 절 구성
+        Map<String, Object> whereClause = new HashMap<>();
+        metadataFilter.forEach((key, value) -> {
+            if (value instanceof List) {
+                whereClause.put(key, Map.of("$in", value));
+            } else {
+                whereClause.put(key, Map.of("$eq", value));
+            }
+        });
+        
+        return vectorStore.similaritySearch(
+            SearchRequest.query(query)
+                .withTopK(10)
+                .withFilterExpression(buildFilterExpression(whereClause))
+        );
+    }
+    
+    // 하이브리드 검색 (임베딩 + 전문 검색)
+    public List<Document> hybridSearch(String query, HybridSearchOptions options) {
+        // 1. 벡터 검색
+        List<Document> vectorResults = vectorStore.similaritySearch(
+            SearchRequest.query(query)
+                .withTopK(options.getVectorTopK())
+        );
+        
+        // 2. 텍스트 검색 (Chroma의 내장 기능 사용)
+        List<Document> textResults = chromaApi.query(
+            QueryRequest.builder()
+                .collectionName(collectionName)
+                .queryTexts(List.of(query))
+                .nResults(options.getTextTopK())
+                .whereDocument(Map.of("$contains", query))
+                .build()
+        ).getDocuments();
+        
+        // 3. 결과 병합 및 재순위화
+        return mergeAndRerank(vectorResults, textResults, options);
+    }
+    
+    // 컬렉션 통계
+    public CollectionStats getStats() {
+        Collection collection = chromaApi.getCollection(collectionName);
+        
+        return CollectionStats.builder()
+            .name(collection.getName())
+            .count(collection.getCount())
+            .metadata(collection.getMetadata())
+            .build();
+    }
+    
+    // 임베딩 직접 관리
+    public void addWithCustomEmbeddings(String content, float[] embedding, Map<String, Object> metadata) {
+        Document doc = new Document(content, metadata);
+        doc.setEmbedding(embedding);
+        
+        vectorStore.add(List.of(doc));
+    }
+}</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <h4 class="font-semibold mb-2">Chroma 장점</h4>
+                        <ul class="space-y-1 text-sm">
+                            <li>✅ 설정이 매우 간단 (로컬 개발에 최적)</li>
+                            <li>✅ 메타데이터 필터링 기능 강력</li>
+                            <li>✅ Python 생태계와 호환</li>
+                            <li>✅ 임베디드 모드 지원</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 5: Pinecone -->
+            <section id="pinecone" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">5. Pinecone</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">설정 및 사용</h3>
+                    
+                    <!-- Setup -->
+                    <div class="mb-6">
+                        <h4 class="font-semibold mb-2">계정 설정</h4>
+                        <div class="bg-blue-50 p-4 rounded-lg mb-4">
+                            <ol class="space-y-1 text-sm">
+                                <li>1. <a href="https://www.pinecone.io" class="text-blue-600 hover:underline">pinecone.io</a>에서 계정 생성</li>
+                                <li>2. API 키 발급</li>
+                                <li>3. 인덱스 생성 (차원: 1536, 메트릭: cosine)</li>
+                            </ol>
+                        </div>
+
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('pinecone-config')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="pinecone-config"><code class="language-yaml">spring:
+  ai:
+    vectorstore:
+      pinecone:
+        api-key: ${PINECONE_API_KEY}
+        environment: ${PINECONE_ENVIRONMENT}  # us-east-1-aws
+        project-id: ${PINECONE_PROJECT_ID}
+        index-name: spring-ai-index
+        namespace: default  # 선택사항
+        
+        # 성능 설정
+        connection-timeout: 10s
+        read-timeout: 30s
+        
+        # 메타데이터 설정
+        metadata-fields:
+          - source
+          - timestamp
+          - category</code></pre>
+                        </div>
+                    </div>
+
+                    <!-- Service Implementation -->
+                    <div class="mb-6">
+                        <h4 class="font-semibold mb-2">서비스 구현</h4>
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('pinecone-service')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="pinecone-service"><code class="language-java">@Service
+@Slf4j
+public class PineconeVectorService {
+    
+    private final VectorStore vectorStore;
+    private final PineconeClient pineconeClient;
+    
+    public PineconeVectorService(
+            @Qualifier("pineconeVectorStore") VectorStore vectorStore,
+            PineconeClient pineconeClient) {
+        this.vectorStore = vectorStore;
+        this.pineconeClient = pineconeClient;
+    }
+    
+    // 네임스페이스별 문서 관리
+    public void addDocumentsToNamespace(List<Document> documents, String namespace) {
+        // 네임스페이스 설정
+        documents.forEach(doc -> 
+            doc.getMetadata().put("namespace", namespace)
+        );
+        
+        // 배치로 업로드 (Pinecone는 최대 100개씩)
+        List<List<Document>> batches = Lists.partition(documents, 100);
+        
+        batches.forEach(batch -> {
+            vectorStore.add(batch);
+            log.debug("Uploaded batch of {} documents to namespace: {}", 
+                batch.size(), namespace);
+        });
+    }
+    
+    // 고급 필터링 검색
+    public List<Document> advancedSearch(AdvancedSearchRequest request) {
+        // Pinecone 필터 구성
+        Map<String, Object> filter = new HashMap<>();
+        
+        // 메타데이터 필터
+        if (request.getCategory() != null) {
+            filter.put("category", Map.of("$eq", request.getCategory()));
+        }
+        
+        if (request.getDateRange() != null) {
+            filter.put("timestamp", Map.of(
+                "$gte", request.getDateRange().getStart(),
+                "$lte", request.getDateRange().getEnd()
+            ));
+        }
+        
+        // 복합 필터
+        if (request.getTags() != null && !request.getTags().isEmpty()) {
+            filter.put("tags", Map.of("$in", request.getTags()));
+        }
+        
+        return vectorStore.similaritySearch(
+            SearchRequest.query(request.getQuery())
+                .withTopK(request.getTopK())
+                .withSimilarityThreshold(request.getThreshold())
+                .withFilterExpression(convertToFilterExpression(filter))
+        );
+    }
+    
+    // 인덱스 통계
+    public IndexStats getIndexStats() {
+        DescribeIndexResponse response = pineconeClient.describeIndex(indexName);
+        
+        return IndexStats.builder()
+            .totalVectors(response.getDimension())
+            .indexFullness(response.getIndexFullness())
+            .namespaces(response.getNamespaces())
+            .dimension(response.getDimension())
+            .metric(response.getMetric())
+            .build();
+    }
+    
+    // 벡터 업데이트
+    public void updateVector(String id, Map<String, Object> metadata) {
+        pineconeClient.update(
+            UpdateRequest.builder()
+                .id(id)
+                .setMetadata(metadata)
+                .namespace(namespace)
+                .build()
+        );
+    }
+    
+    // 벡터 삭제
+    public void deleteVectors(List<String> ids) {
+        pineconeClient.delete(
+            DeleteRequest.builder()
+                .ids(ids)
+                .namespace(namespace)
+                .build()
+        );
+        
+        log.info("Deleted {} vectors from Pinecone", ids.size());
+    }
+    
+    // 비용 모니터링
+    @Scheduled(cron = "0 0 * * * *") // 매시간
+    public void monitorUsage() {
+        IndexStats stats = getIndexStats();
+        
+        // 예상 비용 계산 (Pinecone 가격 정책에 따라)
+        double estimatedMonthlyCost = calculateCost(stats);
+        
+        if (estimatedMonthlyCost > costThreshold) {
+            alertService.sendCostAlert(
+                "Pinecone usage exceeding threshold: $" + estimatedMonthlyCost
+            );
+        }
+        
+        metricsService.recordGauge("pinecone.estimated.cost", estimatedMonthlyCost);
+        metricsService.recordGauge("pinecone.vectors.total", stats.getTotalVectors());
+    }
+}</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="bg-yellow-50 p-4 rounded-lg">
+                        <h4 class="font-semibold mb-2">Pinecone 사용 시 주의사항</h4>
+                        <ul class="space-y-1 text-sm">
+                            <li>⚠️ 비용 모니터링 필수 (벡터 수와 쿼리에 따라 과금)</li>
+                            <li>⚠️ 삭제된 벡터도 일정 기간 과금될 수 있음</li>
+                            <li>⚠️ 네임스페이스로 데이터 분리 (멀티테넌시)</li>
+                            <li>⚠️ 인덱스당 최대 차원 제한 확인</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 6: Qdrant -->
+            <section id="qdrant" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">6. Qdrant</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">설치 및 설정</h3>
+                    
+                    <!-- Docker Setup -->
+                    <div class="mb-6">
+                        <h4 class="font-semibold mb-2">Docker 설치</h4>
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('qdrant-docker')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="qdrant-docker"><code class="language-bash"># Qdrant 실행
+docker run -p 6333:6333 \
+  -v $(pwd)/qdrant_storage:/qdrant/storage \
+  qdrant/qdrant
+
+# Docker Compose
+cat > docker-compose.yml << EOF
+version: '3.8'
+services:
+  qdrant:
+    image: qdrant/qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"  # gRPC port
+    volumes:
+      - ./qdrant_storage:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+EOF</code></pre>
+                        </div>
+                    </div>
+
+                    <!-- Configuration -->
+                    <div class="mb-6">
+                        <h4 class="font-semibold mb-2">Spring 설정</h4>
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('qdrant-config')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="qdrant-config"><code class="language-yaml">spring:
+  ai:
+    vectorstore:
+      qdrant:
+        host: localhost
+        port: 6334  # gRPC port for better performance
+        collection-name: spring-ai-collection
+        use-tls: false
+        
+        # 컬렉션 설정
+        vector-params:
+          size: 1536
+          distance: COSINE  # COSINE, EUCLID, DOT
+          
+        # 성능 설정
+        batch-size: 100
+        timeout: 30s
+        
+        # 옵티마이저 설정
+        optimizer-config:
+          indexing-threshold: 20000
+          memmap-threshold: 100000</code></pre>
+                        </div>
+                    </div>
+
+                    <!-- Service Implementation -->
+                    <div class="mb-6">
+                        <h4 class="font-semibold mb-2">서비스 구현</h4>
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('qdrant-service')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="qdrant-service"><code class="language-java">@Service
+@Slf4j
+public class QdrantVectorService {
+    
+    private final VectorStore vectorStore;
+    private final QdrantClient qdrantClient;
+    
+    public QdrantVectorService(
+            @Qualifier("qdrantVectorStore") VectorStore vectorStore,
+            QdrantClient qdrantClient) {
+        this.vectorStore = vectorStore;
+        this.qdrantClient = qdrantClient;
+    }
+    
+    // 컬렉션 생성 (고급 설정)
+    public void createCollection(String name, CollectionConfig config) {
+        CreateCollection request = CreateCollection.newBuilder()
+            .setCollectionName(name)
+            .setVectorsConfig(VectorsConfig.newBuilder()
+                .setParams(VectorParams.newBuilder()
+                    .setSize(config.getDimension())
+                    .setDistance(config.getDistance())
+                    .build())
+                .build())
+            .setOptimizersConfig(OptimizersConfig.newBuilder()
+                .setDefaultSegmentNumber(2)
+                .setIndexingThreshold(20000)
+                .build())
+            .setWalConfig(WalConfig.newBuilder()
+                .setWalCapacityMb(32)
+                .setWalSegments(8)
+                .build())
+            .build();
+        
+        qdrantClient.createCollection(request);
+        log.info("Created Qdrant collection: {} with config: {}", name, config);
+    }
+    
+    // 페이로드 필터링 검색
+    public List<Document> searchWithPayloadFilter(SearchRequest request) {
+        // Qdrant의 강력한 필터링 기능 활용
+        Filter filter = buildQdrantFilter(request.getFilters());
+        
+        SearchPoints searchRequest = SearchPoints.newBuilder()
+            .setCollectionName(collectionName)
+            .setVector(request.getEmbedding())
+            .setLimit(request.getLimit())
+            .setFilter(filter)
+            .setWithPayload(WithPayloadSelector.newBuilder()
+                .setEnable(true)
+                .build())
+            .setScoreThreshold(request.getThreshold())
+            .build();
+        
+        List<ScoredPoint> results = qdrantClient.search(searchRequest)
+            .get();
+        
+        return results.stream()
+            .map(this::convertToDocument)
+            .collect(Collectors.toList());
+    }
+    
+    // 복잡한 필터 구성
+    private Filter buildQdrantFilter(Map<String, Object> filters) {
+        List<Condition> conditions = new ArrayList<>();
+        
+        filters.forEach((key, value) -> {
+            if (value instanceof String) {
+                conditions.add(Condition.newBuilder()
+                    .setField(FieldCondition.newBuilder()
+                        .setKey(key)
+                        .setMatch(Match.newBuilder()
+                            .setKeyword(value.toString())
+                            .build())
+                        .build())
+                    .build());
+            } else if (value instanceof Number) {
+                conditions.add(Condition.newBuilder()
+                    .setField(FieldCondition.newBuilder()
+                        .setKey(key)
+                        .setRange(Range.newBuilder()
+                            .setGte(((Number) value).doubleValue())
+                            .build())
+                        .build())
+                    .build());
+            } else if (value instanceof List) {
+                conditions.add(Condition.newBuilder()
+                    .setField(FieldCondition.newBuilder()
+                        .setKey(key)
+                        .setMatch(Match.newBuilder()
+                            .setAny((List<String>) value)
+                            .build())
+                        .build())
+                    .build());
+            }
+        });
+        
+        return Filter.newBuilder()
+            .addAllMust(conditions)
+            .build();
+    }
+    
+    // 벡터 업데이트 (페이로드만)
+    public void updatePayload(String pointId, Map<String, Object> payload) {
+        SetPayload setPayload = SetPayload.newBuilder()
+            .setCollectionName(collectionName)
+            .setPayload(buildPayload(payload))
+            .addPoints(PointsSelector.newBuilder()
+                .addIds(PointId.newBuilder()
+                    .setUuid(pointId)
+                    .build())
+                .build())
+            .build();
+        
+        qdrantClient.setPayload(setPayload).get();
+    }
+    
+    // 스냅샷 생성
+    public String createSnapshot() {
+        CreateSnapshot request = CreateSnapshot.newBuilder()
+            .setCollectionName(collectionName)
+            .build();
+        
+        CreateSnapshotResponse response = qdrantClient.createSnapshot(request).get();
+        String snapshotName = response.getSnapshotDescription().getName();
+        
+        log.info("Created Qdrant snapshot: {}", snapshotName);
+        return snapshotName;
+    }
+    
+    // 컬렉션 최적화
+    @Scheduled(cron = "0 0 3 * * SUN") // 매주 일요일 새벽 3시
+    public void optimizeCollection() {
+        UpdateCollection request = UpdateCollection.newBuilder()
+            .setCollectionName(collectionName)
+            .setOptimizersConfig(OptimizersConfig.newBuilder()
+                .setIndexingThreshold(50000)
+                .build())
+            .build();
+        
+        qdrantClient.updateCollection(request);
+        log.info("Optimized Qdrant collection: {}", collectionName);
+    }
+}</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="bg-purple-50 p-4 rounded-lg">
+                        <h4 class="font-semibold mb-2">Qdrant 특징</h4>
+                        <ul class="space-y-1 text-sm">
+                            <li>🚀 매우 빠른 검색 속도</li>
+                            <li>🔍 강력한 필터링 기능</li>
+                            <li>💾 효율적인 메모리 사용</li>
+                            <li>🔄 실시간 업데이트 지원</li>
+                            <li>📸 스냅샷/백업 기능</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 7: Optimization -->
+            <section id="optimization" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">7. 성능 최적화</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">공통 최적화 전략</h3>
+                    
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-semibold mb-2">인덱싱 최적화</h4>
+                            <ul class="space-y-1 text-sm">
+                                <li>• 적절한 인덱스 타입 선택 (HNSW vs IVF)</li>
+                                <li>• 인덱스 파라미터 튜닝</li>
+                                <li>• 정기적인 인덱스 재구축</li>
+                                <li>• 샤딩/파티셔닝 전략</li>
+                            </ul>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-semibold mb-2">쿼리 최적화</h4>
+                            <ul class="space-y-1 text-sm">
+                                <li>• 배치 쿼리 활용</li>
+                                <li>• 필터 조건 최적화</li>
+                                <li>• 캐싱 전략 구현</li>
+                                <li>• 비동기 처리</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="mt-6">
+                        <h4 class="font-semibold mb-3">벤치마크 코드</h4>
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('benchmark-code')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="benchmark-code"><code class="language-java">@Component
+@Slf4j
+public class VectorStoreBenchmark {
+    
+    private final Map<String, VectorStore> vectorStores;
+    
+    public BenchmarkResult runBenchmark(int numDocuments, int numQueries) {
+        Map<String, PerformanceMetrics> results = new HashMap<>();
+        
+        vectorStores.forEach((name, store) -> {
+            log.info("Running benchmark for: {}", name);
+            
+            // 1. 삽입 성능 테스트
+            long insertTime = measureInsertTime(store, numDocuments);
+            
+            // 2. 검색 성능 테스트
+            SearchPerformance searchPerf = measureSearchPerformance(store, numQueries);
+            
+            // 3. 메모리 사용량
+            long memoryUsage = measureMemoryUsage(store);
+            
+            results.put(name, PerformanceMetrics.builder()
+                .insertTimeMs(insertTime)
+                .avgSearchTimeMs(searchPerf.getAvgTime())
+                .p95SearchTimeMs(searchPerf.getP95Time())
+                .memoryUsageMb(memoryUsage)
+                .build());
+        });
+        
+        return new BenchmarkResult(results);
+    }
+    
+    private long measureInsertTime(VectorStore store, int numDocuments) {
+        List<Document> documents = generateTestDocuments(numDocuments);
+        
+        long startTime = System.currentTimeMillis();
+        
+        // 배치 크기별 테스트
+        List<List<Document>> batches = Lists.partition(documents, 100);
+        batches.parallelStream().forEach(store::add);
+        
+        return System.currentTimeMillis() - startTime;
+    }
+    
+    private SearchPerformance measureSearchPerformance(VectorStore store, int numQueries) {
+        List<String> queries = generateTestQueries(numQueries);
+        List<Long> searchTimes = new ArrayList<>();
+        
+        queries.forEach(query -> {
+            long start = System.nanoTime();
+            store.similaritySearch(SearchRequest.query(query).withTopK(10));
+            searchTimes.add(System.nanoTime() - start);
+        });
+        
+        return calculatePerformanceStats(searchTimes);
+    }
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 8: Migration -->
+            <section id="migration" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">8. 마이그레이션 가이드</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-semibold mb-3">벡터 스토어 간 마이그레이션</h3>
+                    
+                    <div class="code-block p-4 relative mb-6">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('migration-service')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="migration-service"><code class="language-java">@Service
+@Slf4j
+public class VectorStoreMigrationService {
+    
+    public MigrationResult migrate(
+            VectorStore source, 
+            VectorStore target,
+            MigrationOptions options) {
+        
+        log.info("Starting migration from {} to {}", 
+            source.getClass().getSimpleName(),
+            target.getClass().getSimpleName());
+        
+        long totalDocuments = 0;
+        long migratedDocuments = 0;
+        
+        try {
+            // 1. 소스에서 모든 문서 추출
+            List<Document> allDocuments = extractAllDocuments(source, options);
+            totalDocuments = allDocuments.size();
+            
+            // 2. 배치로 타겟에 삽입
+            List<List<Document>> batches = Lists.partition(
+                allDocuments, 
+                options.getBatchSize()
+            );
+            
+            for (List<Document> batch : batches) {
+                target.add(batch);
+                migratedDocuments += batch.size();
+                
+                log.info("Migrated {}/{} documents", 
+                    migratedDocuments, totalDocuments);
+                
+                // 옵션: 진행률 콜백
+                if (options.getProgressCallback() != null) {
+                    options.getProgressCallback().accept(
+                        (double) migratedDocuments / totalDocuments
+                    );
+                }
+            }
+            
+            // 3. 검증
+            if (options.isValidateAfterMigration()) {
+                boolean valid = validateMigration(source, target);
+                if (!valid) {
+                    throw new MigrationException("Validation failed");
+                }
+            }
+            
+            return MigrationResult.success(totalDocuments, migratedDocuments);
+            
+        } catch (Exception e) {
+            log.error("Migration failed", e);
+            return MigrationResult.failure(totalDocuments, migratedDocuments, e);
+        }
+    }
+    
+    private List<Document> extractAllDocuments(
+            VectorStore source, 
+            MigrationOptions options) {
+        
+        // 구현은 벡터 스토어 타입에 따라 다름
+        if (source instanceof PGVectorStore) {
+            return extractFromPGVector((PGVectorStore) source);
+        } else if (source instanceof ChromaVectorStore) {
+            return extractFromChroma((ChromaVectorStore) source);
+        }
+        // ... 다른 벡터 스토어들
+        
+        throw new UnsupportedOperationException(
+            "Extraction not supported for: " + source.getClass()
+        );
+    }
+}</code></pre>
+                    </div>
+
+                    <div class="bg-orange-50 p-4 rounded-lg">
+                        <h4 class="font-semibold mb-2">마이그레이션 체크리스트</h4>
+                        <ul class="space-y-1 text-sm">
+                            <li>✅ 소스 데이터 백업</li>
+                            <li>✅ 타겟 스토어 용량 확인</li>
+                            <li>✅ 메타데이터 호환성 검증</li>
+                            <li>✅ 임베딩 차원 일치 확인</li>
+                            <li>✅ 점진적 마이그레이션 계획</li>
+                            <li>✅ 롤백 계획 수립</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Best Practices -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">🎯 Best Practices</h2>
+                
+                <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">벡터 스토어 선택 가이드</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-semibold">소규모 프로젝트 (< 100K 벡터)</h4>
+                            <p class="text-sm">→ Chroma 또는 PGVector</p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-semibold">중규모 프로젝트 (100K - 10M 벡터)</h4>
+                            <p class="text-sm">→ Qdrant 또는 Weaviate</p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-semibold">대규모 프로젝트 (> 10M 벡터)</h4>
+                            <p class="text-sm">→ Pinecone 또는 Qdrant Cloud</p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-semibold">엔터프라이즈</h4>
+                            <p class="text-sm">→ Pinecone 또는 자체 관리 Qdrant/Weaviate</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Next Steps -->
+            <section class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4">다음 단계</h2>
+                
+                <div class="grid md:grid-cols-3 gap-4">
+                    <a href="rag.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-blue-600 mb-2">RAG 시스템 구축</h3>
+                        <p class="text-sm text-gray-600">벡터 스토어를 활용한 RAG 구현</p>
+                    </a>
+                    
+                    <a href="monitoring.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-green-600 mb-2">모니터링</h3>
+                        <p class="text-sm text-gray-600">벡터 스토어 성능 모니터링</p>
+                    </a>
+                    
+                    <a href="patterns.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-purple-600 mb-2">고급 패턴</h3>
+                        <p class="text-sm text-gray-600">벡터 스토어 활용 패턴</p>
+                    </a>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <script>
+        function copyCode(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('코드가 복사되었습니다!');
+            });
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg z-50';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

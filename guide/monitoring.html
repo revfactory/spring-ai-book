@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring AI 모니터링 가이드</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .code-block { background: #2d3748; border-radius: 8px; }
+        .copy-button { transition: all 0.2s ease; }
+        .copy-button:hover { background-color: #4a5568; }
+        .metric-card { transition: all 0.3s ease; }
+        .metric-card:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <a href="../index.html" class="flex items-center text-xl font-bold text-gray-800">
+                        <i class="fab fa-spring text-green-600 mr-2"></i>
+                        Spring AI Hub
+                    </a>
+                    <span class="mx-3 text-gray-400">/</span>
+                    <span class="text-gray-600">모니터링 가이드</span>
+                </div>
+                <a href="../index.html" class="text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-home"></i> 홈으로
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-6xl mx-auto">
+            <h1 class="text-4xl font-bold mb-4">📊 Spring AI 모니터링 가이드</h1>
+            <p class="text-gray-600 mb-8">AI 애플리케이션의 성능, 비용, 품질을 추적하고 최적화하는 방법</p>
+
+            <!-- Table of Contents -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+                <h2 class="text-xl font-semibold mb-4">목차</h2>
+                <ul class="space-y-2 text-blue-600">
+                    <li><a href="#observability" class="hover:underline">1. AI 관찰가능성 기초</a></li>
+                    <li><a href="#metrics" class="hover:underline">2. 핵심 메트릭</a></li>
+                    <li><a href="#implementation" class="hover:underline">3. 모니터링 구현</a></li>
+                    <li><a href="#dashboards" class="hover:underline">4. 대시보드 구축</a></li>
+                    <li><a href="#cost-tracking" class="hover:underline">5. 비용 추적</a></li>
+                    <li><a href="#quality" class="hover:underline">6. 품질 모니터링</a></li>
+                    <li><a href="#alerting" class="hover:underline">7. 알림 설정</a></li>
+                    <li><a href="#debugging" class="hover:underline">8. 디버깅 도구</a></li>
+                </ul>
+            </div>
+
+            <!-- Section 1: Observability Basics -->
+            <section id="observability" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">1. AI 관찰가능성 기초</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">Spring AI의 관찰가능성</h3>
+                    <p class="mb-4">
+                        Spring AI는 Micrometer를 통해 포괄적인 메트릭을 제공하며, 
+                        Prometheus, Grafana, DataDog 등 다양한 모니터링 시스템과 통합됩니다.
+                    </p>
+                    
+                    <div class="grid md:grid-cols-3 gap-4">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <h4 class="font-semibold mb-2">📈 메트릭</h4>
+                            <ul class="text-sm space-y-1">
+                                <li>• 응답 시간</li>
+                                <li>• 토큰 사용량</li>
+                                <li>• 오류율</li>
+                                <li>• 처리량</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <h4 class="font-semibold mb-2">📝 로깅</h4>
+                            <ul class="text-sm space-y-1">
+                                <li>• 요청/응답 로그</li>
+                                <li>• 오류 추적</li>
+                                <li>• 사용자 활동</li>
+                                <li>• 시스템 이벤트</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <h4 class="font-semibold mb-2">🔍 추적</h4>
+                            <ul class="text-sm space-y-1">
+                                <li>• 분산 추적</li>
+                                <li>• 요청 흐름</li>
+                                <li>• 의존성 맵</li>
+                                <li>• 성능 병목</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: Core Metrics -->
+            <section id="metrics" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">2. 핵심 메트릭</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">AI 애플리케이션 핵심 지표</h3>
+                    
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="metric-card border rounded-lg p-4">
+                            <h4 class="font-semibold text-blue-600 mb-2">🚀 성능 메트릭</h4>
+                            <ul class="space-y-1 text-sm">
+                                <li><strong>응답 시간 (P50, P95, P99)</strong></li>
+                                <li><strong>처리량 (요청/초)</strong></li>
+                                <li><strong>동시 요청 수</strong></li>
+                                <li><strong>큐 대기 시간</strong></li>
+                            </ul>
+                        </div>
+                        
+                        <div class="metric-card border rounded-lg p-4">
+                            <h4 class="font-semibold text-green-600 mb-2">💰 비용 메트릭</h4>
+                            <ul class="space-y-1 text-sm">
+                                <li><strong>토큰 사용량 (입력/출력)</strong></li>
+                                <li><strong>API 호출 수</strong></li>
+                                <li><strong>모델별 비용</strong></li>
+                                <li><strong>사용자별 비용</strong></li>
+                            </ul>
+                        </div>
+                        
+                        <div class="metric-card border rounded-lg p-4">
+                            <h4 class="font-semibold text-purple-600 mb-2">📊 품질 메트릭</h4>
+                            <ul class="space-y-1 text-sm">
+                                <li><strong>응답 정확도</strong></li>
+                                <li><strong>사용자 만족도</strong></li>
+                                <li><strong>완성률</strong></li>
+                                <li><strong>재시도율</strong></li>
+                            </ul>
+                        </div>
+                        
+                        <div class="metric-card border rounded-lg p-4">
+                            <h4 class="font-semibold text-red-600 mb-2">⚠️ 신뢰성 메트릭</h4>
+                            <ul class="space-y-1 text-sm">
+                                <li><strong>오류율</strong></li>
+                                <li><strong>가용성</strong></li>
+                                <li><strong>타임아웃 횟수</strong></li>
+                                <li><strong>회로 차단기 상태</strong></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: Implementation -->
+            <section id="implementation" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">3. 모니터링 구현</h2>
+                
+                <!-- Basic Setup -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">기본 설정</h3>
+                    
+                    <div class="mb-6">
+                        <h4 class="font-semibold mb-2">의존성 추가</h4>
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('dependencies')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="dependencies"><code class="language-xml">&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-actuator&lt;/artifactId&gt;
+&lt;/dependency&gt;
+
+&lt;dependency&gt;
+    &lt;groupId&gt;io.micrometer&lt;/groupId&gt;
+    &lt;artifactId&gt;micrometer-registry-prometheus&lt;/artifactId&gt;
+&lt;/dependency&gt;
+
+&lt;dependency&gt;
+    &lt;groupId&gt;io.micrometer&lt;/groupId&gt;
+    &lt;artifactId&gt;micrometer-tracing-bridge-otel&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <h4 class="font-semibold mb-2">설정 파일</h4>
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('config-yaml')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="config-yaml"><code class="language-yaml">management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      environment: ${spring.profiles.active}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        ai.chat.duration: true
+      percentiles:
+        http.server.requests: 0.5,0.95,0.99
+        ai.chat.duration: 0.5,0.95,0.99
+  
+spring:
+  ai:
+    chat:
+      observation:
+        enabled: true
+    embedding:
+      observation:
+        enabled: true
+    vectorstore:
+      observation:
+        enabled: true</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Metrics -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">커스텀 메트릭 구현</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('custom-metrics')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="custom-metrics"><code class="language-java">@Component
+@Slf4j
+public class AIMetricsCollector {
+    
+    private final MeterRegistry meterRegistry;
+    private final Counter tokenCounter;
+    private final Timer responseTimer;
+    private final AtomicDouble currentCost;
+    
+    public AIMetricsCollector(MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
+        
+        // 토큰 카운터
+        this.tokenCounter = Counter.builder("ai.tokens.used")
+            .description("Total tokens used")
+            .tag("type", "total")
+            .register(meterRegistry);
+        
+        // 응답 시간 타이머
+        this.responseTimer = Timer.builder("ai.response.duration")
+            .description("AI response time")
+            .publishPercentiles(0.5, 0.95, 0.99)
+            .register(meterRegistry);
+        
+        // 현재 비용 게이지
+        this.currentCost = new AtomicDouble(0.0);
+        Gauge.builder("ai.cost.current", currentCost, AtomicDouble::get)
+            .description("Current AI API cost")
+            .baseUnit("dollars")
+            .register(meterRegistry);
+    }
+    
+    // ChatClient 인터셉터
+    @Component
+    public class ChatClientInterceptor implements ClientRequestObservationConvention {
+        
+        @Override
+        public void onResponse(ClientRequestObservationContext context) {
+            ChatResponse response = context.getResponse();
+            
+            if (response != null && response.getMetadata() != null) {
+                // 토큰 사용량 기록
+                Usage usage = response.getMetadata().getUsage();
+                if (usage != null) {
+                    recordTokenUsage(usage);
+                }
+                
+                // 모델별 메트릭
+                String model = response.getMetadata().getModel();
+                recordModelMetrics(model, usage);
+                
+                // 비용 계산
+                double cost = calculateCost(model, usage);
+                currentCost.addAndGet(cost);
+                
+                // 응답 품질 메트릭
+                recordQualityMetrics(response);
+            }
+        }
+        
+        private void recordTokenUsage(Usage usage) {
+            meterRegistry.counter("ai.tokens.input", 
+                "model", usage.getModel())
+                .increment(usage.getPromptTokens());
+            
+            meterRegistry.counter("ai.tokens.output", 
+                "model", usage.getModel())
+                .increment(usage.getCompletionTokens());
+            
+            tokenCounter.increment(usage.getTotalTokens());
+        }
+        
+        private void recordModelMetrics(String model, Usage usage) {
+            Tags tags = Tags.of("model", model);
+            
+            // 모델별 호출 횟수
+            meterRegistry.counter("ai.model.calls", tags).increment();
+            
+            // 모델별 평균 토큰 사용량
+            meterRegistry.gauge("ai.model.avg.tokens", tags, 
+                usage.getTotalTokens());
+        }
+    }
+    
+    // 벡터 스토어 메트릭
+    @EventListener
+    public void handleVectorStoreEvent(VectorStoreObservationEvent event) {
+        String operation = event.getOperation();
+        
+        meterRegistry.counter("vectorstore.operations",
+            "operation", operation,
+            "store", event.getVectorStoreName()
+        ).increment();
+        
+        if (event.getDuration() != null) {
+            meterRegistry.timer("vectorstore.operation.duration",
+                "operation", operation
+            ).record(event.getDuration());
+        }
+        
+        if (event.getDocumentCount() != null) {
+            meterRegistry.gauge("vectorstore.documents.processed",
+                Tags.of("operation", operation),
+                event.getDocumentCount()
+            );
+        }
+    }
+    
+    // 비즈니스 메트릭
+    public void recordBusinessMetric(String metricName, double value, Tags tags) {
+        meterRegistry.gauge("business." + metricName, tags, value);
+    }
+    
+    // 에러 추적
+    @EventListener
+    public void handleError(AIErrorEvent event) {
+        meterRegistry.counter("ai.errors",
+            "type", event.getErrorType(),
+            "model", event.getModel(),
+            "operation", event.getOperation()
+        ).increment();
+        
+        // 에러율 계산
+        double errorRate = calculateErrorRate(event.getModel());
+        meterRegistry.gauge("ai.error.rate",
+            Tags.of("model", event.getModel()),
+            errorRate
+        );
+    }
+}</code></pre>
+                    </div>
+                </div>
+
+                <!-- Tracing Implementation -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">분산 추적 구현</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('tracing')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="tracing"><code class="language-java">@Component
+public class AITracingConfiguration {
+    
+    @Bean
+    public ObservationCustomizer<ClientRequestObservationContext> aiObservationCustomizer() {
+        return (context, observation) -> {
+            observation.lowCardinalityKeyValue("ai.provider", getProvider(context));
+            observation.lowCardinalityKeyValue("ai.model", getModel(context));
+            observation.highCardinalityKeyValue("ai.prompt.hash", hashPrompt(context));
+        };
+    }
+    
+    @Component
+    public class TracedAIService {
+        
+        private final ObservationRegistry observationRegistry;
+        private final ChatClient chatClient;
+        
+        public String processWithTracing(String input) {
+            return Observation.createNotStarted("ai.process", observationRegistry)
+                .contextualName("process-user-input")
+                .lowCardinalityKeyValue("input.type", classifyInput(input))
+                .observe(() -> {
+                    // 프롬프트 준비 단계
+                    String prompt = Observation.createNotStarted("ai.prompt.prepare", observationRegistry)
+                        .observe(() -> preparePrompt(input));
+                    
+                    // AI 호출 단계
+                    String response = Observation.createNotStarted("ai.chat.call", observationRegistry)
+                        .observe(() -> chatClient.prompt()
+                            .user(prompt)
+                            .call()
+                            .content());
+                    
+                    // 후처리 단계
+                    return Observation.createNotStarted("ai.response.process", observationRegistry)
+                        .observe(() -> processResponse(response));
+                });
+        }
+    }
+    
+    // 커스텀 스팬 추가
+    @Component
+    public class CustomSpanAspect {
+        
+        private final Tracer tracer;
+        
+        @Around("@annotation(Traced)")
+        public Object trace(ProceedingJoinPoint pjp, Traced traced) throws Throwable {
+            Span span = tracer.nextSpan()
+                .name(traced.value())
+                .tag("component", "spring-ai")
+                .start();
+            
+            try (Tracer.SpanInScope ws = tracer.withSpanInScope(span)) {
+                Object result = pjp.proceed();
+                
+                // 결과 메타데이터 추가
+                if (result instanceof ChatResponse) {
+                    ChatResponse response = (ChatResponse) result;
+                    span.tag("tokens.used", String.valueOf(response.getTokensUsed()));
+                    span.tag("model", response.getModel());
+                }
+                
+                return result;
+            } catch (Exception e) {
+                span.error(e);
+                throw e;
+            } finally {
+                span.end();
+            }
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 4: Dashboards -->
+            <section id="dashboards" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">4. 대시보드 구축</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">Grafana 대시보드</h3>
+                    
+                    <div class="mb-6">
+                        <h4 class="font-semibold mb-2">대시보드 JSON 설정</h4>
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('grafana-dashboard')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="grafana-dashboard"><code class="language-json">{
+  "dashboard": {
+    "title": "Spring AI Monitoring",
+    "panels": [
+      {
+        "title": "AI Request Rate",
+        "targets": [{
+          "expr": "rate(ai_chat_requests_total[5m])"
+        }],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "title": "Token Usage",
+        "targets": [{
+          "expr": "sum(rate(ai_tokens_used_total[5m])) by (model)"
+        }],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "title": "Response Time (P95)",
+        "targets": [{
+          "expr": "histogram_quantile(0.95, rate(ai_response_duration_seconds_bucket[5m]))"
+        }],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "title": "Error Rate",
+        "targets": [{
+          "expr": "sum(rate(ai_errors_total[5m])) by (type)"
+        }],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "title": "Cost per Hour",
+        "targets": [{
+          "expr": "sum(increase(ai_cost_current[1h]))"
+        }],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16}
+      }
+    ]
+  }
+}</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <h4 class="font-semibold mb-2">실시간 대시보드 구현</h4>
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('realtime-dashboard')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="realtime-dashboard"><code class="language-java">@RestController
+@RequestMapping("/api/metrics")
+public class MetricsDashboardController {
+    
+    private final MeterRegistry meterRegistry;
+    private final MetricsAggregator aggregator;
+    
+    @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<DashboardMetrics>> streamMetrics() {
+        return Flux.interval(Duration.ofSeconds(1))
+            .map(tick -> {
+                DashboardMetrics metrics = collectCurrentMetrics();
+                
+                return ServerSentEvent.<DashboardMetrics>builder()
+                    .id(String.valueOf(tick))
+                    .event("metrics")
+                    .data(metrics)
+                    .build();
+            })
+            .doOnCancel(() -> log.info("Dashboard stream cancelled"));
+    }
+    
+    private DashboardMetrics collectCurrentMetrics() {
+        return DashboardMetrics.builder()
+            // 실시간 메트릭
+            .requestRate(getRate("ai.chat.requests"))
+            .avgResponseTime(getAverage("ai.response.duration"))
+            .activeRequests(getGauge("ai.requests.active"))
+            .tokenUsageRate(getRate("ai.tokens.used"))
+            
+            // 누적 메트릭
+            .totalRequests(getCounter("ai.chat.requests"))
+            .totalTokens(getCounter("ai.tokens.used"))
+            .totalCost(getGauge("ai.cost.current"))
+            
+            // 오류 메트릭
+            .errorRate(getRate("ai.errors"))
+            .lastError(aggregator.getLastError())
+            
+            // 모델별 메트릭
+            .modelMetrics(getModelMetrics())
+            
+            // 시스템 메트릭
+            .cpuUsage(getSystemCpuUsage())
+            .memoryUsage(getMemoryUsage())
+            
+            .timestamp(Instant.now())
+            .build();
+    }
+    
+    @GetMapping("/summary")
+    public MetricsSummary getMetricsSummary(
+            @RequestParam(defaultValue = "1h") String timeRange) {
+        
+        return MetricsSummary.builder()
+            .timeRange(timeRange)
+            .overview(aggregator.getOverview(timeRange))
+            .topModels(aggregator.getTopModels(5))
+            .costBreakdown(aggregator.getCostBreakdown())
+            .performanceTrends(aggregator.getPerformanceTrends())
+            .qualityMetrics(aggregator.getQualityMetrics())
+            .build();
+    }
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 5: Cost Tracking -->
+            <section id="cost-tracking" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">5. 비용 추적</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">AI API 비용 모니터링</h3>
+                    
+                    <div class="code-block p-4 relative mb-6">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('cost-tracking')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="cost-tracking"><code class="language-java">@Service
+@Slf4j
+public class AICostTrackingService {
+    
+    private final MeterRegistry meterRegistry;
+    private final CostCalculator costCalculator;
+    private final BudgetManager budgetManager;
+    
+    // 모델별 가격 정보 (2024년 기준)
+    private static final Map<String, ModelPricing> MODEL_PRICING = Map.of(
+        "gpt-4o", new ModelPricing(0.015, 0.06),  // $15/$60 per 1M tokens
+        "gpt-4o-mini", new ModelPricing(0.00015, 0.0006),
+        "claude-3-5-sonnet", new ModelPricing(0.018, 0.072),
+        "embedding-3-small", new ModelPricing(0.00002, 0)
+    );
+    
+    @EventListener
+    public void trackCost(ChatModelObservationEvent event) {
+        if (event.getUsage() != null) {
+            double cost = calculateCost(event);
+            
+            // 비용 메트릭 기록
+            recordCostMetrics(event, cost);
+            
+            // 예산 확인
+            checkBudget(cost);
+            
+            // 비용 이상 감지
+            detectCostAnomaly(event, cost);
+        }
+    }
+    
+    private double calculateCost(ChatModelObservationEvent event) {
+        Usage usage = event.getUsage();
+        ModelPricing pricing = MODEL_PRICING.get(event.getModel());
+        
+        if (pricing == null) {
+            log.warn("Unknown model pricing: {}", event.getModel());
+            return 0.0;
+        }
+        
+        double inputCost = (usage.getPromptTokens() / 1_000_000.0) * pricing.getInputPrice();
+        double outputCost = (usage.getCompletionTokens() / 1_000_000.0) * pricing.getOutputPrice();
+        
+        return inputCost + outputCost;
+    }
+    
+    private void recordCostMetrics(ChatModelObservationEvent event, double cost) {
+        Tags tags = Tags.of(
+            "model", event.getModel(),
+            "user", event.getUserId(),
+            "operation", event.getOperation()
+        );
+        
+        // 즉시 비용
+        meterRegistry.counter("ai.cost.instant", tags).increment(cost);
+        
+        // 누적 비용
+        meterRegistry.gauge("ai.cost.cumulative", tags, 
+            () -> getCumulativeCost(event.getUserId()));
+        
+        // 시간당 비용
+        meterRegistry.gauge("ai.cost.hourly", tags,
+            () -> getHourlyCost(event.getUserId()));
+    }
+    
+    // 예산 관리
+    @Component
+    public class BudgetManager {
+        
+        private final Map<String, Budget> userBudgets = new ConcurrentHashMap<>();
+        private final Budget globalBudget;
+        
+        public void checkBudget(String userId, double cost) {
+            // 사용자별 예산 확인
+            Budget userBudget = userBudgets.get(userId);
+            if (userBudget != null) {
+                userBudget.addCost(cost);
+                
+                if (userBudget.isExceeded()) {
+                    handleBudgetExceeded(userId, userBudget);
+                } else if (userBudget.isNearLimit()) {
+                    sendBudgetWarning(userId, userBudget);
+                }
+            }
+            
+            // 전체 예산 확인
+            globalBudget.addCost(cost);
+            if (globalBudget.isExceeded()) {
+                handleGlobalBudgetExceeded();
+            }
+        }
+        
+        private void handleBudgetExceeded(String userId, Budget budget) {
+            log.error("Budget exceeded for user: {}, spent: ${}, limit: ${}", 
+                userId, budget.getSpent(), budget.getLimit());
+            
+            // 사용자 차단
+            rateLimiter.blockUser(userId);
+            
+            // 알림 발송
+            notificationService.sendBudgetAlert(userId, budget);
+            
+            // 메트릭 기록
+            meterRegistry.counter("ai.budget.exceeded", "user", userId).increment();
+        }
+    }
+    
+    // 비용 이상 감지
+    public void detectCostAnomaly(ChatModelObservationEvent event, double cost) {
+        String userId = event.getUserId();
+        
+        // 평균 비용 대비 이상 감지
+        double avgCost = getAverageCost(userId);
+        double threshold = avgCost * 5; // 평균의 5배
+        
+        if (cost > threshold && cost > 1.0) { // $1 이상
+            log.warn("Cost anomaly detected - User: {}, Cost: ${}, Avg: ${}", 
+                userId, cost, avgCost);
+            
+            // 상세 분석
+            CostAnomaly anomaly = CostAnomaly.builder()
+                .userId(userId)
+                .cost(cost)
+                .averageCost(avgCost)
+                .model(event.getModel())
+                .tokenCount(event.getUsage().getTotalTokens())
+                .timestamp(Instant.now())
+                .build();
+            
+            // 알림
+            alertManager.sendCostAnomaly(anomaly);
+            
+            // 자동 조치
+            if (cost > 10.0) { // $10 이상
+                temporarilyLimitUser(userId);
+            }
+        }
+    }
+    
+    // 비용 리포트 생성
+    @Scheduled(cron = "0 0 8 * * *") // 매일 오전 8시
+    public void generateDailyCostReport() {
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+        
+        CostReport report = CostReport.builder()
+            .date(yesterday)
+            .totalCost(getTotalCost(yesterday))
+            .costByModel(getCostByModel(yesterday))
+            .costByUser(getTopUsers(yesterday, 10))
+            .costByHour(getHourlyCostBreakdown(yesterday))
+            .anomalies(getAnomalies(yesterday))
+            .projectedMonthlyCost(projectMonthlyCost())
+            .build();
+        
+        // 리포트 저장
+        costReportRepository.save(report);
+        
+        // 이메일 발송
+        emailService.sendCostReport(report);
+        
+        // 대시보드 업데이트
+        dashboardService.updateCostMetrics(report);
+    }
+}</code></pre>
+                    </div>
+
+                    <div class="bg-yellow-50 p-4 rounded-lg">
+                        <h4 class="font-semibold mb-2">비용 최적화 팁</h4>
+                        <ul class="space-y-1 text-sm">
+                            <li>• 프롬프트 캐싱으로 중복 호출 방지</li>
+                            <li>• 적절한 모델 선택 (작업에 맞는 모델 사용)</li>
+                            <li>• 토큰 사용량 최적화 (불필요한 내용 제거)</li>
+                            <li>• 배치 처리로 API 호출 수 감소</li>
+                            <li>• 스트리밍 응답으로 부분 취소 가능</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 6: Quality Monitoring -->
+            <section id="quality" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">6. 품질 모니터링</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">AI 응답 품질 추적</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('quality-monitoring')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="quality-monitoring"><code class="language-java">@Service
+public class AIQualityMonitoringService {
+    
+    private final MeterRegistry meterRegistry;
+    private final QualityEvaluator evaluator;
+    
+    // 응답 품질 평가
+    public QualityMetrics evaluateResponse(
+            String prompt, 
+            String response, 
+            Map<String, Object> context) {
+        
+        QualityMetrics metrics = QualityMetrics.builder()
+            .relevance(evaluateRelevance(prompt, response))
+            .coherence(evaluateCoherence(response))
+            .completeness(evaluateCompleteness(prompt, response))
+            .accuracy(evaluateAccuracy(response, context))
+            .toxicity(evaluateToxicity(response))
+            .build();
+        
+        recordQualityMetrics(metrics);
+        
+        return metrics;
+    }
+    
+    // 관련성 평가
+    private double evaluateRelevance(String prompt, String response) {
+        // 의미론적 유사도 계산
+        float[] promptEmbedding = embeddingModel.embed(prompt);
+        float[] responseEmbedding = embeddingModel.embed(response);
+        
+        double similarity = cosineSimilarity(promptEmbedding, responseEmbedding);
+        
+        // 키워드 매칭
+        Set<String> promptKeywords = extractKeywords(prompt);
+        Set<String> responseKeywords = extractKeywords(response);
+        
+        double keywordOverlap = calculateJaccardSimilarity(
+            promptKeywords, 
+            responseKeywords
+        );
+        
+        return (similarity * 0.7 + keywordOverlap * 0.3);
+    }
+    
+    // 일관성 평가
+    private double evaluateCoherence(String response) {
+        String coherencePrompt = """
+            다음 텍스트의 일관성을 0-1 사이의 점수로 평가하세요:
+            
+            텍스트: {text}
+            
+            평가 기준:
+            - 논리적 흐름
+            - 문장 간 연결성
+            - 주제 일관성
+            
+            점수만 반환하세요.
+            """;
+        
+        String score = chatClient.prompt()
+            .user(u -> u.text(coherencePrompt).param("text", response))
+            .call()
+            .content();
+        
+        return Double.parseDouble(score);
+    }
+    
+    // 사용자 피드백 수집
+    @RestController
+    @RequestMapping("/api/feedback")
+    public class FeedbackController {
+        
+        @PostMapping
+        public void collectFeedback(@RequestBody UserFeedback feedback) {
+            // 피드백 저장
+            feedbackRepository.save(feedback);
+            
+            // 메트릭 업데이트
+            updateQualityMetrics(feedback);
+            
+            // 학습 데이터 생성
+            if (feedback.isUsefulForTraining()) {
+                trainingDataService.addExample(
+                    feedback.getPrompt(),
+                    feedback.getResponse(),
+                    feedback.getRating()
+                );
+            }
+        }
+        
+        private void updateQualityMetrics(UserFeedback feedback) {
+            Tags tags = Tags.of(
+                "model", feedback.getModel(),
+                "category", feedback.getCategory()
+            );
+            
+            // 평균 평점
+            meterRegistry.gauge("ai.quality.user.rating", tags, 
+                feedback.getRating());
+            
+            // 만족도
+            if (feedback.getRating() >= 4) {
+                meterRegistry.counter("ai.quality.satisfied", tags).increment();
+            } else {
+                meterRegistry.counter("ai.quality.unsatisfied", tags).increment();
+            }
+            
+            // 구체적 피드백 유형
+            feedback.getIssues().forEach(issue -> {
+                meterRegistry.counter("ai.quality.issues", 
+                    tags.and("issue", issue)).increment();
+            });
+        }
+    }
+    
+    // A/B 테스트 품질 비교
+    @Component
+    public class ABTestQualityAnalyzer {
+        
+        public ABTestResult compareModels(String testId) {
+            List<TestResult> groupA = getTestResults(testId, "A");
+            List<TestResult> groupB = getTestResults(testId, "B");
+            
+            return ABTestResult.builder()
+                .testId(testId)
+                .groupAMetrics(calculateMetrics(groupA))
+                .groupBMetrics(calculateMetrics(groupB))
+                .statisticalSignificance(calculateSignificance(groupA, groupB))
+                .recommendation(generateRecommendation(groupA, groupB))
+                .build();
+        }
+        
+        private GroupMetrics calculateMetrics(List<TestResult> results) {
+            return GroupMetrics.builder()
+                .avgResponseTime(calculateAverage(results, TestResult::getResponseTime))
+                .avgQualityScore(calculateAverage(results, TestResult::getQualityScore))
+                .successRate(calculateSuccessRate(results))
+                .userSatisfaction(calculateSatisfaction(results))
+                .costPerRequest(calculateAvgCost(results))
+                .build();
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 7: Alerting -->
+            <section id="alerting" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">7. 알림 설정</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">지능형 알림 시스템</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('alerting-system')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="alerting-system"><code class="language-java">@Service
+@Slf4j
+public class AIAlertingService {
+    
+    private final AlertManager alertManager;
+    private final MeterRegistry meterRegistry;
+    
+    // 알림 규칙 정의
+    @Configuration
+    public class AlertRules {
+        
+        @Bean
+        public List<AlertRule> aiAlertRules() {
+            return List.of(
+                // 높은 오류율
+                AlertRule.builder()
+                    .name("high-error-rate")
+                    .condition("rate(ai_errors_total[5m]) > 0.1")
+                    .severity(AlertSeverity.CRITICAL)
+                    .message("AI 오류율이 10%를 초과했습니다")
+                    .actions(List.of(
+                        new SlackNotification("#ai-alerts"),
+                        new EmailNotification("team@company.com"),
+                        new CircuitBreakerAction()
+                    ))
+                    .build(),
+                
+                // 느린 응답 시간
+                AlertRule.builder()
+                    .name("slow-response")
+                    .condition("histogram_quantile(0.95, ai_response_duration_seconds) > 10")
+                    .severity(AlertSeverity.WARNING)
+                    .message("P95 응답 시간이 10초를 초과했습니다")
+                    .build(),
+                
+                // 비용 급증
+                AlertRule.builder()
+                    .name("cost-spike")
+                    .condition("increase(ai_cost_current[1h]) > 100")
+                    .severity(AlertSeverity.HIGH)
+                    .message("시간당 비용이 $100를 초과했습니다")
+                    .build(),
+                
+                // 토큰 사용량 이상
+                AlertRule.builder()
+                    .name("token-anomaly")
+                    .condition("ai_tokens_per_request > 3000")
+                    .severity(AlertSeverity.MEDIUM)
+                    .message("요청당 토큰 사용량이 비정상적으로 높습니다")
+                    .build()
+            );
+        }
+    }
+    
+    // 동적 임계값 조정
+    @Component
+    public class DynamicThresholdManager {
+        
+        @Scheduled(fixedRate = 300000) // 5분마다
+        public void adjustThresholds() {
+            // 과거 데이터 기반 임계값 계산
+            Map<String, Double> thresholds = calculateDynamicThresholds();
+            
+            thresholds.forEach((metric, threshold) -> {
+                alertManager.updateThreshold(metric, threshold);
+                log.info("Updated threshold for {}: {}", metric, threshold);
+            });
+        }
+        
+        private Map<String, Double> calculateDynamicThresholds() {
+            Map<String, Double> thresholds = new HashMap<>();
+            
+            // 응답 시간 임계값 (P99 + 50%)
+            double p99ResponseTime = getPercentile("ai_response_duration", 0.99);
+            thresholds.put("response_time", p99ResponseTime * 1.5);
+            
+            // 오류율 임계값 (평균 + 3σ)
+            double avgErrorRate = getAverage("ai_error_rate");
+            double stdDev = getStandardDeviation("ai_error_rate");
+            thresholds.put("error_rate", avgErrorRate + 3 * stdDev);
+            
+            return thresholds;
+        }
+    }
+    
+    // 알림 집계 및 억제
+    @Component
+    public class AlertAggregator {
+        
+        private final Map<String, AlertGroup> activeAlerts = new ConcurrentHashMap<>();
+        
+        public void processAlert(Alert alert) {
+            String groupKey = alert.getGroupKey();
+            
+            AlertGroup group = activeAlerts.computeIfAbsent(
+                groupKey, 
+                k -> new AlertGroup()
+            );
+            
+            group.add(alert);
+            
+            // 집계 로직
+            if (group.shouldSendNotification()) {
+                sendAggregatedAlert(group);
+                group.markNotified();
+            }
+        }
+        
+        private void sendAggregatedAlert(AlertGroup group) {
+            AggregatedAlert aggregated = AggregatedAlert.builder()
+                .title(group.getTitle())
+                .count(group.getCount())
+                .firstOccurrence(group.getFirstOccurrence())
+                .lastOccurrence(group.getLastOccurrence())
+                .severity(group.getHighestSeverity())
+                .details(group.getSummary())
+                .build();
+            
+            alertManager.send(aggregated);
+        }
+    }
+    
+    // 스마트 알림 라우팅
+    @Component
+    public class SmartAlertRouter {
+        
+        public void routeAlert(Alert alert) {
+            // 시간대별 라우팅
+            if (isBusinessHours()) {
+                routeToSlack(alert);
+            } else if (alert.getSeverity() == AlertSeverity.CRITICAL) {
+                routeToPagerDuty(alert);
+            } else {
+                queueForNextBusinessDay(alert);
+            }
+            
+            // 담당자 자동 할당
+            String assignee = determineAssignee(alert);
+            alert.setAssignee(assignee);
+            
+            // 컨텍스트 추가
+            enrichAlertContext(alert);
+        }
+        
+        private void enrichAlertContext(Alert alert) {
+            alert.addContext("recent_changes", getRecentChanges());
+            alert.addContext("similar_incidents", findSimilarIncidents(alert));
+            alert.addContext("recommended_actions", suggestActions(alert));
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 8: Debugging -->
+            <section id="debugging" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">8. 디버깅 도구</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-semibold mb-3">AI 애플리케이션 디버깅</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('debugging-tools')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="debugging-tools"><code class="language-java">@Component
+@Profile("debug")
+public class AIDebugger {
+    
+    // 프롬프트 디버거
+    @Component
+    public class PromptDebugger {
+        
+        @EventListener
+        public void debugPrompt(ChatPromptEvent event) {
+            log.debug("=== PROMPT DEBUG ===");
+            log.debug("Timestamp: {}", Instant.now());
+            log.debug("User: {}", event.getUserId());
+            log.debug("Model: {}", event.getModel());
+            log.debug("System Prompt: {}", event.getSystemPrompt());
+            log.debug("User Prompt: {}", event.getUserPrompt());
+            log.debug("Parameters: {}", event.getParameters());
+            log.debug("Token Estimate: {}", estimateTokens(event));
+            log.debug("==================");
+            
+            // 프롬프트 저장 (디버깅용)
+            if (debugConfig.isSavePrompts()) {
+                savePromptForAnalysis(event);
+            }
+        }
+        
+        @EventListener
+        public void debugResponse(ChatResponseEvent event) {
+            log.debug("=== RESPONSE DEBUG ===");
+            log.debug("Request ID: {}", event.getRequestId());
+            log.debug("Response Time: {}ms", event.getDuration());
+            log.debug("Tokens Used: {}", event.getTokensUsed());
+            log.debug("Cost: ${}", event.getEstimatedCost());
+            log.debug("Response Preview: {}", 
+                StringUtils.abbreviate(event.getResponse(), 200));
+            log.debug("====================");
+        }
+    }
+    
+    // 토큰 분석기
+    @RestController
+    @RequestMapping("/debug/tokens")
+    public class TokenAnalyzer {
+        
+        @PostMapping("/analyze")
+        public TokenAnalysis analyzeTokens(@RequestBody String text) {
+            List<String> tokens = tokenizer.tokenize(text);
+            
+            return TokenAnalysis.builder()
+                .text(text)
+                .tokenCount(tokens.size())
+                .tokens(tokens)
+                .characterCount(text.length())
+                .estimatedCost(calculateCost(tokens.size()))
+                .modelRecommendation(recommendModel(tokens.size()))
+                .optimizationSuggestions(suggestOptimizations(text))
+                .build();
+        }
+    }
+    
+    // 대화 재현 도구
+    @Component
+    public class ConversationReplayer {
+        
+        public ReplayResult replayConversation(String conversationId) {
+            List<ConversationTurn> turns = loadConversation(conversationId);
+            List<ReplayStep> steps = new ArrayList<>();
+            
+            for (ConversationTurn turn : turns) {
+                // 원본 요청 재현
+                ChatResponse original = turn.getResponse();
+                
+                // 새로운 요청 실행
+                ChatResponse replayed = chatClient.prompt()
+                    .system(turn.getSystemPrompt())
+                    .user(turn.getUserPrompt())
+                    .call();
+                
+                // 비교 분석
+                DiffAnalysis diff = analyzeDifference(original, replayed);
+                
+                steps.add(ReplayStep.builder()
+                    .turn(turn)
+                    .originalResponse(original)
+                    .replayedResponse(replayed)
+                    .diff(diff)
+                    .build());
+            }
+            
+            return ReplayResult.builder()
+                .conversationId(conversationId)
+                .steps(steps)
+                .consistency(calculateConsistency(steps))
+                .build();
+        }
+    }
+    
+    // 성능 프로파일러
+    @Component
+    public class AIPerformanceProfiler {
+        
+        @Around("@annotation(Profiled)")
+        public Object profile(ProceedingJoinPoint pjp) throws Throwable {
+            String operation = pjp.getSignature().getName();
+            
+            ProfileContext context = ProfileContext.start(operation);
+            
+            try {
+                // 메모리 스냅샷
+                context.captureMemoryBefore();
+                
+                // 실행
+                Object result = pjp.proceed();
+                
+                // 메트릭 수집
+                context.captureMemoryAfter();
+                context.recordDuration();
+                
+                if (result instanceof ChatResponse) {
+                    context.recordTokens(((ChatResponse) result).getTokensUsed());
+                }
+                
+                // 분석
+                if (context.getDuration() > slowThreshold) {
+                    analyzeSlowOperation(context);
+                }
+                
+                return result;
+                
+            } finally {
+                profileRepository.save(context.toProfile());
+            }
+        }
+        
+        private void analyzeSlowOperation(ProfileContext context) {
+            SlowOperationAnalysis analysis = SlowOperationAnalysis.builder()
+                .operation(context.getOperation())
+                .duration(context.getDuration())
+                .memoryDelta(context.getMemoryDelta())
+                .possibleCauses(identifyBottlenecks(context))
+                .recommendations(generateRecommendations(context))
+                .build();
+            
+            log.warn("Slow operation detected: {}", analysis);
+            alertManager.sendSlowOperationAlert(analysis);
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Best Practices -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">🎯 모니터링 Best Practices</h2>
+                
+                <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="font-semibold mb-3">필수 모니터링 항목</h3>
+                            <ul class="space-y-1 text-sm">
+                                <li>✅ 응답 시간 (P50, P95, P99)</li>
+                                <li>✅ 토큰 사용량 및 비용</li>
+                                <li>✅ 오류율 및 재시도율</li>
+                                <li>✅ 모델별 성능 비교</li>
+                                <li>✅ 사용자별 사용 패턴</li>
+                            </ul>
+                        </div>
+                        
+                        <div>
+                            <h3 class="font-semibold mb-3">알림 전략</h3>
+                            <ul class="space-y-1 text-sm">
+                                <li>🚨 Critical: 서비스 중단, 예산 초과</li>
+                                <li>⚠️ Warning: 성능 저하, 높은 오류율</li>
+                                <li>ℹ️ Info: 일일 리포트, 트렌드 변화</li>
+                                <li>🔍 Debug: 개발 환경 상세 로그</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6">
+                        <h3 class="font-semibold mb-3">비용 최적화 체크리스트</h3>
+                        <div class="bg-white p-4 rounded-lg">
+                            <ul class="space-y-1 text-sm">
+                                <li>□ 프롬프트 길이 최적화</li>
+                                <li>□ 적절한 모델 선택</li>
+                                <li>□ 응답 캐싱 구현</li>
+                                <li>□ 배치 처리 활용</li>
+                                <li>□ 사용량 제한 설정</li>
+                                <li>□ 정기적인 비용 리뷰</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Next Steps -->
+            <section class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4">다음 단계</h2>
+                
+                <div class="grid md:grid-cols-3 gap-4">
+                    <a href="patterns.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-blue-600 mb-2">AI 패턴</h3>
+                        <p class="text-sm text-gray-600">효과적인 AI 애플리케이션 패턴</p>
+                    </a>
+                    
+                    <a href="performance.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-green-600 mb-2">성능 최적화</h3>
+                        <p class="text-sm text-gray-600">AI 애플리케이션 성능 개선</p>
+                    </a>
+                    
+                    <a href="troubleshooting.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-purple-600 mb-2">문제 해결</h3>
+                        <p class="text-sm text-gray-600">일반적인 문제와 해결 방법</p>
+                    </a>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <script>
+        function copyCode(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('코드가 복사되었습니다!');
+            });
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg z-50';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

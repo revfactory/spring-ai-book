@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chain Workflow 패턴 - Spring AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .code-block { background: #2d3748; border-radius: 8px; }
+        .copy-button { transition: all 0.2s ease; }
+        .copy-button:hover { background-color: #4a5568; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <a href="../../index.html" class="flex items-center text-xl font-bold text-gray-800">
+                        <i class="fab fa-spring text-green-600 mr-2"></i>
+                        Spring AI Hub
+                    </a>
+                    <span class="mx-3 text-gray-400">/</span>
+                    <a href="../patterns.html" class="text-gray-600 hover:text-gray-800">패턴 가이드</a>
+                    <span class="mx-3 text-gray-400">/</span>
+                    <span class="text-gray-600">Chain Workflow</span>
+                </div>
+                <a href="../../index.html" class="text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-home"></i> 홈으로
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-4xl font-bold mb-4">🔗 Chain Workflow 패턴</h1>
+            <p class="text-gray-600 mb-8">순차적 작업 처리로 복잡한 태스크를 단계별로 해결하는 패턴</p>
+
+            <!-- Overview -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">개요</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <p class="mb-4">
+                        Chain Workflow 패턴은 여러 AI 작업을 순차적으로 연결하여 복잡한 태스크를 해결하는 패턴입니다. 
+                        각 단계의 출력이 다음 단계의 입력이 되며, 파이프라인 형태로 작업이 진행됩니다.
+                    </p>
+                    
+                    <div class="bg-blue-50 p-4 rounded-lg mb-4">
+                        <h3 class="font-semibold mb-2">주요 특징:</h3>
+                        <ul class="space-y-1">
+                            <li>✅ 순차적 실행으로 의존성 관리 용이</li>
+                            <li>✅ 각 단계별 결과 검증 가능</li>
+                            <li>✅ 중간 결과 캐싱 가능</li>
+                            <li>✅ 오류 발생 시 특정 단계부터 재시작 가능</li>
+                            <li>✅ 단계별 모니터링 및 디버깅 용이</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-gray-100 p-4 rounded-lg">
+                        <h3 class="font-semibold mb-2">워크플로우 다이어그램:</h3>
+                        <pre class="text-sm font-mono">
+입력 데이터
+    │
+    ▼
+┌─────────────┐
+│  단계 1:     │ ← 문서 분석
+│  분석 작업   │
+└─────────────┘
+    │
+    ▼
+┌─────────────┐
+│  단계 2:     │ ← 핵심 내용 추출
+│  요약 작업   │
+└─────────────┘
+    │
+    ▼
+┌─────────────┐
+│  단계 3:     │ ← 답변 생성
+│  생성 작업   │
+└─────────────┘
+    │
+    ▼
+최종 결과
+                        </pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Basic Implementation -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">기본 구현</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">Chain 인터페이스</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('chain-interface')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="chain-interface"><code class="language-java">public interface Chain<I, O> {
+    O process(I input);
+    String getName();
+    ChainMetrics getMetrics();
+}
+
+public class ChainBuilder<I, O> {
+    private final List<Chain<?, ?>> chains = new ArrayList<>();
+    
+    public <T> ChainBuilder<I, T> addStep(Chain<O, T> chain) {
+        chains.add(chain);
+        return (ChainBuilder<I, T>) this;
+    }
+    
+    public Chain<I, O> build() {
+        return new CompositeChain<>(chains);
+    }
+}
+
+@Component
+public class CompositeChain<I, O> implements Chain<I, O> {
+    
+    private final List<Chain<?, ?>> steps;
+    private final ChainMonitor monitor;
+    
+    @Override
+    public O process(I input) {
+        Object current = input;
+        
+        for (int i = 0; i < steps.size(); i++) {
+            Chain step = steps.get(i);
+            
+            monitor.beforeStep(step.getName(), current);
+            
+            try {
+                current = step.process(current);
+                monitor.afterStep(step.getName(), current);
+            } catch (Exception e) {
+                monitor.onError(step.getName(), e);
+                throw new ChainExecutionException(
+                    "Failed at step: " + step.getName(), e
+                );
+            }
+        }
+        
+        return (O) current;
+    }
+}</code></pre>
+                    </div>
+                </div>
+
+                <!-- Document Processing Chain -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">문서 처리 체인 예제</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('document-chain')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="document-chain"><code class="language-java">@Service
+public class DocumentProcessingChain {
+    
+    private final Chain<Document, ProcessedDocument> processingChain;
+    
+    public DocumentProcessingChain(
+            DocumentAnalyzer analyzer,
+            ContentSummarizer summarizer,
+            AnswerGenerator generator) {
+        
+        this.processingChain = new ChainBuilder<Document, ProcessedDocument>()
+            .addStep(new AnalysisStep(analyzer))
+            .addStep(new SummarizationStep(summarizer))
+            .addStep(new GenerationStep(generator))
+            .build();
+    }
+    
+    public ProcessedDocument processDocument(Document document) {
+        return processingChain.process(document);
+    }
+}
+
+// Step 1: 문서 분석
+@Component
+public class AnalysisStep implements Chain<Document, AnalyzedDocument> {
+    
+    private final DocumentAnalyzer analyzer;
+    private final ChatClient chatClient;
+    
+    @Override
+    public AnalyzedDocument process(Document input) {
+        log.info("Analyzing document: {}", input.getTitle());
+        
+        // AI를 활용한 문서 분석
+        String analysis = chatClient.prompt()
+            .system("당신은 문서 분석 전문가입니다.")
+            .user(u -> u.text("""
+                다음 문서를 분석하여 구조화된 정보를 추출하세요:
+                - 주요 주제
+                - 핵심 개념
+                - 중요한 사실
+                - 관계성
+                
+                문서: {document}
+                """)
+                .param("document", input.getContent()))
+            .call()
+            .content();
+        
+        return AnalyzedDocument.builder()
+            .originalDocument(input)
+            .analysis(parseAnalysis(analysis))
+            .metadata(extractMetadata(input))
+            .timestamp(Instant.now())
+            .build();
+    }
+}
+
+// Step 2: 내용 요약
+@Component
+public class SummarizationStep implements Chain<AnalyzedDocument, SummarizedDocument> {
+    
+    private final ChatClient chatClient;
+    
+    @Override
+    public SummarizedDocument process(AnalyzedDocument input) {
+        log.info("Summarizing analyzed document");
+        
+        String summary = chatClient.prompt()
+            .system("핵심 내용을 간결하게 요약하는 전문가입니다.")
+            .user(u -> u.text("""
+                다음 분석 결과를 바탕으로 요약을 생성하세요:
+                
+                주요 주제: {topics}
+                핵심 개념: {concepts}
+                중요 사실: {facts}
+                
+                요구사항:
+                - 3-5개의 핵심 포인트
+                - 각 포인트는 한 문장으로
+                - 전문 용어는 쉽게 설명
+                """)
+                .param("topics", input.getAnalysis().getTopics())
+                .param("concepts", input.getAnalysis().getConcepts())
+                .param("facts", input.getAnalysis().getFacts()))
+            .call()
+            .content();
+        
+        return SummarizedDocument.builder()
+            .analyzedDocument(input)
+            .summary(summary)
+            .keyPoints(extractKeyPoints(summary))
+            .build();
+    }
+}
+
+// Step 3: 답변 생성
+@Component
+public class GenerationStep implements Chain<SummarizedDocument, ProcessedDocument> {
+    
+    private final ChatClient chatClient;
+    private final QualityChecker qualityChecker;
+    
+    @Override
+    public ProcessedDocument process(SummarizedDocument input) {
+        log.info("Generating final output");
+        
+        // 사용자 친화적 답변 생성
+        String response = chatClient.prompt()
+            .system("친절하고 정확한 답변을 생성하는 전문가입니다.")
+            .user(u -> u.text("""
+                다음 요약을 바탕으로 사용자에게 유용한 답변을 생성하세요:
+                
+                요약: {summary}
+                핵심 포인트: {keyPoints}
+                
+                답변 형식:
+                - 인사말과 함께 시작
+                - 핵심 내용을 쉽게 설명
+                - 실용적인 조언 포함
+                - 추가 정보 안내로 마무리
+                """)
+                .param("summary", input.getSummary())
+                .param("keyPoints", input.getKeyPoints()))
+            .call()
+            .content();
+        
+        // 품질 검증
+        QualityScore score = qualityChecker.evaluate(response);
+        
+        if (score.getValue() < 0.7) {
+            // 품질이 낮으면 재생성
+            response = regenerateWithFeedback(input, score.getFeedback());
+        }
+        
+        return ProcessedDocument.builder()
+            .originalDocument(input.getAnalyzedDocument().getOriginalDocument())
+            .finalResponse(response)
+            .processingSteps(List.of("analysis", "summarization", "generation"))
+            .qualityScore(score)
+            .processingTime(calculateProcessingTime())
+            .build();
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Advanced Features -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">고급 기능</h2>
+                
+                <!-- Error Handling -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">오류 처리 및 재시도</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('chain-error-handling')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="chain-error-handling"><code class="language-java">@Component
+public class ResilientChain<I, O> implements Chain<I, O> {
+    
+    private final Chain<I, O> delegate;
+    private final RetryTemplate retryTemplate;
+    private final CircuitBreaker circuitBreaker;
+    private final ChainStateStore stateStore;
+    
+    @Override
+    public O process(I input) {
+        String executionId = UUID.randomUUID().toString();
+        
+        return circuitBreaker.executeSupplier(() ->
+            retryTemplate.execute(context -> {
+                try {
+                    // 상태 저장
+                    stateStore.saveInput(executionId, input);
+                    
+                    // 실행
+                    O result = delegate.process(input);
+                    
+                    // 성공 상태 저장
+                    stateStore.saveSuccess(executionId, result);
+                    
+                    return result;
+                    
+                } catch (Exception e) {
+                    // 실패 상태 저장
+                    stateStore.saveFailure(executionId, e);
+                    
+                    // 복구 가능한 오류인지 확인
+                    if (isRecoverable(e)) {
+                        log.warn("Recoverable error, retrying: {}", e.getMessage());
+                        throw e;
+                    } else {
+                        log.error("Non-recoverable error: {}", e.getMessage());
+                        return handleNonRecoverableError(input, e);
+                    }
+                }
+            })
+        );
+    }
+    
+    private boolean isRecoverable(Exception e) {
+        return e instanceof TimeoutException ||
+               e instanceof RateLimitException ||
+               (e instanceof ApiException && ((ApiException) e).isRetryable());
+    }
+}</code></pre>
+                    </div>
+                </div>
+
+                <!-- Caching -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">중간 결과 캐싱</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('chain-caching')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="chain-caching"><code class="language-java">@Component
+public class CachedChain<I, O> implements Chain<I, O> {
+    
+    private final Chain<I, O> delegate;
+    private final LoadingCache<I, O> cache;
+    
+    public CachedChain(Chain<I, O> delegate) {
+        this.delegate = delegate;
+        this.cache = Caffeine.newBuilder()
+            .maximumSize(100)
+            .expireAfterWrite(1, TimeUnit.HOURS)
+            .recordStats()
+            .build(key -> delegate.process(key));
+    }
+    
+    @Override
+    public O process(I input) {
+        try {
+            return cache.get(input);
+        } catch (Exception e) {
+            log.error("Cache operation failed", e);
+            // 캐시 실패 시 직접 실행
+            return delegate.process(input);
+        }
+    }
+    
+    public CacheStats getStats() {
+        return cache.stats();
+    }
+    
+    public void invalidate(I input) {
+        cache.invalidate(input);
+    }
+}
+
+// 선택적 캐싱이 가능한 체인
+@Service
+public class SelectiveCachingChain {
+    
+    public Chain<Document, ProcessedDocument> buildChain() {
+        return new ChainBuilder<Document, ProcessedDocument>()
+            // 분석 단계는 캐싱
+            .addStep(new CachedChain<>(new AnalysisStep()))
+            // 요약 단계는 캐싱하지 않음 (자주 변경됨)
+            .addStep(new SummarizationStep())
+            // 생성 단계도 캐싱하지 않음 (개인화된 응답)
+            .addStep(new GenerationStep())
+            .build();
+    }
+}</code></pre>
+                    </div>
+                </div>
+
+                <!-- Monitoring -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">체인 모니터링</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('chain-monitoring')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="chain-monitoring"><code class="language-java">@Component
+@Slf4j
+public class ChainMonitor {
+    
+    private final MeterRegistry meterRegistry;
+    private final ChainEventPublisher eventPublisher;
+    
+    public void beforeStep(String stepName, Object input) {
+        Timer.Sample sample = Timer.start(meterRegistry);
+        MDC.put("chain.step", stepName);
+        MDC.put("chain.input.size", String.valueOf(calculateSize(input)));
+        
+        eventPublisher.publishStepStarted(ChainStepEvent.builder()
+            .stepName(stepName)
+            .timestamp(Instant.now())
+            .inputType(input.getClass().getSimpleName())
+            .build());
+    }
+    
+    public void afterStep(String stepName, Object output) {
+        meterRegistry.counter("chain.step.completed",
+            "step", stepName,
+            "status", "success"
+        ).increment();
+        
+        MDC.put("chain.output.size", String.valueOf(calculateSize(output)));
+        
+        eventPublisher.publishStepCompleted(ChainStepEvent.builder()
+            .stepName(stepName)
+            .timestamp(Instant.now())
+            .outputType(output.getClass().getSimpleName())
+            .build());
+        
+        MDC.clear();
+    }
+    
+    public void onError(String stepName, Exception error) {
+        meterRegistry.counter("chain.step.completed",
+            "step", stepName,
+            "status", "error",
+            "error.type", error.getClass().getSimpleName()
+        ).increment();
+        
+        log.error("Chain step failed: {}", stepName, error);
+        
+        eventPublisher.publishStepFailed(ChainStepEvent.builder()
+            .stepName(stepName)
+            .timestamp(Instant.now())
+            .error(error.getMessage())
+            .build());
+    }
+}
+
+// 체인 실행 추적
+@Component
+public class ChainExecutionTracer {
+    
+    private final Tracer tracer;
+    
+    public <T> T traceExecution(String chainName, Supplier<T> execution) {
+        Span span = tracer.nextSpan()
+            .name("chain." + chainName)
+            .start();
+        
+        try (Tracer.SpanInScope ws = tracer.withSpanInScope(span)) {
+            span.tag("chain.name", chainName);
+            
+            T result = execution.get();
+            
+            span.tag("chain.status", "success");
+            return result;
+            
+        } catch (Exception e) {
+            span.error(e);
+            span.tag("chain.status", "error");
+            throw e;
+        } finally {
+            span.end();
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Real-World Examples -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">실전 예제</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">코드 리뷰 체인</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('code-review-chain')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="code-review-chain"><code class="language-java">@Service
+public class CodeReviewChain {
+    
+    private final Chain<CodeSubmission, ReviewResult> reviewChain;
+    
+    public CodeReviewChain() {
+        this.reviewChain = new ChainBuilder<CodeSubmission, ReviewResult>()
+            .addStep(new SyntaxAnalysisStep())      // 문법 검사
+            .addStep(new SecurityAnalysisStep())     // 보안 취약점 검사
+            .addStep(new PerformanceAnalysisStep())  // 성능 분석
+            .addStep(new BestPracticesStep())        // 모범 사례 검사
+            .addStep(new ReviewSummaryStep())        // 종합 리뷰
+            .build();
+    }
+    
+    public ReviewResult reviewCode(CodeSubmission submission) {
+        return reviewChain.process(submission);
+    }
+}
+
+// 보안 분석 단계
+@Component
+public class SecurityAnalysisStep implements Chain<CodeAnalysis, SecurityAnalysis> {
+    
+    private final ChatClient chatClient;
+    private final SecurityRuleEngine ruleEngine;
+    
+    @Override
+    public SecurityAnalysis process(CodeAnalysis input) {
+        // 규칙 기반 검사
+        List<SecurityIssue> ruleBasedIssues = ruleEngine.analyze(input.getCode());
+        
+        // AI 기반 검사
+        String aiAnalysis = chatClient.prompt()
+            .system("""
+                당신은 보안 전문가입니다. 
+                다음 코드의 보안 취약점을 찾아주세요:
+                - SQL Injection
+                - XSS
+                - 인증/인가 문제
+                - 민감 정보 노출
+                - 기타 보안 위험
+                """)
+            .user(input.getCode())
+            .call()
+            .content();
+        
+        List<SecurityIssue> aiIssues = parseSecurityIssues(aiAnalysis);
+        
+        return SecurityAnalysis.builder()
+            .codeAnalysis(input)
+            .issues(mergeIssues(ruleBasedIssues, aiIssues))
+            .severity(calculateSeverity(ruleBasedIssues, aiIssues))
+            .recommendations(generateRecommendations(aiIssues))
+            .build();
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Best Practices -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">🎯 Best Practices</h2>
+                
+                <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">Chain Workflow 설계 원칙</h3>
+                    
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-semibold mb-2">설계 원칙</h4>
+                            <ul class="space-y-1 text-sm">
+                                <li>✅ 각 단계는 단일 책임 원칙 준수</li>
+                                <li>✅ 단계 간 명확한 인터페이스 정의</li>
+                                <li>✅ 실패 시 롤백 전략 수립</li>
+                                <li>✅ 중요한 단계는 결과 검증 추가</li>
+                                <li>✅ 긴 체인은 중간 체크포인트 설정</li>
+                            </ul>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-semibold mb-2">성능 최적화</h4>
+                            <ul class="space-y-1 text-sm">
+                                <li>✅ 비용이 큰 단계는 캐싱 고려</li>
+                                <li>✅ 병렬 처리 가능한 부분 식별</li>
+                                <li>✅ 조기 종료 조건 설정</li>
+                                <li>✅ 타임아웃 설정으로 무한 대기 방지</li>
+                                <li>✅ 배치 처리로 처리량 향상</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Next Steps -->
+            <section class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4">다음 단계</h2>
+                
+                <div class="grid md:grid-cols-3 gap-4">
+                    <a href="parallel.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-green-600 mb-2">Parallel Processing</h3>
+                        <p class="text-sm text-gray-600">병렬 처리 패턴 알아보기</p>
+                    </a>
+                    
+                    <a href="routing.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-purple-600 mb-2">Smart Routing</h3>
+                        <p class="text-sm text-gray-600">지능형 라우팅 패턴</p>
+                    </a>
+                    
+                    <a href="../patterns.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-blue-600 mb-2">패턴 목록</h3>
+                        <p class="text-sm text-gray-600">전체 패턴 보기</p>
+                    </a>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <script>
+        function copyCode(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('코드가 복사되었습니다!');
+            });
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg z-50';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

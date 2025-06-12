@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring AI Developer Hub - 개발자를 위한 필수 가이드</title>
+    <meta name="description" content="Spring AI 개발자를 위한 핵심 정보와 실무 도구를 제공하는 무료 허브">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-hover { transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+        .code-block { background: #2d3748; border-radius: 8px; }
+        .copy-button { transition: all 0.2s ease; }
+        .copy-button:hover { background-color: #4a5568; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="gradient-bg text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="text-center">
+                <div class="flex items-center justify-center mb-4">
+                    <i class="fab fa-spring text-4xl mr-3"></i>
+                    <h1 class="text-4xl font-bold">Spring AI Developer Hub</h1>
+                </div>
+                <p class="text-xl text-blue-100 mb-6">개발자를 위한 핵심 정보와 실무 도구 - 완전 무료</p>
+                <div class="flex flex-wrap justify-center gap-4 text-sm">
+                    <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full">✅ 5분 내 시작</span>
+                    <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full">✅ 즉시 복사 가능한 코드</span>
+                    <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full">✅ 검증된 패턴</span>
+                    <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full">✅ 100% 무료</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-center space-x-8 py-4">
+                <a href="#quick-start" class="text-gray-700 hover:text-blue-600 font-medium">빠른 시작</a>
+                <a href="#templates" class="text-gray-700 hover:text-blue-600 font-medium">코드 템플릿</a>
+                <a href="#models" class="text-gray-700 hover:text-blue-600 font-medium">모델 가이드</a>
+                <a href="#patterns" class="text-gray-700 hover:text-blue-600 font-medium">패턴 라이브러리</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Quick Stats -->
+    <section class="py-8 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div class="p-4">
+                    <div class="text-2xl font-bold text-blue-600">20+</div>
+                    <div class="text-gray-600">지원 AI 모델</div>
+                </div>
+                <div class="p-4">
+                    <div class="text-2xl font-bold text-green-600">18+</div>
+                    <div class="text-gray-600">벡터 데이터베이스</div>
+                </div>
+                <div class="p-4">
+                    <div class="text-2xl font-bold text-purple-600">50+</div>
+                    <div class="text-gray-600">실무 예제</div>
+                </div>
+                <div class="p-4">
+                    <div class="text-2xl font-bold text-red-600">5분</div>
+                    <div class="text-gray-600">평균 해결 시간</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Start Section -->
+    <section id="quick-start" class="py-12">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center mb-8">🚀 5분 내 시작하기</h2>
+            
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Step 1: Dependencies -->
+                <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                    <h3 class="text-xl font-semibold mb-4 flex items-center">
+                        <span class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm mr-3">1</span>
+                        의존성 추가
+                    </h3>
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('maven-deps')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="maven-deps"><code class="language-xml">&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.ai&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-ai-openai-spring-boot-starter&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></pre>
+                    </div>
+                </div>
+
+                <!-- Step 2: Configuration -->
+                <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                    <h3 class="text-xl font-semibold mb-4 flex items-center">
+                        <span class="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm mr-3">2</span>
+                        설정 파일
+                    </h3>
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('yaml-config')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="yaml-config"><code class="language-yaml">spring:
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: gpt-4o
+          temperature: 0.7</code></pre>
+                    </div>
+                </div>
+
+                <!-- Step 3: Basic Service -->
+                <div class="bg-white rounded-lg shadow-lg p-6 card-hover md:col-span-2">
+                    <h3 class="text-xl font-semibold mb-4 flex items-center">
+                        <span class="bg-purple-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm mr-3">3</span>
+                        서비스 클래스 (즉시 사용 가능)
+                    </h3>
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('service-class')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="service-class"><code class="language-java">@Service
+public class AIChatService {
+    
+    private final ChatClient chatClient;
+    
+    public AIChatService(ChatClient.Builder builder) {
+        this.chatClient = builder.build();
+    }
+    
+    public String chat(String message) {
+        return chatClient.prompt()
+            .user(message)
+            .call()
+            .content();
+    }
+    
+    // 스트리밍 응답
+    public Flux&lt;String&gt; chatStream(String message) {
+        return chatClient.prompt()
+            .user(message)
+            .stream()
+            .content();
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-8">
+                <p class="text-gray-600 mb-4">✅ 이제 바로 AI 기능을 사용할 수 있습니다!</p>
+                <a href="guide/examples.html" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                    더 많은 예제 보기 →
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Model Comparison -->
+    <section id="models" class="py-12 bg-gray-100">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center mb-8">🤖 모델 선택 가이드</h2>
+            
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left font-semibold">용도</th>
+                                <th class="px-6 py-3 text-left font-semibold">추천 모델</th>
+                                <th class="px-6 py-3 text-left font-semibold">이유</th>
+                                <th class="px-6 py-3 text-left font-semibold">설정 복잡도</th>
+                                <th class="px-6 py-3 text-left font-semibold">액션</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4">프로토타입</td>
+                                <td class="px-6 py-4 font-medium text-blue-600">OpenAI GPT-4o</td>
+                                <td class="px-6 py-4">신뢰성, 문서화</td>
+                                <td class="px-6 py-4">⭐</td>
+                                <td class="px-6 py-4">
+                                    <button class="bg-blue-100 text-blue-700 px-3 py-1 rounded text-sm hover:bg-blue-200" 
+                                            onclick="showConfig('openai')">
+                                        설정 보기
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4">프로덕션</td>
+                                <td class="px-6 py-4 font-medium text-green-600">Anthropic Claude</td>
+                                <td class="px-6 py-4">안전성, 성능</td>
+                                <td class="px-6 py-4">⭐⭐</td>
+                                <td class="px-6 py-4">
+                                    <button class="bg-green-100 text-green-700 px-3 py-1 rounded text-sm hover:bg-green-200" 
+                                            onclick="showConfig('anthropic')">
+                                        설정 보기
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4">로컬 개발</td>
+                                <td class="px-6 py-4 font-medium text-purple-600">Ollama</td>
+                                <td class="px-6 py-4">무료, 오프라인</td>
+                                <td class="px-6 py-4">⭐⭐⭐</td>
+                                <td class="px-6 py-4">
+                                    <button class="bg-purple-100 text-purple-700 px-3 py-1 rounded text-sm hover:bg-purple-200" 
+                                            onclick="showConfig('ollama')">
+                                        설정 보기
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4">엔터프라이즈</td>
+                                <td class="px-6 py-4 font-medium text-red-600">Azure OpenAI</td>
+                                <td class="px-6 py-4">규정준수</td>
+                                <td class="px-6 py-4">⭐⭐⭐⭐</td>
+                                <td class="px-6 py-4">
+                                    <button class="bg-red-100 text-red-700 px-3 py-1 rounded text-sm hover:bg-red-200" 
+                                            onclick="showConfig('azure')">
+                                        설정 보기
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Configuration Modal -->
+            <div id="configModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+                <div class="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 id="configTitle" class="text-xl font-semibold"></h3>
+                            <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div id="configContent" class="code-block p-4"></div>
+                        <div class="mt-4 text-right">
+                            <button onclick="copyModalCode()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Code Templates -->
+    <section id="templates" class="py-12">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center mb-8">📝 필수 코드 템플릿</h2>
+            
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- RAG System -->
+                <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                    <h3 class="text-xl font-semibold mb-4 flex items-center">
+                        <i class="fas fa-search text-blue-500 mr-3"></i>
+                        RAG 시스템 (5분 구현)
+                    </h3>
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('rag-template')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="rag-template"><code class="language-java">@Service
+public class SimpleRAGService {
+    private final ChatClient chatClient;
+    private final VectorStore vectorStore;
+    
+    public String askQuestion(String question) {
+        // 1. 관련 문서 검색
+        List&lt;Document&gt; docs = vectorStore
+            .similaritySearch(question);
+        
+        // 2. 컨텍스트와 함께 질문
+        return chatClient.prompt()
+            .user(u -&gt; u.text(question)
+                .param("context", docs))
+            .call()
+            .content();
+    }
+}</code></pre>
+                    </div>
+                    <div class="mt-4">
+                        <a href="guide/rag.html" class="text-blue-600 hover:text-blue-800 text-sm">
+                            상세 가이드 보기 →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Tool Calling -->
+                <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                    <h3 class="text-xl font-semibold mb-4 flex items-center">
+                        <i class="fas fa-tools text-green-500 mr-3"></i>
+                        Tool Calling (함수 호출)
+                    </h3>
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('tool-template')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="tool-template"><code class="language-java">@Component
+public class WeatherService {
+    
+    @Tool("현재 날씨 정보를 가져옵니다")
+    public String getCurrentWeather(
+        @ToolParam("도시명") String city) {
+        // 실제 날씨 API 호출
+        return "서울의 현재 날씨: 맑음, 25°C";
+    }
+}
+
+// ChatClient에서 사용
+chatClient.prompt()
+    .user("서울 날씨 어때?")
+    .functions("getCurrentWeather")
+    .call()
+    .content();</code></pre>
+                    </div>
+                    <div class="mt-4">
+                        <a href="guide/tools.html" class="text-green-600 hover:text-green-800 text-sm">
+                            상세 가이드 보기 →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Agent System -->
+                <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                    <h3 class="text-xl font-semibold mb-4 flex items-center">
+                        <i class="fas fa-robot text-purple-500 mr-3"></i>
+                        멀티 에이전트 시스템
+                    </h3>
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('agent-template')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="agent-template"><code class="language-java">@Service
+public class MultiAgentOrchestrator {
+    
+    @Autowired
+    private ResearchAgent researchAgent;
+    @Autowired
+    private WritingAgent writingAgent;
+    @Autowired
+    private ReviewAgent reviewAgent;
+    
+    public AgentResponse processTask(TaskRequest request) {
+        // Chain workflow
+        var research = researchAgent.investigate(request);
+        var draft = writingAgent.compose(research);
+        return reviewAgent.finalize(draft);
+    }
+}</code></pre>
+                    </div>
+                    <div class="mt-4">
+                        <a href="guide/agents.html" class="text-purple-600 hover:text-purple-800 text-sm">
+                            상세 가이드 보기 →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Vector Store -->
+                <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                    <h3 class="text-xl font-semibold mb-4 flex items-center">
+                        <i class="fas fa-database text-red-500 mr-3"></i>
+                        벡터 스토어 설정
+                    </h3>
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('vector-template')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="vector-template"><code class="language-yaml"># 로컬 개발: Chroma
+spring:
+  ai:
+    vectorstore:
+      chroma:
+        host: localhost
+        port: 8000
+
+# 프로덕션: PGVector
+spring:
+  ai:
+    vectorstore:
+      pgvector:
+        url: jdbc:postgresql://localhost/vectordb
+        username: user
+        password: pass</code></pre>
+                    </div>
+                    <div class="mt-4">
+                        <a href="guide/vectorstore.html" class="text-red-600 hover:text-red-800 text-sm">
+                            상세 가이드 보기 →
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-8">
+                <a href="guide/templates.html" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all">
+                    모든 템플릿 보기 →
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Patterns Library -->
+    <section id="patterns" class="py-12 bg-gray-100">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center mb-8">🎯 검증된 패턴 라이브러리</h2>
+            
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-link text-3xl text-blue-500 mb-2"></i>
+                        <h3 class="text-xl font-semibold">Chain Workflow</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">순차적 작업 처리로 복잡한 태스크를 단계별로 해결</p>
+                    <ul class="text-sm text-gray-500 mb-4">
+                        <li>• 문서 분석 → 요약 → 답변</li>
+                        <li>• 코드 생성 → 검토 → 최적화</li>
+                        <li>• 연구 → 작성 → 검증</li>
+                    </ul>
+                    <a href="guide/patterns/chain.html" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        패턴 보기 →
+                    </a>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-clone text-3xl text-green-500 mb-2"></i>
+                        <h3 class="text-xl font-semibold">Parallel Processing</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">병렬 처리로 성능을 극대화하는 멀티 태스크 패턴</p>
+                    <ul class="text-sm text-gray-500 mb-4">
+                        <li>• 다중 소스 검색</li>
+                        <li>• 동시 번역/요약</li>
+                        <li>• 병렬 검증</li>
+                    </ul>
+                    <a href="guide/patterns/parallel.html" class="text-green-600 hover:text-green-800 text-sm font-medium">
+                        패턴 보기 →
+                    </a>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-route text-3xl text-purple-500 mb-2"></i>
+                        <h3 class="text-xl font-semibold">Smart Routing</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">요청 내용에 따라 최적의 에이전트로 라우팅</p>
+                    <ul class="text-sm text-gray-500 mb-4">
+                        <li>• 질문 유형별 전문가 배정</li>
+                        <li>• 언어별 모델 선택</li>
+                        <li>• 난이도별 처리</li>
+                    </ul>
+                    <a href="guide/patterns/routing.html" class="text-purple-600 hover:text-purple-800 text-sm font-medium">
+                        패턴 보기 →
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid md:grid-cols-4 gap-8">
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Spring AI Hub</h4>
+                    <p class="text-gray-300 text-sm mb-4">개발자를 위한 Spring AI 리소스</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-300 hover:text-white"><i class="fab fa-github"></i></a>
+                        <a href="#" class="text-gray-300 hover:text-white"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-gray-300 hover:text-white"><i class="fab fa-discord"></i></a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">빠른 링크</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="guide/quickstart.html" class="text-gray-300 hover:text-white">빠른 시작</a></li>
+                        <li><a href="guide/examples.html" class="text-gray-300 hover:text-white">예제 모음</a></li>
+                        <li><a href="guide/patterns.html" class="text-gray-300 hover:text-white">패턴 가이드</a></li>
+                        <li><a href="guide/troubleshooting.html" class="text-gray-300 hover:text-white">문제 해결</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">API 가이드</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="guide/chatclient.html" class="text-gray-300 hover:text-white">ChatClient</a></li>
+                        <li><a href="guide/vectorstore.html" class="text-gray-300 hover:text-white">VectorStore</a></li>
+                        <li><a href="guide/tools.html" class="text-gray-300 hover:text-white">Tool Calling</a></li>
+                        <li><a href="guide/advisors.html" class="text-gray-300 hover:text-white">Advisors</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">커뮤니티</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="guide/contributing.html" class="text-gray-300 hover:text-white">기여 가이드</a></li>
+                        <li><a href="guide/community.html" class="text-gray-300 hover:text-white">커뮤니티</a></li>
+                        <li><a href="guide/support.html" class="text-gray-300 hover:text-white">지원</a></li>
+                        <li><a href="guide/changelog.html" class="text-gray-300 hover:text-white">변경 로그</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-300 text-sm">
+                <p>&copy; 2025 Spring AI Developer Hub. 개발자를 위한 무료 리소스.</p>
+                <p class="mt-2">Spring AI 1.0.0 GA 기준 | 마지막 업데이트: 2025년 1월</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <script>
+        // Copy code functionality
+        function copyCode(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('코드가 복사되었습니다!');
+            });
+        }
+
+        // Show notification
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg z-50';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 2000);
+        }
+
+        // Model configuration modal
+        const configurations = {
+            openai: {
+                title: 'OpenAI 설정',
+                code: `spring:
+  ai:
+    openai:
+      api-key: \${OPENAI_API_KEY}
+      chat:
+        options:
+          model: gpt-4o
+          temperature: 0.7
+
+# 환경 변수 설정
+export OPENAI_API_KEY="your-api-key-here"`
+            },
+            anthropic: {
+                title: 'Anthropic Claude 설정',
+                code: `spring:
+  ai:
+    anthropic:
+      api-key: \${ANTHROPIC_API_KEY}
+      claude:
+        chat:
+          options:
+            model: claude-3-5-sonnet-20241022
+            max-tokens: 1000
+
+# 환경 변수 설정
+export ANTHROPIC_API_KEY="your-api-key-here"`
+            },
+            ollama: {
+                title: 'Ollama 설정 (로컬)',
+                code: `# 1. Ollama 설치
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# 2. 모델 다운로드
+ollama pull llama3.2
+
+# 3. Spring 설정
+spring:
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        options:
+          model: llama3.2`
+            },
+            azure: {
+                title: 'Azure OpenAI 설정',
+                code: `spring:
+  ai:
+    azure:
+      openai:
+        api-key: \${AZURE_OPENAI_API_KEY}
+        endpoint: \${AZURE_OPENAI_ENDPOINT}
+        chat:
+          options:
+            deployment-name: gpt-4
+            temperature: 0.7
+
+# 환경 변수 설정
+export AZURE_OPENAI_API_KEY="your-api-key"
+export AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com/"`
+            }
+        };
+
+        function showConfig(provider) {
+            const modal = document.getElementById('configModal');
+            const title = document.getElementById('configTitle');
+            const content = document.getElementById('configContent');
+            
+            const config = configurations[provider];
+            title.textContent = config.title;
+            content.innerHTML = `<pre><code class="language-yaml">${config.code}</code></pre>`;
+            
+            modal.classList.remove('hidden');
+            Prism.highlightAll();
+        }
+
+        function closeModal() {
+            document.getElementById('configModal').classList.add('hidden');
+        }
+
+        function copyModalCode() {
+            const content = document.getElementById('configContent');
+            const text = content.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('설정이 복사되었습니다!');
+                closeModal();
+            });
+        }
+
+        // Close modal on outside click
+        document.getElementById('configModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

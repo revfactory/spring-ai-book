@@ -8,7 +8,10 @@
       "Bash(git restore:*)",
       "WebFetch(domain:spring.io)",
       "Bash(git commit:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(awk:*)"
     ],
     "deny": []
   },

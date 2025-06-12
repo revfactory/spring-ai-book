@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring AI 패턴 라이브러리</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .code-block { background: #2d3748; border-radius: 8px; }
+        .copy-button { transition: all 0.2s ease; }
+        .copy-button:hover { background-color: #4a5568; }
+        .pattern-card { transition: all 0.3s ease; }
+        .pattern-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <a href="../index.html" class="flex items-center text-xl font-bold text-gray-800">
+                        <i class="fab fa-spring text-green-600 mr-2"></i>
+                        Spring AI Hub
+                    </a>
+                    <span class="mx-3 text-gray-400">/</span>
+                    <span class="text-gray-600">패턴 라이브러리</span>
+                </div>
+                <a href="../index.html" class="text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-home"></i> 홈으로
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-6xl mx-auto">
+            <h1 class="text-4xl font-bold mb-4">🎯 Spring AI 패턴 라이브러리</h1>
+            <p class="text-gray-600 mb-8">검증된 AI 애플리케이션 설계 패턴과 구현 예제</p>
+
+            <!-- Pattern Categories -->
+            <div class="flex flex-wrap gap-4 mb-8">
+                <button class="pattern-filter bg-blue-600 text-white px-4 py-2 rounded-lg" data-category="all">
+                    전체 패턴
+                </button>
+                <button class="pattern-filter bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300" data-category="conversation">
+                    대화 패턴
+                </button>
+                <button class="pattern-filter bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300" data-category="retrieval">
+                    검색 패턴
+                </button>
+                <button class="pattern-filter bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300" data-category="workflow">
+                    워크플로우 패턴
+                </button>
+                <button class="pattern-filter bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300" data-category="integration">
+                    통합 패턴
+                </button>
+            </div>
+
+            <!-- Pattern: Chain of Thought -->
+            <div class="pattern-card bg-white rounded-lg shadow-lg overflow-hidden mb-8" data-category="conversation">
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6">
+                    <h2 class="text-2xl font-bold flex items-center">
+                        <i class="fas fa-link mr-3"></i>
+                        Chain of Thought (사고의 연쇄)
+                    </h2>
+                    <p class="mt-2 text-blue-100">복잡한 문제를 단계별로 추론하여 해결하는 패턴</p>
+                </div>
+                
+                <div class="p-6">
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3">패턴 설명</h3>
+                        <p class="text-gray-600 mb-4">
+                            Chain of Thought는 AI가 문제를 해결할 때 중간 추론 단계를 명시적으로 생성하도록 하는 패턴입니다.
+                            이를 통해 더 정확하고 설명 가능한 답변을 얻을 수 있습니다.
+                        </p>
+                        
+                        <div class="bg-gray-100 p-4 rounded-lg mb-4">
+                            <h4 class="font-semibold mb-2">적용 시나리오:</h4>
+                            <ul class="space-y-1 text-sm">
+                                <li>• 수학 문제 해결</li>
+                                <li>• 복잡한 논리 추론</li>
+                                <li>• 다단계 의사결정</li>
+                                <li>• 문제 분석 및 디버깅</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3">구현 코드</h3>
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('cot-pattern')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="cot-pattern"><code class="language-java">@Service
+public class ChainOfThoughtService {
+    
+    private final ChatClient chatClient;
+    
+    public ChainOfThoughtService(ChatClient.Builder builder) {
+        this.chatClient = builder
+            .defaultOptions(OpenAiChatOptions.builder()
+                .withModel("gpt-4o")
+                .withTemperature(0.3f) // 낮은 온도로 일관성 향상
+                .build())
+            .build();
+    }
+    
+    public ThoughtChainResult solveWithReasoning(String problem) {
+        String cotPrompt = """
+            문제를 단계별로 분석하고 해결하세요.
+            
+            문제: {problem}
+            
+            다음 형식으로 답변하세요:
+            
+            **1단계: 문제 이해**
+            [문제의 핵심 요소와 요구사항 분석]
+            
+            **2단계: 접근 방법**
+            [해결을 위한 전략 수립]
+            
+            **3단계: 단계별 해결**
+            [구체적인 해결 과정]
+            
+            **4단계: 검증**
+            [답변의 타당성 확인]
+            
+            **최종 답변**
+            [결론]
+            """;
+        
+        String response = chatClient.prompt()
+            .user(u -> u.text(cotPrompt).param("problem", problem))
+            .call()
+            .content();
+        
+        return parseThoughtChain(response);
+    }
+    
+    // 자가 일관성 검증
+    public ConsistentResult solveWithSelfConsistency(String problem, int samples) {
+        List<ThoughtChainResult> results = IntStream.range(0, samples)
+            .parallel()
+            .mapToObj(i -> solveWithReasoning(problem))
+            .toList();
+        
+        // 가장 일관된 답변 선택
+        Map<String, Long> answerFrequency = results.stream()
+            .collect(Collectors.groupingBy(
+                ThoughtChainResult::getFinalAnswer,
+                Collectors.counting()
+            ));
+        
+        String mostConsistentAnswer = answerFrequency.entrySet().stream()
+            .max(Map.Entry.comparingByValue())
+            .map(Map.Entry::getKey)
+            .orElse("");
+        
+        double consistency = (double) answerFrequency.get(mostConsistentAnswer) / samples;
+        
+        return ConsistentResult.builder()
+            .answer(mostConsistentAnswer)
+            .consistency(consistency)
+            .allResults(results)
+            .build();
+    }
+}</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h4 class="font-semibold mb-2">실제 사용 예시:</h4>
+                        <div class="text-sm space-y-2">
+                            <p><strong>입력:</strong> "한 상점에서 사과 5개에 1000원, 오렌지 3개에 1500원입니다. 사과 20개와 오렌지 15개를 사려면 얼마가 필요한가요?"</p>
+                            <p><strong>AI 추론 과정:</strong></p>
+                            <ul class="ml-4 space-y-1">
+                                <li>1단계: 사과 단가 = 1000원 ÷ 5개 = 200원</li>
+                                <li>2단계: 오렌지 단가 = 1500원 ÷ 3개 = 500원</li>
+                                <li>3단계: 사과 20개 = 200원 × 20 = 4000원</li>
+                                <li>4단계: 오렌지 15개 = 500원 × 15 = 7500원</li>
+                                <li>최종: 총 비용 = 4000원 + 7500원 = 11,500원</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pattern: RAG with Reranking -->
+            <div class="pattern-card bg-white rounded-lg shadow-lg overflow-hidden mb-8" data-category="retrieval">
+                <div class="bg-gradient-to-r from-green-500 to-green-600 text-white p-6">
+                    <h2 class="text-2xl font-bold flex items-center">
+                        <i class="fas fa-sort-amount-down mr-3"></i>
+                        RAG with Reranking (재순위화 RAG)
+                    </h2>
+                    <p class="mt-2 text-green-100">검색 결과를 재순위화하여 정확도를 향상시키는 패턴</p>
+                </div>
+                
+                <div class="p-6">
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3">패턴 설명</h3>
+                        <p class="text-gray-600 mb-4">
+                            기본 벡터 검색 후 Cross-Encoder나 추가 모델을 사용하여 검색 결과를 재순위화함으로써
+                            더 관련성 높은 문서를 상위에 배치합니다.
+                        </p>
+                    </div>
+
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3">구현 코드</h3>
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('reranking-pattern')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="reranking-pattern"><code class="language-java">@Service
+public class RerankingRAGService {
+    
+    private final VectorStore vectorStore;
+    private final ChatClient chatClient;
+    private final CrossEncoder crossEncoder;
+    
+    public RerankingRAGService(VectorStore vectorStore, 
+                               ChatClient.Builder builder,
+                               CrossEncoder crossEncoder) {
+        this.vectorStore = vectorStore;
+        this.chatClient = builder.build();
+        this.crossEncoder = crossEncoder;
+    }
+    
+    public RerankingResult searchWithReranking(String query, int initialK, int finalK) {
+        // 1단계: 초기 벡터 검색 (넉넉하게)
+        List<Document> candidates = vectorStore.similaritySearch(
+            SearchRequest.query(query).withTopK(initialK)
+        );
+        
+        // 2단계: Cross-Encoder로 재순위화
+        List<RankedDocument> rerankedDocs = candidates.parallelStream()
+            .map(doc -> {
+                double relevanceScore = crossEncoder.score(query, doc.getContent());
+                return new RankedDocument(doc, relevanceScore);
+            })
+            .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()))
+            .limit(finalK)
+            .toList();
+        
+        // 3단계: 다양성 보장 (MMR - Maximal Marginal Relevance)
+        List<Document> diverseResults = applyMMR(rerankedDocs, 0.7);
+        
+        // 4단계: 컨텍스트 구성 및 답변 생성
+        String context = buildContextWithMetadata(diverseResults);
+        
+        String answer = chatClient.prompt()
+            .system("주어진 문서를 바탕으로 정확하게 답변하세요.")
+            .user(u -> u.text("질문: {query}\n\n컨텍스트:\n{context}")
+                .param("query", query)
+                .param("context", context))
+            .call()
+            .content();
+        
+        return RerankingResult.builder()
+            .answer(answer)
+            .sources(diverseResults)
+            .rerankingScores(extractScores(rerankedDocs))
+            .build();
+    }
+    
+    // MMR (Maximal Marginal Relevance) 구현
+    private List<Document> applyMMR(List<RankedDocument> documents, double lambda) {
+        if (documents.isEmpty()) return List.of();
+        
+        List<Document> selected = new ArrayList<>();
+        Set<Integer> selectedIndices = new HashSet<>();
+        
+        // 첫 번째 문서는 가장 관련성 높은 것 선택
+        selected.add(documents.get(0).getDocument());
+        selectedIndices.add(0);
+        
+        while (selected.size() < Math.min(5, documents.size())) {
+            double maxMMR = -1;
+            int bestIdx = -1;
+            
+            for (int i = 0; i < documents.size(); i++) {
+                if (selectedIndices.contains(i)) continue;
+                
+                RankedDocument candidate = documents.get(i);
+                double relevance = candidate.getScore();
+                
+                // 기존 선택된 문서들과의 최대 유사도 계산
+                double maxSimilarity = selected.stream()
+                    .mapToDouble(sel -> cosineSimilarity(
+                        candidate.getDocument().getContent(),
+                        sel.getContent()
+                    ))
+                    .max()
+                    .orElse(0);
+                
+                // MMR 점수 계산
+                double mmr = lambda * relevance - (1 - lambda) * maxSimilarity;
+                
+                if (mmr > maxMMR) {
+                    maxMMR = mmr;
+                    bestIdx = i;
+                }
+            }
+            
+            if (bestIdx != -1) {
+                selected.add(documents.get(bestIdx).getDocument());
+                selectedIndices.add(bestIdx);
+            } else {
+                break;
+            }
+        }
+        
+        return selected;
+    }
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pattern: Multi-Agent Orchestration -->
+            <div class="pattern-card bg-white rounded-lg shadow-lg overflow-hidden mb-8" data-category="workflow">
+                <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6">
+                    <h2 class="text-2xl font-bold flex items-center">
+                        <i class="fas fa-project-diagram mr-3"></i>
+                        Multi-Agent Orchestration (멀티 에이전트 오케스트레이션)
+                    </h2>
+                    <p class="mt-2 text-purple-100">여러 전문 에이전트를 조율하여 복잡한 작업을 수행하는 패턴</p>
+                </div>
+                
+                <div class="p-6">
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3">패턴 설명</h3>
+                        <p class="text-gray-600 mb-4">
+                            각각 특정 역할을 담당하는 여러 AI 에이전트를 조율하여 복잡한 작업을 효율적으로 수행합니다.
+                            오케스트레이터가 작업을 분석하고 적절한 에이전트에게 할당합니다.
+                        </p>
+                    </div>
+
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3">구현 코드</h3>
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('orchestration-pattern')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="orchestration-pattern"><code class="language-java">@Service
+@Slf4j
+public class AgentOrchestrator {
+    
+    private final Map<String, SpecializedAgent> agents = new HashMap<>();
+    private final ChatClient orchestratorClient;
+    private final TaskQueue taskQueue;
+    
+    public AgentOrchestrator(ChatClient.Builder builder) {
+        this.orchestratorClient = builder.build();
+        this.taskQueue = new PriorityBlockingQueue<>();
+        
+        // 전문 에이전트 등록
+        registerAgent("researcher", new ResearchAgent());
+        registerAgent("analyzer", new AnalysisAgent());
+        registerAgent("writer", new WritingAgent());
+        registerAgent("reviewer", new ReviewAgent());
+        registerAgent("coder", new CodingAgent());
+    }
+    
+    public OrchestrationResult executeComplexTask(ComplexTask task) {
+        log.info("Starting orchestration for task: {}", task.getName());
+        
+        // 1. 작업 분석 및 계획
+        ExecutionPlan plan = analyzeAndPlan(task);
+        
+        // 2. 서브태스크 생성
+        List<SubTask> subTasks = decomposeTasks(task, plan);
+        
+        // 3. 병렬/순차 실행
+        Map<String, TaskResult> results = new ConcurrentHashMap<>();
+        
+        // 의존성 그래프 기반 실행
+        DAG<SubTask> dependencyGraph = buildDependencyGraph(subTasks);
+        
+        dependencyGraph.topologicalSort().forEach(level -> {
+            // 같은 레벨의 태스크는 병렬 실행
+            List<CompletableFuture<TaskResult>> futures = level.stream()
+                .map(subTask -> CompletableFuture.supplyAsync(() -> 
+                    executeSubTask(subTask, results)
+                ))
+                .toList();
+            
+            // 레벨 완료 대기
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+            
+            futures.forEach(future -> {
+                TaskResult result = future.join();
+                results.put(result.getTaskId(), result);
+            });
+        });
+        
+        // 4. 결과 종합
+        return synthesizeResults(task, results);
+    }
+    
+    private TaskResult executeSubTask(SubTask subTask, Map<String, TaskResult> previousResults) {
+        String agentType = selectAgent(subTask);
+        SpecializedAgent agent = agents.get(agentType);
+        
+        if (agent == null) {
+            throw new AgentNotFoundException("No agent found for type: " + agentType);
+        }
+        
+        // 이전 결과를 컨텍스트로 전달
+        Context context = buildContext(subTask, previousResults);
+        
+        try {
+            AgentResponse response = agent.execute(subTask, context);
+            
+            return TaskResult.success(
+                subTask.getId(),
+                response.getResult(),
+                response.getMetadata()
+            );
+        } catch (Exception e) {
+            log.error("SubTask execution failed: {}", subTask.getId(), e);
+            
+            // 재시도 또는 대체 전략
+            return handleFailure(subTask, e);
+        }
+    }
+    
+    // 동적 에이전트 선택
+    private String selectAgent(SubTask task) {
+        String selectionPrompt = """
+            다음 작업에 가장 적합한 에이전트를 선택하세요.
+            
+            작업: {task}
+            
+            사용 가능한 에이전트:
+            - researcher: 정보 수집 및 조사
+            - analyzer: 데이터 분석 및 인사이트 도출
+            - writer: 콘텐츠 작성 및 문서화
+            - reviewer: 품질 검토 및 개선
+            - coder: 코드 생성 및 기술 구현
+            
+            선택: [에이전트 이름만 반환]
+            """;
+        
+        return orchestratorClient.prompt()
+            .user(u -> u.text(selectionPrompt).param("task", task.getDescription()))
+            .call()
+            .content()
+            .trim()
+            .toLowerCase();
+    }
+    
+    // 적응형 재계획
+    @Component
+    public class AdaptiveReplanner {
+        
+        public void monitorAndAdapt(OrchestrationContext context) {
+            context.getExecutingTasks().forEach(task -> {
+                if (task.isDelayed() || task.hasFailed()) {
+                    ExecutionPlan newPlan = replan(context, task);
+                    context.updatePlan(newPlan);
+                }
+            });
+        }
+        
+        private ExecutionPlan replan(OrchestrationContext context, SubTask failedTask) {
+            // AI를 사용한 동적 재계획
+            String replanPrompt = """
+                현재 작업이 실패했습니다. 대안을 제시하세요.
+                
+                실패한 작업: {task}
+                실패 원인: {reason}
+                현재 진행 상황: {progress}
+                
+                가능한 대안:
+                1. 다른 에이전트 사용
+                2. 작업 분할
+                3. 접근 방법 변경
+                4. 작업 건너뛰기
+                """;
+            
+            return parseExecutionPlan(orchestratorClient.prompt()
+                .user(u -> u.text(replanPrompt)
+                    .param("task", failedTask)
+                    .param("reason", failedTask.getFailureReason())
+                    .param("progress", context.getProgress()))
+                .call()
+                .content());
+        }
+    }
+}</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="bg-purple-50 p-4 rounded-lg">
+                        <h4 class="font-semibold mb-2">사용 예시:</h4>
+                        <p class="text-sm">
+                            "회사의 연간 보고서를 작성하라"는 복잡한 작업을 받으면:
+                        </p>
+                        <ul class="text-sm mt-2 space-y-1">
+                            <li>1. <strong>Research Agent</strong>: 재무 데이터, 시장 동향 수집</li>
+                            <li>2. <strong>Analysis Agent</strong>: 데이터 분석 및 인사이트 도출</li>
+                            <li>3. <strong>Writing Agent</strong>: 보고서 초안 작성</li>
+                            <li>4. <strong>Review Agent</strong>: 품질 검토 및 개선</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pattern: Streaming with Backpressure -->
+            <div class="pattern-card bg-white rounded-lg shadow-lg overflow-hidden mb-8" data-category="integration">
+                <div class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-6">
+                    <h2 class="text-2xl font-bold flex items-center">
+                        <i class="fas fa-stream mr-3"></i>
+                        Streaming with Backpressure (백프레셔 스트리밍)
+                    </h2>
+                    <p class="mt-2 text-orange-100">대용량 실시간 스트림을 효율적으로 처리하는 패턴</p>
+                </div>
+                
+                <div class="p-6">
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3">패턴 설명</h3>
+                        <p class="text-gray-600 mb-4">
+                            클라이언트의 처리 속도에 맞춰 스트림 속도를 조절하여 메모리 오버플로우를 방지하고
+                            안정적인 실시간 처리를 보장합니다.
+                        </p>
+                    </div>
+
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3">구현 코드</h3>
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('streaming-pattern')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="streaming-pattern"><code class="language-java">@RestController
+@RequestMapping("/api/stream")
+public class StreamingController {
+    
+    private final ChatClient chatClient;
+    private final ReactiveCircuitBreaker circuitBreaker;
+    
+    @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<StreamChunk>> streamWithBackpressure(
+            @RequestBody ChatRequest request) {
+        
+        return chatClient.prompt()
+            .user(request.getMessage())
+            .stream()
+            .chatResponse()
+            .transform(this::applyBackpressure)
+            .transform(this::enrichWithMetadata)
+            .map(this::toServerSentEvent)
+            .doOnError(this::handleStreamError)
+            .onErrorResume(this::fallbackStream);
+    }
+    
+    private Flux<ChatResponse> applyBackpressure(Flux<ChatResponse> upstream) {
+        return upstream
+            // 버퍼 크기 제한
+            .onBackpressureBuffer(100, 
+                dropped -> log.warn("Dropped message due to backpressure"),
+                BufferOverflowStrategy.DROP_OLDEST)
+            
+            // 처리 속도 제한
+            .sample(Duration.ofMillis(50))
+            
+            // 타임아웃 설정
+            .timeout(Duration.ofMinutes(5))
+            
+            // 동시성 제어
+            .publishOn(Schedulers.parallel(), 10);
+    }
+    
+    private Flux<EnrichedResponse> enrichWithMetadata(Flux<ChatResponse> responses) {
+        AtomicInteger tokenCount = new AtomicInteger();
+        AtomicLong startTime = new AtomicLong(System.currentTimeMillis());
+        
+        return responses.map(response -> {
+            int tokens = countTokens(response.getResult().getOutput().getContent());
+            tokenCount.addAndGet(tokens);
+            
+            return EnrichedResponse.builder()
+                .content(response.getResult().getOutput().getContent())
+                .tokenCount(tokens)
+                .totalTokens(tokenCount.get())
+                .timestamp(System.currentTimeMillis())
+                .latency(System.currentTimeMillis() - startTime.get())
+                .build();
+        });
+    }
+    
+    // 적응형 스트리밍
+    @Component
+    public class AdaptiveStreamingService {
+        
+        private final Map<String, StreamMetrics> clientMetrics = new ConcurrentHashMap<>();
+        
+        public Flux<String> adaptiveStream(String sessionId, String prompt) {
+            StreamMetrics metrics = clientMetrics.computeIfAbsent(
+                sessionId, 
+                k -> new StreamMetrics()
+            );
+            
+            return chatClient.prompt()
+                .user(prompt)
+                .stream()
+                .content()
+                .transformDeferred(stream -> {
+                    // 클라이언트 처리 속도 측정
+                    double processingRate = metrics.getProcessingRate();
+                    
+                    if (processingRate < 10) { // 느린 클라이언트
+                        return stream
+                            .delayElements(Duration.ofMillis(100))
+                            .onBackpressureLatest();
+                    } else if (processingRate < 50) { // 중간 속도
+                        return stream
+                            .onBackpressureBuffer(50);
+                    } else { // 빠른 클라이언트
+                        return stream;
+                    }
+                })
+                .doOnNext(chunk -> metrics.recordChunk(chunk.length()))
+                .doOnComplete(() -> metrics.complete())
+                .doOnError(error -> metrics.error(error));
+        }
+    }
+    
+    // 청크 집계 및 배치 처리
+    public Flux<BatchedChunk> streamWithBatching(String prompt) {
+        return chatClient.prompt()
+            .user(prompt)
+            .stream()
+            .content()
+            .buffer(Duration.ofMillis(200), 10) // 200ms 또는 10개씩 배치
+            .map(chunks -> BatchedChunk.builder()
+                .content(String.join("", chunks))
+                .chunkCount(chunks.size())
+                .timestamp(System.currentTimeMillis())
+                .build())
+            .filter(batch -> !batch.getContent().isEmpty());
+    }
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pattern: Contextual Memory -->
+            <div class="pattern-card bg-white rounded-lg shadow-lg overflow-hidden mb-8" data-category="conversation">
+                <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white p-6">
+                    <h2 class="text-2xl font-bold flex items-center">
+                        <i class="fas fa-brain mr-3"></i>
+                        Contextual Memory (맥락적 메모리)
+                    </h2>
+                    <p class="mt-2 text-indigo-100">대화 맥락과 사용자 정보를 지능적으로 관리하는 패턴</p>
+                </div>
+                
+                <div class="p-6">
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3">패턴 설명</h3>
+                        <p class="text-gray-600 mb-4">
+                            단순한 대화 히스토리를 넘어 중요한 정보를 추출하고 압축하여 장기적으로 유지하며,
+                            필요할 때 적절한 맥락을 검색하여 제공합니다.
+                        </p>
+                    </div>
+
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3">구현 코드</h3>
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('memory-pattern')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="memory-pattern"><code class="language-java">@Service
+public class ContextualMemoryService {
+    
+    private final VectorStore memoryStore;
+    private final ChatClient chatClient;
+    private final Cache<String, ConversationContext> activeContexts;
+    
+    public ContextualMemoryService(VectorStore memoryStore, 
+                                  ChatClient.Builder builder) {
+        this.memoryStore = memoryStore;
+        this.chatClient = builder.build();
+        this.activeContexts = Caffeine.newBuilder()
+            .maximumSize(1000)
+            .expireAfterAccess(30, TimeUnit.MINUTES)
+            .build();
+    }
+    
+    public MemoryAwareResponse chat(String userId, String message) {
+        // 1. 활성 컨텍스트 로드
+        ConversationContext context = activeContexts.get(userId, 
+            k -> loadOrCreateContext(userId));
+        
+        // 2. 관련 장기 메모리 검색
+        List<Memory> relevantMemories = searchRelevantMemories(userId, message);
+        
+        // 3. 중요도 평가
+        ImportanceScore importance = evaluateImportance(message, context);
+        
+        // 4. 응답 생성
+        String response = generateContextualResponse(
+            message, 
+            context, 
+            relevantMemories
+        );
+        
+        // 5. 컨텍스트 업데이트
+        updateContext(context, message, response, importance);
+        
+        // 6. 중요한 정보는 장기 메모리로
+        if (importance.isSignificant()) {
+            storeToLongTermMemory(userId, message, response, importance);
+        }
+        
+        return MemoryAwareResponse.builder()
+            .response(response)
+            .memoriesUsed(relevantMemories.size())
+            .contextWindow(context.getWindowSize())
+            .build();
+    }
+    
+    // 지능적 메모리 압축
+    private void compressMemories(String userId) {
+        List<Memory> allMemories = loadAllMemories(userId);
+        
+        if (allMemories.size() < 100) return;
+        
+        String compressionPrompt = """
+            다음 대화 기록을 핵심 정보만 남기고 압축하세요:
+            
+            {memories}
+            
+            압축 규칙:
+            1. 중요한 사실과 선호도 유지
+            2. 반복되는 정보는 하나로 통합
+            3. 시간적 맥락 보존
+            4. 개인정보와 중요 결정사항 우선
+            """;
+        
+        String compressed = chatClient.prompt()
+            .user(u -> u.text(compressionPrompt)
+                .param("memories", formatMemories(allMemories)))
+            .call()
+            .content();
+        
+        // 압축된 메모리 저장
+        Memory compressedMemory = Memory.builder()
+            .userId(userId)
+            .content(compressed)
+            .type(MemoryType.COMPRESSED)
+            .timestamp(Instant.now())
+            .sourceCount(allMemories.size())
+            .build();
+        
+        storeMemory(compressedMemory);
+        
+        // 원본 메모리 아카이브
+        archiveMemories(allMemories);
+    }
+    
+    // 동적 컨텍스트 윈도우
+    @Component
+    public class DynamicContextWindow {
+        
+        public List<Message> selectRelevantHistory(
+                ConversationContext context,
+                String currentMessage,
+                int maxTokens) {
+            
+            List<Message> allMessages = context.getMessages();
+            
+            // 최근 메시지는 항상 포함
+            List<Message> selected = new ArrayList<>();
+            int tokenCount = 0;
+            
+            // 최근 3개 메시지
+            for (int i = allMessages.size() - 1; i >= 0 && i > allMessages.size() - 4; i--) {
+                Message msg = allMessages.get(i);
+                tokenCount += countTokens(msg.getContent());
+                selected.add(0, msg);
+            }
+            
+            // 남은 토큰으로 관련성 높은 과거 메시지 선택
+            List<Message> candidates = allMessages.subList(
+                0, 
+                Math.max(0, allMessages.size() - 3)
+            );
+            
+            List<ScoredMessage> scoredMessages = candidates.stream()
+                .map(msg -> new ScoredMessage(
+                    msg,
+                    calculateRelevance(msg, currentMessage)
+                ))
+                .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()))
+                .toList();
+            
+            for (ScoredMessage scored : scoredMessages) {
+                int msgTokens = countTokens(scored.getMessage().getContent());
+                if (tokenCount + msgTokens > maxTokens) break;
+                
+                selected.add(0, scored.getMessage());
+                tokenCount += msgTokens;
+            }
+            
+            return selected;
+        }
+    }
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pattern: Hierarchical Task Decomposition -->
+            <div class="pattern-card bg-white rounded-lg shadow-lg overflow-hidden mb-8" data-category="workflow">
+                <div class="bg-gradient-to-r from-red-500 to-red-600 text-white p-6">
+                    <h2 class="text-2xl font-bold flex items-center">
+                        <i class="fas fa-sitemap mr-3"></i>
+                        Hierarchical Task Decomposition (계층적 작업 분해)
+                    </h2>
+                    <p class="mt-2 text-red-100">복잡한 작업을 계층적으로 분해하여 관리하는 패턴</p>
+                </div>
+                
+                <div class="p-6">
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3">구현 코드</h3>
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('decomposition-pattern')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="decomposition-pattern"><code class="language-java">@Service
+public class HierarchicalTaskDecomposer {
+    
+    private final ChatClient chatClient;
+    private final TaskExecutor taskExecutor;
+    
+    public TaskTree decomposeTask(String mainGoal, int maxDepth) {
+        TaskNode root = TaskNode.builder()
+            .id(UUID.randomUUID().toString())
+            .description(mainGoal)
+            .level(0)
+            .status(TaskStatus.PENDING)
+            .build();
+        
+        decomposeRecursively(root, maxDepth);
+        
+        return new TaskTree(root);
+    }
+    
+    private void decomposeRecursively(TaskNode parent, int remainingDepth) {
+        if (remainingDepth <= 0 || isAtomic(parent)) {
+            return;
+        }
+        
+        List<TaskNode> subtasks = generateSubtasks(parent);
+        parent.setChildren(subtasks);
+        
+        subtasks.parallelStream().forEach(child -> 
+            decomposeRecursively(child, remainingDepth - 1)
+        );
+    }
+    
+    private List<TaskNode> generateSubtasks(TaskNode parent) {
+        String decompositionPrompt = """
+            작업을 하위 작업으로 분해하세요.
+            
+            작업: {task}
+            
+            규칙:
+            1. 각 하위 작업은 독립적으로 실행 가능해야 함
+            2. 3-5개의 하위 작업으로 분해
+            3. MECE 원칙 적용 (상호 배타적, 전체 포괄적)
+            
+            형식:
+            1. [작업명]: [설명]
+            2. [작업명]: [설명]
+            ...
+            """;
+        
+        String response = chatClient.prompt()
+            .user(u -> u.text(decompositionPrompt)
+                .param("task", parent.getDescription()))
+            .call()
+            .content();
+        
+        return parseSubtasks(response, parent);
+    }
+    
+    // 작업 실행 스케줄러
+    public ExecutionResult executeTaskTree(TaskTree tree) {
+        ExecutionContext context = new ExecutionContext();
+        PriorityQueue<TaskNode> readyQueue = new PriorityQueue<>(
+            Comparator.comparingInt(TaskNode::getPriority)
+        );
+        
+        // 리프 노드부터 시작
+        tree.getLeafNodes().forEach(readyQueue::offer);
+        
+        while (!readyQueue.isEmpty()) {
+            TaskNode task = readyQueue.poll();
+            
+            // 병렬 실행 가능한 작업들 수집
+            List<TaskNode> batch = collectParallelTasks(readyQueue, task);
+            batch.add(task);
+            
+            // 병렬 실행
+            List<CompletableFuture<TaskResult>> futures = batch.stream()
+                .map(t -> CompletableFuture.supplyAsync(() -> 
+                    executeTask(t, context)
+                ))
+                .toList();
+            
+            // 결과 수집
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                .join();
+            
+            // 완료된 작업의 부모 확인
+            batch.forEach(t -> {
+                TaskNode parent = t.getParent();
+                if (parent != null && parent.allChildrenComplete()) {
+                    readyQueue.offer(parent);
+                }
+            });
+        }
+        
+        return context.getResult();
+    }
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Best Practices Section -->
+            <section class="mt-12">
+                <h2 class="text-2xl font-semibold mb-6">🎯 패턴 선택 가이드</h2>
+                
+                <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="font-semibold mb-3">대화형 애플리케이션</h3>
+                            <ul class="space-y-2 text-sm">
+                                <li>• <strong>Contextual Memory</strong>: 장기 대화 관리</li>
+                                <li>• <strong>Chain of Thought</strong>: 복잡한 추론</li>
+                                <li>• <strong>Streaming with Backpressure</strong>: 실시간 응답</li>
+                            </ul>
+                        </div>
+                        
+                        <div>
+                            <h3 class="font-semibold mb-3">문서 처리 시스템</h3>
+                            <ul class="space-y-2 text-sm">
+                                <li>• <strong>RAG with Reranking</strong>: 정확한 검색</li>
+                                <li>• <strong>Hierarchical Decomposition</strong>: 대량 처리</li>
+                                <li>• <strong>Multi-Agent Orchestration</strong>: 복합 분석</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6">
+                        <h3 class="font-semibold mb-3">패턴 조합 예시</h3>
+                        <div class="bg-white p-4 rounded-lg">
+                            <p class="text-sm mb-2"><strong>고급 고객 지원 시스템:</strong></p>
+                            <ul class="text-sm space-y-1 ml-4">
+                                <li>1. Contextual Memory로 고객 히스토리 관리</li>
+                                <li>2. RAG with Reranking으로 관련 문서 검색</li>
+                                <li>3. Chain of Thought로 문제 해결</li>
+                                <li>4. Streaming with Backpressure로 실시간 응답</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <script>
+        function copyCode(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('코드가 복사되었습니다!');
+            });
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg z-50';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 2000);
+        }
+
+        // Pattern filtering
+        document.querySelectorAll('.pattern-filter').forEach(button => {
+            button.addEventListener('click', function() {
+                // Update active button
+                document.querySelectorAll('.pattern-filter').forEach(b => {
+                    b.classList.remove('bg-blue-600', 'text-white');
+                    b.classList.add('bg-gray-200', 'text-gray-700');
+                });
+                this.classList.remove('bg-gray-200', 'text-gray-700');
+                this.classList.add('bg-blue-600', 'text-white');
+
+                // Filter patterns
+                const category = this.dataset.category;
+                document.querySelectorAll('.pattern-card').forEach(card => {
+                    if (category === 'all' || card.dataset.category === category) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

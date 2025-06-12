@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring AI Tool Calling 가이드</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .code-block { background: #2d3748; border-radius: 8px; }
+        .copy-button { transition: all 0.2s ease; }
+        .copy-button:hover { background-color: #4a5568; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <a href="../index.html" class="flex items-center text-xl font-bold text-gray-800">
+                        <i class="fab fa-spring text-green-600 mr-2"></i>
+                        Spring AI Hub
+                    </a>
+                    <span class="mx-3 text-gray-400">/</span>
+                    <span class="text-gray-600">Tool Calling 가이드</span>
+                </div>
+                <a href="../index.html" class="text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-home"></i> 홈으로
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-4xl font-bold mb-4">🛠️ Tool Calling (Function Calling) 가이드</h1>
+            <p class="text-gray-600 mb-8">AI가 외부 함수를 호출하여 실제 작업을 수행하도록 구현하는 방법</p>
+
+            <!-- Table of Contents -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+                <h2 class="text-xl font-semibold mb-4">목차</h2>
+                <ul class="space-y-2 text-blue-600">
+                    <li><a href="#introduction" class="hover:underline">1. Tool Calling 소개</a></li>
+                    <li><a href="#basic-implementation" class="hover:underline">2. 기본 구현</a></li>
+                    <li><a href="#advanced-tools" class="hover:underline">3. 고급 도구 구현</a></li>
+                    <li><a href="#error-handling" class="hover:underline">4. 에러 처리</a></li>
+                    <li><a href="#best-practices" class="hover:underline">5. 모범 사례</a></li>
+                    <li><a href="#real-examples" class="hover:underline">6. 실전 예제</a></li>
+                </ul>
+            </div>
+
+            <!-- Section 1: Introduction -->
+            <section id="introduction" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">1. Tool Calling 소개</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <p class="mb-4">
+                        Tool Calling (Function Calling)은 AI 모델이 자연어 요청을 이해하고 적절한 함수를 호출하여 
+                        실제 작업을 수행할 수 있게 하는 기능입니다.
+                    </p>
+                    
+                    <div class="bg-blue-50 p-4 rounded-lg mb-4">
+                        <h3 class="font-semibold mb-2">주요 사용 사례:</h3>
+                        <ul class="space-y-1">
+                            <li>✅ 실시간 데이터 조회 (날씨, 주식 등)</li>
+                            <li>✅ 데이터베이스 작업</li>
+                            <li>✅ 외부 API 호출</li>
+                            <li>✅ 파일 시스템 작업</li>
+                            <li>✅ 이메일/알림 발송</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-gray-100 p-4 rounded-lg">
+                        <h3 class="font-semibold mb-2">작동 원리:</h3>
+                        <pre class="text-sm">
+1. 사용자가 자연어로 요청
+    ↓
+2. AI가 요청 분석 및 적절한 도구 선택
+    ↓
+3. 도구에 필요한 파라미터 추출
+    ↓
+4. 도구 실행 및 결과 반환
+    ↓
+5. AI가 결과를 자연어로 변환하여 응답
+                        </pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: Basic Implementation -->
+            <section id="basic-implementation" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">2. 기본 구현</h2>
+                
+                <!-- Simple Tool -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">단순한 도구 정의</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('simple-tool')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="simple-tool"><code class="language-java">@Component
+public class WeatherTools {
+    
+    @Tool("현재 날씨 정보를 가져옵니다")
+    public WeatherInfo getCurrentWeather(
+        @ToolParam("도시 이름") String city,
+        @ToolParam("온도 단위 (celsius/fahrenheit)") String unit
+    ) {
+        // 실제 날씨 API 호출
+        return weatherService.getWeather(city, unit);
+    }
+    
+    @Tool("일주일 날씨 예보를 가져옵니다")
+    public WeeklyForecast getWeeklyForecast(
+        @ToolParam("도시 이름") String city
+    ) {
+        return weatherService.getWeeklyForecast(city);
+    }
+}
+
+// 도구를 사용하는 서비스
+@Service
+public class AssistantService {
+    
+    private final ChatClient chatClient;
+    
+    public AssistantService(ChatClient.Builder builder) {
+        this.chatClient = builder
+            .defaultFunctions("getCurrentWeather", "getWeeklyForecast")
+            .build();
+    }
+    
+    public String chat(String message) {
+        return chatClient.prompt()
+            .user(message)
+            .call()
+            .content();
+    }
+}</code></pre>
+                    </div>
+
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <h4 class="font-semibold mb-2">사용 예시:</h4>
+                        <p class="text-sm mb-2">사용자: "서울의 현재 날씨 어때?"</p>
+                        <p class="text-sm text-gray-600">
+                            AI가 자동으로 getCurrentWeather("서울", "celsius")를 호출하고 
+                            결과를 자연어로 변환하여 응답합니다.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Configuration -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">설정 방법</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('tool-config')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="tool-config"><code class="language-java">@Configuration
+public class ToolConfiguration {
+    
+    @Bean
+    public FunctionCallbackWrapper<WeatherRequest, WeatherResponse> weatherFunction() {
+        return FunctionCallbackWrapper.builder(new WeatherFunction())
+            .withName("getWeather")
+            .withDescription("Get current weather for a city")
+            .withResponseConverter(response -> response.toString())
+            .build();
+    }
+    
+    @Bean
+    public ChatClient chatClient(ChatClient.Builder builder, 
+                                 List<FunctionCallbackWrapper> functions) {
+        return builder
+            .defaultOptions(OpenAiChatOptions.builder()
+                .withModel("gpt-4o")
+                .withTemperature(0.7f)
+                .withFunctions(functions.stream()
+                    .map(FunctionCallbackWrapper::getName)
+                    .toList())
+                .build())
+            .defaultFunctions(functions.toArray(new FunctionCallbackWrapper[0]))
+            .build();
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: Advanced Tools -->
+            <section id="advanced-tools" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">3. 고급 도구 구현</h2>
+                
+                <!-- Database Operations -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">데이터베이스 작업 도구</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('database-tools')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="database-tools"><code class="language-java">@Component
+@Transactional
+public class CustomerDatabaseTools {
+    
+    private final CustomerRepository customerRepository;
+    private final OrderRepository orderRepository;
+    
+    @Tool("고객 정보를 조회합니다")
+    public CustomerInfo getCustomerInfo(
+        @ToolParam("고객 ID 또는 이메일") String identifier
+    ) {
+        Customer customer = identifier.contains("@") 
+            ? customerRepository.findByEmail(identifier)
+            : customerRepository.findById(Long.parseLong(identifier))
+            .orElseThrow(() -> new CustomerNotFoundException(identifier));
+        
+        return CustomerInfo.builder()
+            .id(customer.getId())
+            .name(customer.getName())
+            .email(customer.getEmail())
+            .registrationDate(customer.getCreatedAt())
+            .totalOrders(customer.getOrders().size())
+            .build();
+    }
+    
+    @Tool("고객의 주문 내역을 조회합니다")
+    public List<OrderSummary> getCustomerOrders(
+        @ToolParam("고객 ID") Long customerId,
+        @ToolParam("조회할 주문 수 (기본: 10)") Integer limit
+    ) {
+        int orderLimit = limit != null ? limit : 10;
+        
+        return orderRepository.findByCustomerId(customerId, 
+            PageRequest.of(0, orderLimit, Sort.by("createdAt").descending()))
+            .stream()
+            .map(this::toOrderSummary)
+            .toList();
+    }
+    
+    @Tool("새로운 고객 메모를 추가합니다")
+    public String addCustomerNote(
+        @ToolParam("고객 ID") Long customerId,
+        @ToolParam("메모 내용") String note,
+        @ToolParam("중요도 (LOW/MEDIUM/HIGH)") String priority
+    ) {
+        Customer customer = customerRepository.findById(customerId)
+            .orElseThrow(() -> new CustomerNotFoundException(customerId));
+        
+        CustomerNote customerNote = CustomerNote.builder()
+            .customer(customer)
+            .content(note)
+            .priority(Priority.valueOf(priority.toUpperCase()))
+            .createdBy("AI Assistant")
+            .createdAt(LocalDateTime.now())
+            .build();
+        
+        customerNoteRepository.save(customerNote);
+        
+        return "메모가 성공적으로 추가되었습니다. ID: " + customerNote.getId();
+    }
+    
+    @Tool("고객의 구매 통계를 분석합니다")
+    public CustomerAnalytics analyzeCustomer(
+        @ToolParam("고객 ID") Long customerId
+    ) {
+        List<Order> orders = orderRepository.findByCustomerId(customerId);
+        
+        return CustomerAnalytics.builder()
+            .totalOrders(orders.size())
+            .totalSpent(orders.stream()
+                .map(Order::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add))
+            .averageOrderValue(calculateAverage(orders))
+            .favoriteCategory(findFavoriteCategory(orders))
+            .lastOrderDate(findLastOrderDate(orders))
+            .churnRisk(calculateChurnRisk(orders))
+            .build();
+    }
+}</code></pre>
+                    </div>
+                </div>
+
+                <!-- Multi-Step Tools -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">복합 작업 도구</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('complex-tools')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="complex-tools"><code class="language-java">@Component
+public class BusinessProcessTools {
+    
+    @Tool("판매 보고서를 생성하고 이메일로 발송합니다")
+    public ReportResult generateAndSendSalesReport(
+        @ToolParam("시작 날짜 (YYYY-MM-DD)") String startDate,
+        @ToolParam("종료 날짜 (YYYY-MM-DD)") String endDate,
+        @ToolParam("수신자 이메일 목록 (쉼표로 구분)") String recipients,
+        @ToolParam("보고서 형식 (PDF/EXCEL)") String format
+    ) {
+        // 1. 데이터 수집
+        LocalDate start = LocalDate.parse(startDate);
+        LocalDate end = LocalDate.parse(endDate);
+        SalesData salesData = salesService.getSalesData(start, end);
+        
+        // 2. 보고서 생성
+        byte[] report = format.equalsIgnoreCase("PDF") 
+            ? reportGenerator.generatePDF(salesData)
+            : reportGenerator.generateExcel(salesData);
+        
+        // 3. 이메일 발송
+        List<String> emailList = Arrays.asList(recipients.split(","));
+        EmailResult emailResult = emailService.sendReport(
+            emailList,
+            "판매 보고서 " + startDate + " ~ " + endDate,
+            "요청하신 판매 보고서를 첨부합니다.",
+            report,
+            "sales_report_" + startDate + "_" + endDate + "." + format.toLowerCase()
+        );
+        
+        return ReportResult.builder()
+            .reportGenerated(true)
+            .emailSent(emailResult.isSuccess())
+            .recipients(emailList)
+            .reportSize(report.length)
+            .message("보고서가 생성되어 " + emailList.size() + "명에게 발송되었습니다.")
+            .build();
+    }
+    
+    @Tool("재고 부족 상품을 확인하고 자동 주문합니다")
+    public RestockResult checkAndRestockInventory(
+        @ToolParam("최소 재고 수준") Integer minStockLevel,
+        @ToolParam("자동 주문 승인 여부") Boolean autoApprove
+    ) {
+        // 1. 재고 부족 상품 확인
+        List<Product> lowStockProducts = inventoryService
+            .findProductsBelowStock(minStockLevel);
+        
+        if (lowStockProducts.isEmpty()) {
+            return RestockResult.noRestockNeeded();
+        }
+        
+        // 2. 주문 제안 생성
+        List<PurchaseOrder> proposedOrders = lowStockProducts.stream()
+            .map(product -> createRestockOrder(product, minStockLevel))
+            .toList();
+        
+        // 3. 자동 승인 또는 대기
+        if (autoApprove) {
+            proposedOrders.forEach(order -> {
+                order.setStatus(OrderStatus.APPROVED);
+                purchaseOrderService.submit(order);
+            });
+            
+            return RestockResult.builder()
+                .ordersCreated(proposedOrders.size())
+                .totalCost(calculateTotalCost(proposedOrders))
+                .status("주문이 자동으로 승인되어 처리되었습니다.")
+                .orderIds(proposedOrders.stream()
+                    .map(PurchaseOrder::getId)
+                    .toList())
+                .build();
+        } else {
+            proposedOrders.forEach(order -> {
+                order.setStatus(OrderStatus.PENDING_APPROVAL);
+                purchaseOrderService.save(order);
+            });
+            
+            return RestockResult.builder()
+                .ordersCreated(proposedOrders.size())
+                .totalCost(calculateTotalCost(proposedOrders))
+                .status("주문이 생성되어 승인 대기 중입니다.")
+                .orderIds(proposedOrders.stream()
+                    .map(PurchaseOrder::getId)
+                    .toList())
+                .build();
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+
+                <!-- Async Tools -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">비동기 도구</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('async-tools')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="async-tools"><code class="language-java">@Component
+public class AsyncProcessingTools {
+    
+    @Tool("대용량 데이터 분석 작업을 시작합니다")
+    @Async
+    public CompletableFuture<AnalysisResult> startDataAnalysis(
+        @ToolParam("데이터셋 ID") String datasetId,
+        @ToolParam("분석 유형") String analysisType
+    ) {
+        return CompletableFuture.supplyAsync(() -> {
+            // 장시간 실행되는 분석 작업
+            Dataset dataset = datasetService.load(datasetId);
+            
+            return switch (analysisType.toUpperCase()) {
+                case "STATISTICAL" -> performStatisticalAnalysis(dataset);
+                case "PREDICTIVE" -> performPredictiveAnalysis(dataset);
+                case "CLUSTERING" -> performClusteringAnalysis(dataset);
+                default -> throw new UnsupportedAnalysisException(analysisType);
+            };
+        });
+    }
+    
+    @Tool("분석 작업 상태를 확인합니다")
+    public JobStatus checkAnalysisStatus(
+        @ToolParam("작업 ID") String jobId
+    ) {
+        return jobStatusService.getStatus(jobId);
+    }
+    
+    @Tool("장기 실행 작업을 예약합니다")
+    public ScheduledJob scheduleJob(
+        @ToolParam("작업 이름") String jobName,
+        @ToolParam("실행 시간 (cron 표현식)") String cronExpression,
+        @ToolParam("작업 매개변수 (JSON)") String parameters
+    ) {
+        JobDetail jobDetail = JobBuilder.newJob(AIScheduledJob.class)
+            .withIdentity(jobName, "ai-tools")
+            .usingJobData("parameters", parameters)
+            .build();
+        
+        Trigger trigger = TriggerBuilder.newTrigger()
+            .withIdentity(jobName + "-trigger", "ai-tools")
+            .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
+            .build();
+        
+        scheduler.scheduleJob(jobDetail, trigger);
+        
+        return ScheduledJob.builder()
+            .jobId(jobDetail.getKey().toString())
+            .name(jobName)
+            .schedule(cronExpression)
+            .nextExecution(trigger.getNextFireTime())
+            .status("SCHEDULED")
+            .build();
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 4: Error Handling -->
+            <section id="error-handling" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">4. 에러 처리</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">강건한 에러 처리</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('error-handling')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="error-handling"><code class="language-java">@Component
+@Slf4j
+public class RobustToolWrapper {
+    
+    @Tool("안전한 데이터베이스 조회")
+    public ToolResult safeDataQuery(
+        @ToolParam("쿼리") String query
+    ) {
+        try {
+            // 입력 검증
+            validateQuery(query);
+            
+            // 실행 시간 제한
+            return CompletableFuture
+                .supplyAsync(() -> executeQuery(query))
+                .orTimeout(30, TimeUnit.SECONDS)
+                .handle((result, throwable) -> {
+                    if (throwable != null) {
+                        log.error("Query execution failed", throwable);
+                        return ToolResult.failure(
+                            "쿼리 실행 중 오류가 발생했습니다: " + 
+                            throwable.getMessage()
+                        );
+                    }
+                    return ToolResult.success(result);
+                })
+                .join();
+                
+        } catch (ValidationException e) {
+            return ToolResult.failure("잘못된 쿼리 형식: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error in tool execution", e);
+            return ToolResult.failure("예기치 않은 오류가 발생했습니다.");
+        }
+    }
+    
+    // 재시도 로직
+    @Tool("외부 API 호출 (재시도 포함)")
+    @Retryable(value = {ApiException.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000))
+    public ApiResponse callExternalApi(
+        @ToolParam("엔드포인트") String endpoint,
+        @ToolParam("매개변수") Map<String, Object> parameters
+    ) {
+        try {
+            return apiClient.call(endpoint, parameters);
+        } catch (ApiException e) {
+            log.warn("API call failed, will retry. Endpoint: {}", endpoint);
+            throw e;
+        }
+    }
+    
+    @Recover
+    public ApiResponse recoverFromApiFailure(ApiException e, String endpoint, Map<String, Object> parameters) {
+        log.error("All API call attempts failed for endpoint: {}", endpoint);
+        return ApiResponse.builder()
+            .success(false)
+            .error("API 호출이 실패했습니다. 잠시 후 다시 시도해주세요.")
+            .build();
+    }
+    
+    // 권한 검증
+    @Tool("민감한 작업 수행")
+    public SecureResult performSensitiveOperation(
+        @ToolParam("작업 ID") String operationId,
+        @ToolParam("사용자 컨텍스트") String userContext
+    ) {
+        // 권한 확인
+        if (!securityService.hasPermission(userContext, operationId)) {
+            return SecureResult.forbidden("이 작업을 수행할 권한이 없습니다.");
+        }
+        
+        // 감사 로그
+        auditService.log(AuditEvent.builder()
+            .action("SENSITIVE_OPERATION")
+            .operationId(operationId)
+            .userContext(userContext)
+            .timestamp(Instant.now())
+            .build());
+        
+        // 실제 작업 수행
+        return performOperation(operationId);
+    }
+}</code></pre>
+                    </div>
+
+                    <div class="bg-red-50 p-4 rounded-lg">
+                        <h4 class="font-semibold mb-2">에러 처리 체크리스트:</h4>
+                        <ul class="space-y-1 text-sm">
+                            <li>✅ 입력 검증</li>
+                            <li>✅ 타임아웃 설정</li>
+                            <li>✅ 재시도 로직</li>
+                            <li>✅ 폴백 처리</li>
+                            <li>✅ 에러 로깅</li>
+                            <li>✅ 사용자 친화적 메시지</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 5: Best Practices -->
+            <section id="best-practices" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">5. 모범 사례</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">도구 설계 원칙</h3>
+                    
+                    <div class="grid md:grid-cols-2 gap-4 mb-6">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <h4 class="font-semibold mb-2">✅ 해야 할 것</h4>
+                            <ul class="space-y-1 text-sm">
+                                <li>• 명확하고 설명적인 도구 이름 사용</li>
+                                <li>• 파라미터에 상세한 설명 추가</li>
+                                <li>• 단일 책임 원칙 준수</li>
+                                <li>• 예상 가능한 결과 반환</li>
+                                <li>• 적절한 에러 메시지 제공</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <h4 class="font-semibold mb-2">❌ 피해야 할 것</h4>
+                            <ul class="space-y-1 text-sm">
+                                <li>• 너무 복잡한 파라미터 구조</li>
+                                <li>• 부작용이 큰 작업</li>
+                                <li>• 동기적으로 오래 걸리는 작업</li>
+                                <li>• 애매한 도구 설명</li>
+                                <li>• 검증되지 않은 입력 처리</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <h3 class="text-lg font-semibold mb-3">성능 최적화</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('performance-tips')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="performance-tips"><code class="language-java">@Configuration
+public class ToolPerformanceConfig {
+    
+    // 도구 결과 캐싱
+    @Bean
+    public CacheManager toolCacheManager() {
+        return CacheManagerBuilder.newCacheManagerBuilder()
+            .withCache("toolResults",
+                CacheConfigurationBuilder.newCacheConfigurationBuilder(
+                    String.class, Object.class,
+                    ResourcePoolsBuilder.heap(100)
+                        .offheap(1, MemoryUnit.MB))
+                    .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(
+                        Duration.ofMinutes(10)))
+            )
+            .build(true);
+    }
+    
+    // 도구 실행 메트릭
+    @Component
+    @Aspect
+    public class ToolMetricsAspect {
+        
+        private final MeterRegistry meterRegistry;
+        
+        @Around("@annotation(Tool)")
+        public Object measureToolExecution(ProceedingJoinPoint pjp) throws Throwable {
+            String toolName = pjp.getSignature().getName();
+            
+            return Timer.Sample
+                .start(meterRegistry)
+                .stop(Timer.builder("tool.execution.time")
+                    .tag("tool", toolName)
+                    .register(meterRegistry));
+        }
+    }
+    
+    // 배치 처리 지원
+    @Tool("대량 데이터 처리")
+    public BatchResult processBatch(
+        @ToolParam("항목 ID 목록") List<String> itemIds
+    ) {
+        // 병렬 처리
+        List<CompletableFuture<ItemResult>> futures = itemIds.stream()
+            .map(id -> CompletableFuture.supplyAsync(() -> processItem(id)))
+            .toList();
+        
+        // 결과 수집
+        List<ItemResult> results = CompletableFuture.allOf(
+            futures.toArray(new CompletableFuture[0])
+        ).thenApply(v -> futures.stream()
+            .map(CompletableFuture::join)
+            .toList()
+        ).join();
+        
+        return BatchResult.of(results);
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 6: Real Examples -->
+            <section id="real-examples" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">6. 실전 예제</h2>
+                
+                <!-- E-commerce Assistant -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">이커머스 어시스턴트</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('ecommerce-assistant')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="ecommerce-assistant"><code class="language-java">@Service
+public class EcommerceAssistant {
+    
+    private final ChatClient chatClient;
+    
+    public EcommerceAssistant(ChatClient.Builder builder) {
+        this.chatClient = builder
+            .defaultFunctions(
+                "searchProducts",
+                "getProductDetails", 
+                "checkInventory",
+                "calculateShipping",
+                "placeOrder",
+                "trackOrder"
+            )
+            .build();
+    }
+    
+    // 대화형 쇼핑 어시스턴트
+    public String assist(String userMessage, String sessionId) {
+        return chatClient.prompt()
+            .system("""
+                당신은 친절한 쇼핑 어시스턴트입니다.
+                고객이 원하는 상품을 찾고, 구매 결정을 도와주세요.
+                재고 확인, 배송비 계산, 주문 처리를 지원합니다.
+                """)
+            .user(userMessage)
+            .call()
+            .content();
+    }
+}
+
+@Component
+public class EcommerceTools {
+    
+    @Tool("상품을 검색합니다")
+    public List<ProductSummary> searchProducts(
+        @ToolParam("검색어") String query,
+        @ToolParam("카테고리 (선택사항)") String category,
+        @ToolParam("최소 가격 (선택사항)") BigDecimal minPrice,
+        @ToolParam("최대 가격 (선택사항)") BigDecimal maxPrice
+    ) {
+        SearchCriteria criteria = SearchCriteria.builder()
+            .query(query)
+            .category(category)
+            .priceRange(minPrice, maxPrice)
+            .build();
+            
+        return productService.search(criteria).stream()
+            .map(this::toSummary)
+            .limit(10)
+            .toList();
+    }
+    
+    @Tool("상품 상세 정보를 조회합니다")
+    public ProductDetail getProductDetails(
+        @ToolParam("상품 ID") String productId
+    ) {
+        Product product = productService.findById(productId);
+        
+        return ProductDetail.builder()
+            .id(product.getId())
+            .name(product.getName())
+            .description(product.getDescription())
+            .price(product.getPrice())
+            .images(product.getImages())
+            .specifications(product.getSpecifications())
+            .reviews(getTopReviews(productId))
+            .rating(calculateAverageRating(productId))
+            .build();
+    }
+    
+    @Tool("재고를 확인합니다")
+    public InventoryStatus checkInventory(
+        @ToolParam("상품 ID") String productId,
+        @ToolParam("수량") Integer quantity
+    ) {
+        int availableStock = inventoryService.getAvailableStock(productId);
+        
+        return InventoryStatus.builder()
+            .productId(productId)
+            .requestedQuantity(quantity)
+            .availableQuantity(availableStock)
+            .inStock(availableStock >= quantity)
+            .message(availableStock >= quantity 
+                ? "재고가 충분합니다." 
+                : "재고가 부족합니다. 현재 " + availableStock + "개 남았습니다.")
+            .build();
+    }
+    
+    @Tool("주문을 생성합니다")
+    @Transactional
+    public OrderResult placeOrder(
+        @ToolParam("장바구니 항목") List<CartItem> items,
+        @ToolParam("배송 주소") ShippingAddress address,
+        @ToolParam("결제 방법") String paymentMethod
+    ) {
+        // 재고 확인
+        for (CartItem item : items) {
+            InventoryStatus status = checkInventory(item.getProductId(), item.getQuantity());
+            if (!status.isInStock()) {
+                return OrderResult.failure("재고 부족: " + item.getProductName());
+            }
+        }
+        
+        // 주문 생성
+        Order order = Order.builder()
+            .items(items)
+            .shippingAddress(address)
+            .paymentMethod(paymentMethod)
+            .status(OrderStatus.PENDING)
+            .build();
+        
+        order = orderService.create(order);
+        
+        // 결제 처리
+        PaymentResult payment = paymentService.process(order);
+        
+        if (payment.isSuccess()) {
+            order.setStatus(OrderStatus.CONFIRMED);
+            orderService.save(order);
+            
+            // 재고 차감
+            inventoryService.decreaseStock(items);
+            
+            // 배송 예약
+            shippingService.schedule(order);
+            
+            return OrderResult.success(order.getId(), 
+                "주문이 완료되었습니다. 주문번호: " + order.getId());
+        } else {
+            return OrderResult.failure("결제 실패: " + payment.getError());
+        }
+    }
+}</code></pre>
+                    </div>
+
+                    <div class="bg-gray-100 p-4 rounded-lg">
+                        <h4 class="font-semibold mb-2">사용 예시:</h4>
+                        <div class="space-y-2 text-sm">
+                            <p><strong>사용자:</strong> "노트북을 찾고 있어요"</p>
+                            <p><strong>AI:</strong> searchProducts()를 호출하여 노트북 목록을 보여줍니다</p>
+                            <p><strong>사용자:</strong> "첫 번째 제품 자세히 보여줘"</p>
+                            <p><strong>AI:</strong> getProductDetails()를 호출하여 상세 정보 제공</p>
+                            <p><strong>사용자:</strong> "재고 있나요?"</p>
+                            <p><strong>AI:</strong> checkInventory()를 호출하여 재고 확인</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tool Patterns -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">🎯 도구 패턴</h2>
+                
+                <div class="grid gap-4">
+                    <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold mb-3">체인 패턴</h3>
+                        <p class="text-sm mb-3">여러 도구를 순차적으로 호출하여 복잡한 작업 수행</p>
+                        <div class="code-block p-3">
+                            <pre><code class="language-java">// 1. 고객 조회 → 2. 주문 내역 확인 → 3. 추천 생성
+@Tool("개인화된 상품 추천")
+public Recommendations getPersonalizedRecommendations(String customerId) {
+    CustomerInfo customer = getCustomerInfo(customerId);
+    List<Order> orderHistory = getOrderHistory(customerId);
+    return generateRecommendations(customer, orderHistory);
+}</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold mb-3">분기 패턴</h3>
+                        <p class="text-sm mb-3">조건에 따라 다른 도구 호출</p>
+                        <div class="code-block p-3">
+                            <pre><code class="language-java">@Tool("스마트 고객 지원")
+public SupportResult handleSupport(String issue, String customerId) {
+    if (issue.contains("주문")) {
+        return handleOrderIssue(customerId);
+    } else if (issue.contains("환불")) {
+        return processRefund(customerId);
+    } else {
+        return escalateToHuman(issue, customerId);
+    }
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Next Steps -->
+            <section class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4">다음 단계</h2>
+                
+                <div class="grid md:grid-cols-3 gap-4">
+                    <a href="agents.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-blue-600 mb-2">AI 에이전트</h3>
+                        <p class="text-sm text-gray-600">도구를 활용한 자율 에이전트 구축</p>
+                    </a>
+                    
+                    <a href="monitoring.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-green-600 mb-2">도구 모니터링</h3>
+                        <p class="text-sm text-gray-600">도구 사용 추적 및 최적화</p>
+                    </a>
+                    
+                    <a href="patterns.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-purple-600 mb-2">고급 패턴</h3>
+                        <p class="text-sm text-gray-600">복잡한 도구 오케스트레이션</p>
+                    </a>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <script>
+        function copyCode(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('코드가 복사되었습니다!');
+            });
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg z-50';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

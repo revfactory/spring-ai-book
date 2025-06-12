@@ -1,0 +1,1909 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring AI 실전 예제 모음</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .code-block { background: #2d3748; border-radius: 8px; }
+        .copy-button { transition: all 0.2s ease; }
+        .copy-button:hover { background-color: #4a5568; }
+        .example-card { transition: all 0.3s ease; }
+        .example-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+        .tab-button { transition: all 0.2s ease; }
+        .tab-button.active { background-color: #3b82f6; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <a href="../index.html" class="flex items-center text-xl font-bold text-gray-800">
+                        <i class="fab fa-spring text-green-600 mr-2"></i>
+                        Spring AI Hub
+                    </a>
+                    <span class="mx-3 text-gray-400">/</span>
+                    <span class="text-gray-600">실전 예제</span>
+                </div>
+                <a href="../index.html" class="text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-home"></i> 홈으로
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-6xl mx-auto">
+            <h1 class="text-4xl font-bold mb-4">💡 Spring AI 실전 예제 모음</h1>
+            <p class="text-gray-600 mb-8">실제 프로젝트에서 바로 사용할 수 있는 완전한 예제들</p>
+
+            <!-- Example Categories -->
+            <div class="flex flex-wrap gap-4 mb-8">
+                <button class="example-filter tab-button active bg-blue-600 text-white px-4 py-2 rounded-lg" data-category="all">
+                    전체 예제
+                </button>
+                <button class="example-filter tab-button bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300" data-category="chatbot">
+                    채팅봇
+                </button>
+                <button class="example-filter tab-button bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300" data-category="rag">
+                    RAG 시스템
+                </button>
+                <button class="example-filter tab-button bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300" data-category="analysis">
+                    문서 분석
+                </button>
+                <button class="example-filter tab-button bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300" data-category="integration">
+                    서비스 통합
+                </button>
+            </div>
+
+            <!-- Examples List -->
+            <div class="space-y-8">
+                
+                <!-- Example 1: Customer Support Chatbot -->
+                <div class="example-card bg-white rounded-lg shadow-lg overflow-hidden" data-category="chatbot">
+                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-2xl font-bold flex items-center">
+                                <i class="fas fa-headset mr-3"></i>
+                                고객 지원 채팅봇
+                            </h3>
+                            <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm">
+                                난이도: ⭐⭐
+                            </span>
+                        </div>
+                        <p class="mt-2 text-blue-100">다국어 지원, 감정 분석, FAQ 연동을 포함한 완전한 고객 지원 시스템</p>
+                    </div>
+                    
+                    <div class="p-6">
+                        <!-- Tabs -->
+                        <div class="border-b border-gray-200 mb-6">
+                            <nav class="-mb-px flex space-x-8">
+                                <button class="tab-nav py-2 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600" 
+                                        onclick="showTab(this, 'chatbot-overview')">
+                                    개요
+                                </button>
+                                <button class="tab-nav py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" 
+                                        onclick="showTab(this, 'chatbot-service')">
+                                    서비스 코드
+                                </button>
+                                <button class="tab-nav py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" 
+                                        onclick="showTab(this, 'chatbot-controller')">
+                                    컨트롤러
+                                </button>
+                                <button class="tab-nav py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" 
+                                        onclick="showTab(this, 'chatbot-config')">
+                                    설정
+                                </button>
+                            </nav>
+                        </div>
+
+                        <!-- Tab Contents -->
+                        <div id="chatbot-overview" class="tab-content active">
+                            <h4 class="font-semibold mb-3">주요 기능</h4>
+                            <ul class="space-y-2 mb-6">
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
+                                    <span>실시간 다국어 번역 (한국어, 영어, 일본어, 중국어)</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
+                                    <span>고객 감정 분석 및 우선순위 라우팅</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
+                                    <span>FAQ 자동 검색 및 답변</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
+                                    <span>대화 컨텍스트 유지 및 히스토리 관리</span>
+                                </li>
+                            </ul>
+
+                            <h4 class="font-semibold mb-3">아키텍처</h4>
+                            <div class="bg-gray-100 p-4 rounded-lg">
+                                <pre class="text-sm font-mono">
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│   클라이언트   │────▶│  Spring Boot  │────▶│   ChatGPT   │
+│  (웹/모바일)  │     │   + AI Chat   │     │  + Tools    │
+└─────────────┘     └──────────────┘     └─────────────┘
+                            │
+                            ▼
+                    ┌──────────────┐
+                    │  PostgreSQL   │
+                    │  + PGVector   │
+                    └──────────────┘
+                                </pre>
+                            </div>
+                        </div>
+
+                        <div id="chatbot-service" class="tab-content">
+                            <div class="code-block p-4 relative">
+                                <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                        onclick="copyCode('chatbot-service-code')">
+                                    <i class="fas fa-copy"></i> 복사
+                                </button>
+                                <pre id="chatbot-service-code"><code class="language-java">@Service
+@Slf4j
+public class CustomerSupportChatService {
+    
+    private final ChatClient chatClient;
+    private final VectorStore vectorStore;
+    private final TranslationService translationService;
+    private final SentimentAnalyzer sentimentAnalyzer;
+    private final ConversationRepository conversationRepository;
+    
+    public CustomerSupportChatService(ChatClient.Builder builder, 
+                                    VectorStore vectorStore,
+                                    TranslationService translationService,
+                                    SentimentAnalyzer sentimentAnalyzer,
+                                    ConversationRepository conversationRepository) {
+        this.chatClient = builder
+            .defaultOptions(OpenAiChatOptions.builder()
+                .withModel(OpenAiApi.ChatModel.GPT_4_O)
+                .withTemperature(0.7f)
+                .build())
+            .defaultSystem("""
+                당신은 친절하고 전문적인 고객 지원 상담원입니다.
+                고객의 문제를 정확히 이해하고 해결책을 제시하세요.
+                항상 공감하는 태도로 응대하세요.
+                """)
+            .build();
+        
+        this.vectorStore = vectorStore;
+        this.translationService = translationService;
+        this.sentimentAnalyzer = sentimentAnalyzer;
+        this.conversationRepository = conversationRepository;
+    }
+    
+    public ChatResponse handleCustomerQuery(ChatRequest request) {
+        // 1. 언어 감지 및 번역
+        String detectedLanguage = translationService.detectLanguage(request.getMessage());
+        String translatedMessage = request.getMessage();
+        
+        if (!detectedLanguage.equals("ko")) {
+            translatedMessage = translationService.translate(
+                request.getMessage(), 
+                detectedLanguage, 
+                "ko"
+            );
+        }
+        
+        // 2. 감정 분석
+        SentimentResult sentiment = sentimentAnalyzer.analyze(translatedMessage);
+        Priority priority = determinePriority(sentiment);
+        
+        // 3. FAQ 검색
+        List<Document> relevantFAQs = vectorStore.similaritySearch(
+            SearchRequest.query(translatedMessage)
+                .withTopK(3)
+                .withSimilarityThreshold(0.7)
+        );
+        
+        // 4. 대화 컨텍스트 로드
+        List<Message> conversationHistory = conversationRepository
+            .findBySessionId(request.getSessionId())
+            .stream()
+            .map(this::toMessage)
+            .toList();
+        
+        // 5. AI 응답 생성
+        String response = chatClient.prompt()
+            .user(u -> u.text(translatedMessage)
+                .param("faqs", relevantFAQs)
+                .param("sentiment", sentiment)
+                .param("history", conversationHistory))
+            .call()
+            .content();
+        
+        // 6. 응답 번역 (필요시)
+        String finalResponse = response;
+        if (!detectedLanguage.equals("ko")) {
+            finalResponse = translationService.translate(
+                response, 
+                "ko", 
+                detectedLanguage
+            );
+        }
+        
+        // 7. 대화 저장
+        saveConversation(request, finalResponse, sentiment, priority);
+        
+        return ChatResponse.builder()
+            .message(finalResponse)
+            .sessionId(request.getSessionId())
+            .sentiment(sentiment)
+            .priority(priority)
+            .suggestedActions(generateSuggestedActions(sentiment, priority))
+            .build();
+    }
+    
+    private Priority determinePriority(SentimentResult sentiment) {
+        if (sentiment.getScore() < -0.5) {
+            return Priority.HIGH;
+        } else if (sentiment.getScore() < 0) {
+            return Priority.MEDIUM;
+        }
+        return Priority.LOW;
+    }
+    
+    private List<String> generateSuggestedActions(SentimentResult sentiment, Priority priority) {
+        List<String> actions = new ArrayList<>();
+        
+        if (priority == Priority.HIGH) {
+            actions.add("상담원 연결");
+            actions.add("긴급 처리 요청");
+        }
+        
+        if (sentiment.getEmotions().contains("frustration")) {
+            actions.add("보상 정책 안내");
+            actions.add("사과 메시지 전송");
+        }
+        
+        return actions;
+    }
+    
+    // Streaming 지원
+    public Flux<String> handleCustomerQueryStream(ChatRequest request) {
+        // 전처리 로직 동일...
+        
+        return chatClient.prompt()
+            .user(u -> u.text(request.getMessage()))
+            .stream()
+            .content()
+            .map(chunk -> {
+                // 실시간 번역 적용
+                if (!request.getLanguage().equals("ko")) {
+                    return translationService.translateRealtime(chunk, "ko", request.getLanguage());
+                }
+                return chunk;
+            });
+    }
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div id="chatbot-controller" class="tab-content">
+                            <div class="code-block p-4 relative">
+                                <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                        onclick="copyCode('chatbot-controller-code')">
+                                    <i class="fas fa-copy"></i> 복사
+                                </button>
+                                <pre id="chatbot-controller-code"><code class="language-java">@RestController
+@RequestMapping("/api/support")
+@CrossOrigin(origins = "${app.cors.allowed-origins}")
+@Slf4j
+public class CustomerSupportController {
+    
+    private final CustomerSupportChatService chatService;
+    private final MetricsService metricsService;
+    
+    @PostMapping("/chat")
+    public ResponseEntity<ChatResponse> chat(@RequestBody @Valid ChatRequest request) {
+        log.info("Received chat request for session: {}", request.getSessionId());
+        
+        Timer.Sample sample = Timer.start();
+        try {
+            ChatResponse response = chatService.handleCustomerQuery(request);
+            
+            // 메트릭 기록
+            metricsService.recordChatMetrics(
+                request.getSessionId(),
+                response.getSentiment(),
+                response.getPriority()
+            );
+            
+            return ResponseEntity.ok(response);
+        } finally {
+            sample.stop(Timer.builder("chat.request.duration")
+                .tag("endpoint", "chat")
+                .register(meterRegistry));
+        }
+    }
+    
+    @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<String>> chatStream(@RequestBody @Valid ChatRequest request) {
+        return chatService.handleCustomerQueryStream(request)
+            .map(content -> ServerSentEvent.<String>builder()
+                .data(content)
+                .event("message")
+                .build())
+            .concatWith(Mono.just(ServerSentEvent.<String>builder()
+                .event("complete")
+                .data("[DONE]")
+                .build()));
+    }
+    
+    @GetMapping("/session/{sessionId}/history")
+    public ResponseEntity<ConversationHistory> getHistory(@PathVariable String sessionId) {
+        ConversationHistory history = chatService.getConversationHistory(sessionId);
+        return ResponseEntity.ok(history);
+    }
+    
+    @PostMapping("/feedback")
+    public ResponseEntity<Void> submitFeedback(@RequestBody @Valid FeedbackRequest feedback) {
+        chatService.processFeedback(feedback);
+        return ResponseEntity.ok().build();
+    }
+    
+    // WebSocket 지원
+    @MessageMapping("/support")
+    @SendTo("/topic/support/{sessionId}")
+    public ChatResponse handleWebSocketChat(ChatRequest request) {
+        return chatService.handleCustomerQuery(request);
+    }
+    
+    // DTO 클래스들
+    @Data
+    @Builder
+    public static class ChatRequest {
+        @NotBlank
+        private String sessionId;
+        
+        @NotBlank
+        private String message;
+        
+        private String language;
+        private Map<String, Object> metadata;
+    }
+    
+    @Data
+    @Builder
+    public static class ChatResponse {
+        private String message;
+        private String sessionId;
+        private SentimentResult sentiment;
+        private Priority priority;
+        private List<String> suggestedActions;
+        private Instant timestamp;
+    }
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div id="chatbot-config" class="tab-content">
+                            <div class="code-block p-4 relative mb-4">
+                                <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                        onclick="copyCode('chatbot-config-yaml')">
+                                    <i class="fas fa-copy"></i> 복사
+                                </button>
+                                <pre id="chatbot-config-yaml"><code class="language-yaml">spring:
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: gpt-4o
+          temperature: 0.7
+          max-tokens: 500
+    
+    vectorstore:
+      pgvector:
+        url: jdbc:postgresql://localhost:5432/support_db
+        username: ${DB_USERNAME}
+        password: ${DB_PASSWORD}
+        schema-name: public
+        table-name: faq_embeddings
+        distance-type: COSINE_DISTANCE
+  
+  # WebSocket 설정
+  websocket:
+    broker:
+      relay-host: localhost
+      relay-port: 61613
+  
+# 애플리케이션 설정
+app:
+  support:
+    languages:
+      - ko
+      - en
+      - ja
+      - zh
+    sentiment:
+      threshold:
+        high-priority: -0.5
+        medium-priority: 0.0
+    conversation:
+      retention-days: 30
+      max-history-size: 50
+  
+# 모니터링
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    tags:
+      application: customer-support-chat</code></pre>
+                            </div>
+
+                            <h4 class="font-semibold mb-3">Docker Compose 설정</h4>
+                            <div class="code-block p-4 relative">
+                                <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                        onclick="copyCode('chatbot-docker')">
+                                    <i class="fas fa-copy"></i> 복사
+                                </button>
+                                <pre id="chatbot-docker"><code class="language-yaml">version: '3.8'
+
+services:
+  postgres:
+    image: ankane/pgvector:latest
+    environment:
+      POSTGRES_DB: support_db
+      POSTGRES_USER: support_user
+      POSTGRES_PASSWORD: support_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+  
+  app:
+    build: .
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Example 2: Document Analysis RAG -->
+                <div class="example-card bg-white rounded-lg shadow-lg overflow-hidden" data-category="rag analysis">
+                    <div class="bg-gradient-to-r from-green-500 to-green-600 text-white p-6">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-2xl font-bold flex items-center">
+                                <i class="fas fa-file-alt mr-3"></i>
+                                문서 분석 RAG 시스템
+                            </h3>
+                            <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm">
+                                난이도: ⭐⭐⭐
+                            </span>
+                        </div>
+                        <p class="mt-2 text-green-100">PDF, Word, 이미지를 포함한 다양한 문서를 분석하고 질의응답하는 시스템</p>
+                    </div>
+                    
+                    <div class="p-6">
+                        <!-- Tabs -->
+                        <div class="border-b border-gray-200 mb-6">
+                            <nav class="-mb-px flex space-x-8">
+                                <button class="tab-nav py-2 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600" 
+                                        onclick="showTab(this, 'rag-overview')">
+                                    개요
+                                </button>
+                                <button class="tab-nav py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" 
+                                        onclick="showTab(this, 'rag-service')">
+                                    서비스 코드
+                                </button>
+                                <button class="tab-nav py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" 
+                                        onclick="showTab(this, 'rag-pipeline')">
+                                    파이프라인
+                                </button>
+                                <button class="tab-nav py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" 
+                                        onclick="showTab(this, 'rag-search')">
+                                    검색 최적화
+                                </button>
+                            </nav>
+                        </div>
+
+                        <!-- Tab Contents -->
+                        <div id="rag-overview" class="tab-content active">
+                            <h4 class="font-semibold mb-3">주요 기능</h4>
+                            <ul class="space-y-2 mb-6">
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
+                                    <span>다양한 문서 형식 지원 (PDF, DOCX, TXT, MD, 이미지)</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
+                                    <span>하이브리드 검색 (벡터 + 키워드)</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
+                                    <span>메타데이터 기반 필터링</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
+                                    <span>청크 최적화 및 오버랩 처리</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
+                                    <span>소스 추적 및 인용 기능</span>
+                                </li>
+                            </ul>
+
+                            <h4 class="font-semibold mb-3">문서 처리 파이프라인</h4>
+                            <div class="bg-gray-100 p-4 rounded-lg">
+                                <pre class="text-sm font-mono">
+문서 업로드 → 형식 감지 → 텍스트 추출 → 청크 분할
+     ↓                                      ↓
+임베딩 생성 ← 메타데이터 추가 ← 전처리/정제
+     ↓
+벡터 스토어 저장 → 인덱싱 완료
+                                </pre>
+                            </div>
+                        </div>
+
+                        <div id="rag-service" class="tab-content">
+                            <div class="code-block p-4 relative">
+                                <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                        onclick="copyCode('rag-service-code')">
+                                    <i class="fas fa-copy"></i> 복사
+                                </button>
+                                <pre id="rag-service-code"><code class="language-java">@Service
+@Slf4j
+public class DocumentAnalysisRAGService {
+    
+    private final ChatClient chatClient;
+    private final VectorStore vectorStore;
+    private final DocumentProcessingPipeline processingPipeline;
+    private final HybridSearchService hybridSearchService;
+    private final EmbeddingModel embeddingModel;
+    
+    public DocumentAnalysisRAGService(
+            ChatClient.Builder builder,
+            VectorStore vectorStore,
+            DocumentProcessingPipeline processingPipeline,
+            HybridSearchService hybridSearchService,
+            EmbeddingModel embeddingModel) {
+        
+        this.chatClient = builder
+            .defaultOptions(OpenAiChatOptions.builder()
+                .withModel("gpt-4o")
+                .withTemperature(0.3f) // 정확성을 위해 낮은 온도
+                .build())
+            .build();
+        
+        this.vectorStore = vectorStore;
+        this.processingPipeline = processingPipeline;
+        this.hybridSearchService = hybridSearchService;
+        this.embeddingModel = embeddingModel;
+    }
+    
+    // 문서 업로드 및 처리
+    public DocumentIngestionResult ingestDocument(MultipartFile file, Map<String, String> metadata) {
+        try {
+            // 1. 문서 형식 검증
+            DocumentType docType = detectDocumentType(file);
+            validateDocumentSize(file);
+            
+            // 2. 문서 처리 파이프라인 실행
+            ProcessedDocument processed = processingPipeline.process(file, docType);
+            
+            // 3. 청크 생성 (오버랩 포함)
+            List<DocumentChunk> chunks = createOptimizedChunks(processed);
+            
+            // 4. 메타데이터 보강
+            chunks.forEach(chunk -> {
+                chunk.addMetadata("source", file.getOriginalFilename());
+                chunk.addMetadata("type", docType.toString());
+                chunk.addMetadata("processed_at", Instant.now().toString());
+                chunk.addMetadata("page", String.valueOf(chunk.getPageNumber()));
+                metadata.forEach(chunk::addMetadata);
+            });
+            
+            // 5. 임베딩 생성 및 저장
+            List<Document> documents = chunks.stream()
+                .map(chunk -> new Document(
+                    chunk.getContent(),
+                    chunk.getMetadata()
+                ))
+                .toList();
+            
+            vectorStore.add(documents);
+            
+            // 6. 검색 인덱스 업데이트
+            hybridSearchService.updateIndex(processed.getId(), chunks);
+            
+            return DocumentIngestionResult.builder()
+                .documentId(processed.getId())
+                .filename(file.getOriginalFilename())
+                .chunksCreated(chunks.size())
+                .status(IngestionStatus.SUCCESS)
+                .metadata(metadata)
+                .build();
+                
+        } catch (Exception e) {
+            log.error("Document ingestion failed", e);
+            return DocumentIngestionResult.builder()
+                .status(IngestionStatus.FAILED)
+                .error(e.getMessage())
+                .build();
+        }
+    }
+    
+    // 문서 질의응답
+    public AnswerResponse askQuestion(String question, SearchFilters filters) {
+        // 1. 하이브리드 검색 수행
+        HybridSearchResult searchResult = hybridSearchService.search(
+            question, 
+            filters,
+            SearchOptions.builder()
+                .vectorWeight(0.7f)
+                .keywordWeight(0.3f)
+                .topK(10)
+                .build()
+        );
+        
+        // 2. 관련 문서 재순위화
+        List<RankedDocument> rerankedDocs = rerank(searchResult.getDocuments(), question);
+        
+        // 3. 컨텍스트 구성
+        String context = buildContext(rerankedDocs);
+        
+        // 4. 답변 생성
+        String answer = chatClient.prompt()
+            .system("""
+                당신은 문서 분석 전문가입니다.
+                주어진 문서를 바탕으로 정확하고 상세한 답변을 제공하세요.
+                답변시 반드시 출처를 명시하고, 확실하지 않은 내용은 추측하지 마세요.
+                """)
+            .user(u -> u.text("""
+                질문: {question}
+                
+                관련 문서:
+                {context}
+                
+                위 문서를 바탕으로 질문에 답변해주세요.
+                답변 형식:
+                1. 핵심 답변
+                2. 상세 설명
+                3. 출처 (문서명과 페이지)
+                """)
+                .param("question", question)
+                .param("context", context))
+            .call()
+            .content();
+        
+        // 5. 소스 추적 정보 추가
+        List<SourceReference> sources = extractSourceReferences(rerankedDocs);
+        
+        return AnswerResponse.builder()
+            .question(question)
+            .answer(answer)
+            .sources(sources)
+            .confidence(calculateConfidence(rerankedDocs))
+            .searchMetadata(searchResult.getMetadata())
+            .build();
+    }
+    
+    // 청크 최적화
+    private List<DocumentChunk> createOptimizedChunks(ProcessedDocument doc) {
+        ChunkingStrategy strategy = ChunkingStrategy.builder()
+            .maxChunkSize(1000)
+            .overlapSize(200)
+            .splitByParagraph(true)
+            .preserveTables(true)
+            .preserveCodeBlocks(true)
+            .build();
+        
+        return TextSplitter.split(doc.getContent(), strategy);
+    }
+    
+    // 재순위화 알고리즘
+    private List<RankedDocument> rerank(List<Document> documents, String query) {
+        // Cross-Encoder를 사용한 재순위화
+        return documents.stream()
+            .map(doc -> {
+                double relevanceScore = calculateRelevance(doc, query);
+                double freshnessScore = calculateFreshness(doc);
+                double qualityScore = calculateQuality(doc);
+                
+                double finalScore = 
+                    relevanceScore * 0.6 + 
+                    freshnessScore * 0.2 + 
+                    qualityScore * 0.2;
+                
+                return new RankedDocument(doc, finalScore);
+            })
+            .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()))
+            .limit(5)
+            .toList();
+    }
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div id="rag-pipeline" class="tab-content">
+                            <div class="code-block p-4 relative">
+                                <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                        onclick="copyCode('rag-pipeline-code')">
+                                    <i class="fas fa-copy"></i> 복사
+                                </button>
+                                <pre id="rag-pipeline-code"><code class="language-java">@Component
+@Slf4j
+public class DocumentProcessingPipeline {
+    
+    private final TikaDocumentReader tikaReader;
+    private final OCRService ocrService;
+    private final TableExtractor tableExtractor;
+    private final DocumentCleaner documentCleaner;
+    
+    public ProcessedDocument process(MultipartFile file, DocumentType type) {
+        log.info("Processing document: {} of type {}", file.getOriginalFilename(), type);
+        
+        ProcessedDocument.Builder resultBuilder = ProcessedDocument.builder()
+            .originalFilename(file.getOriginalFilename())
+            .type(type);
+        
+        try {
+            // 1. 기본 텍스트 추출
+            String rawText = extractText(file, type);
+            resultBuilder.rawText(rawText);
+            
+            // 2. 특수 콘텐츠 처리
+            if (type == DocumentType.PDF || type == DocumentType.IMAGE) {
+                // OCR 처리 (필요시)
+                if (requiresOCR(file)) {
+                    String ocrText = ocrService.extractText(file);
+                    rawText = mergeTexts(rawText, ocrText);
+                }
+                
+                // 테이블 추출
+                List<Table> tables = tableExtractor.extract(file);
+                resultBuilder.tables(tables);
+                
+                // 이미지 추출 및 설명 생성
+                List<ImageContent> images = extractAndDescribeImages(file);
+                resultBuilder.images(images);
+            }
+            
+            // 3. 텍스트 정제 및 구조화
+            CleanedDocument cleaned = documentCleaner.clean(rawText);
+            
+            // 4. 섹션 분할
+            List<DocumentSection> sections = splitIntoSections(cleaned);
+            
+            // 5. 메타데이터 추출
+            DocumentMetadata metadata = extractMetadata(file, cleaned);
+            
+            return resultBuilder
+                .cleanedText(cleaned.getText())
+                .sections(sections)
+                .metadata(metadata)
+                .processingStatus(ProcessingStatus.SUCCESS)
+                .build();
+                
+        } catch (Exception e) {
+            log.error("Document processing failed", e);
+            return resultBuilder
+                .processingStatus(ProcessingStatus.FAILED)
+                .error(e.getMessage())
+                .build();
+        }
+    }
+    
+    private String extractText(MultipartFile file, DocumentType type) throws IOException {
+        return switch (type) {
+            case PDF -> tikaReader.read(file.getInputStream());
+            case DOCX -> extractFromDocx(file);
+            case MARKDOWN -> new String(file.getBytes(), StandardCharsets.UTF_8);
+            case TXT -> new String(file.getBytes(), StandardCharsets.UTF_8);
+            case IMAGE -> ocrService.extractText(file);
+            default -> throw new UnsupportedDocumentException("Unsupported type: " + type);
+        };
+    }
+    
+    private List<DocumentSection> splitIntoSections(CleanedDocument doc) {
+        // 헤더 기반 섹션 분할
+        Pattern headerPattern = Pattern.compile("^#{1,3}\\s+(.+)$", Pattern.MULTILINE);
+        Matcher matcher = headerPattern.matcher(doc.getText());
+        
+        List<DocumentSection> sections = new ArrayList<>();
+        int lastEnd = 0;
+        
+        while (matcher.find()) {
+            if (lastEnd < matcher.start()) {
+                // 이전 섹션 저장
+                String content = doc.getText().substring(lastEnd, matcher.start()).trim();
+                if (!content.isEmpty()) {
+                    sections.add(DocumentSection.builder()
+                        .title(extractTitle(content))
+                        .content(content)
+                        .startIndex(lastEnd)
+                        .endIndex(matcher.start())
+                        .build());
+                }
+            }
+            lastEnd = matcher.start();
+        }
+        
+        // 마지막 섹션 처리
+        if (lastEnd < doc.getText().length()) {
+            sections.add(DocumentSection.builder()
+                .content(doc.getText().substring(lastEnd))
+                .startIndex(lastEnd)
+                .endIndex(doc.getText().length())
+                .build());
+        }
+        
+        return sections;
+    }
+    
+    private List<ImageContent> extractAndDescribeImages(MultipartFile file) {
+        List<ImageContent> images = new ArrayList<>();
+        
+        try {
+            List<BufferedImage> extractedImages = ImageExtractor.extract(file);
+            
+            for (int i = 0; i < extractedImages.size(); i++) {
+                BufferedImage img = extractedImages.get(i);
+                
+                // AI를 사용한 이미지 설명 생성
+                String description = generateImageDescription(img);
+                
+                images.add(ImageContent.builder()
+                    .index(i)
+                    .width(img.getWidth())
+                    .height(img.getHeight())
+                    .description(description)
+                    .base64Data(encodeToBase64(img))
+                    .build());
+            }
+        } catch (Exception e) {
+            log.warn("Failed to extract images", e);
+        }
+        
+        return images;
+    }
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div id="rag-search" class="tab-content">
+                            <div class="code-block p-4 relative">
+                                <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                        onclick="copyCode('rag-search-code')">
+                                    <i class="fas fa-copy"></i> 복사
+                                </button>
+                                <pre id="rag-search-code"><code class="language-java">@Service
+@Slf4j
+public class HybridSearchService {
+    
+    private final VectorStore vectorStore;
+    private final ElasticsearchClient elasticsearchClient;
+    private final EmbeddingModel embeddingModel;
+    private final SearchOptimizer searchOptimizer;
+    
+    public HybridSearchResult search(String query, SearchFilters filters, SearchOptions options) {
+        log.debug("Performing hybrid search for query: {}", query);
+        
+        // 1. 쿼리 확장 및 개선
+        ExpandedQuery expandedQuery = searchOptimizer.expandQuery(query);
+        
+        // 2. 벡터 검색
+        List<Document> vectorResults = performVectorSearch(
+            expandedQuery.getMainQuery(), 
+            filters, 
+            options.getTopK() * 2  // 재순위화를 위해 더 많이 검색
+        );
+        
+        // 3. 키워드 검색 (Elasticsearch)
+        List<Document> keywordResults = performKeywordSearch(
+            expandedQuery,
+            filters,
+            options.getTopK() * 2
+        );
+        
+        // 4. 결과 병합 및 점수 계산
+        Map<String, ScoredDocument> mergedResults = new HashMap<>();
+        
+        // 벡터 검색 결과 처리
+        for (int i = 0; i < vectorResults.size(); i++) {
+            Document doc = vectorResults.get(i);
+            double vectorScore = 1.0 - (i * 0.1 / vectorResults.size());
+            
+            mergedResults.put(doc.getId(), ScoredDocument.builder()
+                .document(doc)
+                .vectorScore(vectorScore * options.getVectorWeight())
+                .build());
+        }
+        
+        // 키워드 검색 결과 병합
+        for (int i = 0; i < keywordResults.size(); i++) {
+            Document doc = keywordResults.get(i);
+            double keywordScore = 1.0 - (i * 0.1 / keywordResults.size());
+            
+            mergedResults.compute(doc.getId(), (id, existing) -> {
+                if (existing == null) {
+                    return ScoredDocument.builder()
+                        .document(doc)
+                        .keywordScore(keywordScore * options.getKeywordWeight())
+                        .build();
+                } else {
+                    existing.setKeywordScore(keywordScore * options.getKeywordWeight());
+                    return existing;
+                }
+            });
+        }
+        
+        // 5. 최종 점수 계산 및 정렬
+        List<ScoredDocument> finalResults = mergedResults.values().stream()
+            .peek(doc -> doc.setFinalScore(
+                doc.getVectorScore() + 
+                doc.getKeywordScore() + 
+                calculateBoostScore(doc, filters)
+            ))
+            .sorted((a, b) -> Double.compare(b.getFinalScore(), a.getFinalScore()))
+            .limit(options.getTopK())
+            .toList();
+        
+        // 6. 검색 메타데이터 생성
+        SearchMetadata metadata = SearchMetadata.builder()
+            .totalVectorResults(vectorResults.size())
+            .totalKeywordResults(keywordResults.size())
+            .mergedResults(finalResults.size())
+            .queryExpansions(expandedQuery.getExpansions())
+            .searchDuration(Duration.between(startTime, Instant.now()))
+            .build();
+        
+        return HybridSearchResult.builder()
+            .documents(finalResults.stream()
+                .map(ScoredDocument::getDocument)
+                .toList())
+            .scores(finalResults.stream()
+                .collect(Collectors.toMap(
+                    sd -> sd.getDocument().getId(),
+                    ScoredDocument::getFinalScore
+                )))
+            .metadata(metadata)
+            .build();
+    }
+    
+    private List<Document> performVectorSearch(String query, SearchFilters filters, int topK) {
+        SearchRequest.Builder searchBuilder = SearchRequest.query(query)
+            .withTopK(topK);
+        
+        // 필터 적용
+        if (filters != null) {
+            FilterExpressionBuilder filterBuilder = new FilterExpressionBuilder();
+            
+            if (filters.getFileTypes() != null && !filters.getFileTypes().isEmpty()) {
+                filterBuilder.in("type", filters.getFileTypes());
+            }
+            
+            if (filters.getDateRange() != null) {
+                filterBuilder.gte("processed_at", filters.getDateRange().getStart())
+                            .lte("processed_at", filters.getDateRange().getEnd());
+            }
+            
+            if (filters.getMetadataFilters() != null) {
+                filters.getMetadataFilters().forEach((key, value) -> 
+                    filterBuilder.eq(key, value)
+                );
+            }
+            
+            searchBuilder.withFilterExpression(filterBuilder.build());
+        }
+        
+        return vectorStore.similaritySearch(searchBuilder.build());
+    }
+    
+    private List<Document> performKeywordSearch(ExpandedQuery query, SearchFilters filters, int topK) {
+        // Elasticsearch 쿼리 구성
+        BoolQuery.Builder boolQuery = new BoolQuery.Builder();
+        
+        // 메인 쿼리
+        boolQuery.must(m -> m.multiMatch(mm -> mm
+            .query(query.getMainQuery())
+            .fields("content", "title^2", "summary^1.5")
+            .type(TextQueryType.BestFields)
+            .fuzziness("AUTO")
+        ));
+        
+        // 동의어 및 확장 쿼리
+        for (String expansion : query.getExpansions()) {
+            boolQuery.should(s -> s.match(m -> m
+                .field("content")
+                .query(expansion)
+                .boost(0.5f)
+            ));
+        }
+        
+        // 필터 적용
+        applyElasticsearchFilters(boolQuery, filters);
+        
+        // 검색 실행
+        SearchResponse<DocumentES> response = elasticsearchClient.search(s -> s
+            .index("documents")
+            .query(q -> q.bool(boolQuery.build()))
+            .size(topK)
+            .highlight(h -> h
+                .fields("content", f -> f
+                    .preTags("<mark>")
+                    .postTags("</mark>")
+                    .fragmentSize(150)
+                    .numberOfFragments(3)
+                )
+            ),
+            DocumentES.class
+        );
+        
+        // 결과 변환
+        return response.hits().hits().stream()
+            .map(hit -> {
+                Document doc = new Document(
+                    hit.source().getContent(),
+                    hit.source().getMetadata()
+                );
+                doc.setId(hit.id());
+                
+                // 하이라이트 추가
+                if (hit.highlight().containsKey("content")) {
+                    doc.getMetadata().put("highlight", 
+                        String.join(" ... ", hit.highlight().get("content"))
+                    );
+                }
+                
+                return doc;
+            })
+            .toList();
+    }
+    
+    // 부스트 점수 계산 (최신성, 신뢰도 등)
+    private double calculateBoostScore(ScoredDocument doc, SearchFilters filters) {
+        double boost = 0.0;
+        
+        // 최신성 부스트
+        String processedAt = doc.getDocument().getMetadata().get("processed_at");
+        if (processedAt != null) {
+            long daysSinceProcessed = ChronoUnit.DAYS.between(
+                Instant.parse(processedAt),
+                Instant.now()
+            );
+            boost += Math.max(0, 0.1 * (1 - daysSinceProcessed / 30.0));
+        }
+        
+        // 소스 신뢰도 부스트
+        String source = doc.getDocument().getMetadata().get("source");
+        if (source != null && filters.getTrustedSources().contains(source)) {
+            boost += 0.2;
+        }
+        
+        return boost;
+    }
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Example 3: Code Review Assistant -->
+                <div class="example-card bg-white rounded-lg shadow-lg overflow-hidden" data-category="integration">
+                    <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-2xl font-bold flex items-center">
+                                <i class="fas fa-code-branch mr-3"></i>
+                                AI 코드 리뷰 어시스턴트
+                            </h3>
+                            <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm">
+                                난이도: ⭐⭐⭐⭐
+                            </span>
+                        </div>
+                        <p class="mt-2 text-purple-100">GitHub PR과 통합되어 자동으로 코드를 리뷰하고 개선사항을 제안하는 시스템</p>
+                    </div>
+                    
+                    <div class="p-6">
+                        <div class="border-b border-gray-200 mb-6">
+                            <nav class="-mb-px flex space-x-8">
+                                <button class="tab-nav py-2 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600" 
+                                        onclick="showTab(this, 'review-overview')">
+                                    개요
+                                </button>
+                                <button class="tab-nav py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" 
+                                        onclick="showTab(this, 'review-service')">
+                                    서비스 코드
+                                </button>
+                                <button class="tab-nav py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" 
+                                        onclick="showTab(this, 'review-github')">
+                                    GitHub 통합
+                                </button>
+                                <button class="tab-nav py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" 
+                                        onclick="showTab(this, 'review-rules')">
+                                    리뷰 규칙
+                                </button>
+                            </nav>
+                        </div>
+
+                        <div id="review-overview" class="tab-content active">
+                            <h4 class="font-semibold mb-3">주요 기능</h4>
+                            <ul class="space-y-2 mb-6">
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
+                                    <span>GitHub PR 자동 감지 및 리뷰</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
+                                    <span>코드 스타일, 버그, 보안 취약점 검사</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
+                                    <span>개선 제안 및 코드 예시 제공</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
+                                    <span>팀별 커스텀 리뷰 규칙 설정</span>
+                                </li>
+                            </ul>
+
+                            <h4 class="font-semibold mb-3">워크플로우</h4>
+                            <div class="bg-gray-100 p-4 rounded-lg">
+                                <pre class="text-sm font-mono">
+1. PR 생성/업데이트 → GitHub Webhook
+2. 변경 파일 분석 → 컨텍스트 로드
+3. AI 리뷰 수행 → 멀티 패스 분석
+4. 리뷰 코멘트 생성 → GitHub API
+5. 개발자 피드백 → 학습 및 개선
+                                </pre>
+                            </div>
+                        </div>
+
+                        <div id="review-service" class="tab-content">
+                            <div class="code-block p-4 relative">
+                                <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                        onclick="copyCode('review-service-code')">
+                                    <i class="fas fa-copy"></i> 복사
+                                </button>
+                                <pre id="review-service-code"><code class="language-java">@Service
+@Slf4j
+public class AICodeReviewService {
+    
+    private final ChatClient chatClient;
+    private final GitHubService githubService;
+    private final CodeAnalysisService codeAnalysisService;
+    private final ReviewRulesEngine rulesEngine;
+    private final VectorStore codebaseKnowledge;
+    
+    public AICodeReviewService(
+            ChatClient.Builder builder,
+            GitHubService githubService,
+            CodeAnalysisService codeAnalysisService,
+            ReviewRulesEngine rulesEngine,
+            VectorStore codebaseKnowledge) {
+        
+        this.chatClient = builder
+            .defaultOptions(OpenAiChatOptions.builder()
+                .withModel("gpt-4o")
+                .withTemperature(0.3f)
+                .build())
+            .build();
+        
+        this.githubService = githubService;
+        this.codeAnalysisService = codeAnalysisService;
+        this.rulesEngine = rulesEngine;
+        this.codebaseKnowledge = codebaseKnowledge;
+    }
+    
+    @Async
+    public CompletableFuture<ReviewResult> reviewPullRequest(PullRequestEvent event) {
+        log.info("Starting review for PR #{} in {}", 
+            event.getPullRequest().getNumber(), 
+            event.getRepository().getFullName());
+        
+        try {
+            // 1. PR 정보 및 변경사항 로드
+            PullRequest pr = githubService.getPullRequest(
+                event.getRepository().getOwner().getLogin(),
+                event.getRepository().getName(),
+                event.getPullRequest().getNumber()
+            );
+            
+            List<PullRequestFile> files = githubService.getPullRequestFiles(pr);
+            
+            // 2. 변경 파일 분석
+            Map<String, FileAnalysis> fileAnalyses = new HashMap<>();
+            for (PullRequestFile file : files) {
+                if (shouldReviewFile(file)) {
+                    FileAnalysis analysis = analyzeFile(file, pr);
+                    fileAnalyses.put(file.getFilename(), analysis);
+                }
+            }
+            
+            // 3. 전체 PR 컨텍스트 분석
+            PRContext context = buildPRContext(pr, fileAnalyses);
+            
+            // 4. AI 리뷰 수행
+            List<ReviewComment> comments = new ArrayList<>();
+            
+            // 파일별 상세 리뷰
+            for (Map.Entry<String, FileAnalysis> entry : fileAnalyses.entrySet()) {
+                List<ReviewComment> fileComments = performFileReview(
+                    entry.getKey(), 
+                    entry.getValue(), 
+                    context
+                );
+                comments.addAll(fileComments);
+            }
+            
+            // 전체 PR 리뷰
+            String summaryReview = performPRSummaryReview(context, fileAnalyses);
+            
+            // 5. GitHub에 리뷰 포스팅
+            postReviewToGitHub(pr, comments, summaryReview);
+            
+            // 6. 메트릭 및 학습 데이터 저장
+            saveReviewMetrics(pr, comments);
+            
+            return CompletableFuture.completedFuture(
+                ReviewResult.success(comments.size(), summaryReview)
+            );
+            
+        } catch (Exception e) {
+            log.error("Failed to review PR", e);
+            return CompletableFuture.completedFuture(
+                ReviewResult.failure(e.getMessage())
+            );
+        }
+    }
+    
+    private List<ReviewComment> performFileReview(
+            String filename, 
+            FileAnalysis analysis, 
+            PRContext context) {
+        
+        List<ReviewComment> comments = new ArrayList<>();
+        
+        // 1. 코드 품질 검사
+        String qualityReview = chatClient.prompt()
+            .system("""
+                당신은 숙련된 코드 리뷰어입니다.
+                다음 관점에서 코드를 검토하세요:
+                - 코드 가독성과 유지보수성
+                - 명명 규칙과 일관성
+                - 복잡도와 중복 코드
+                - 성능 최적화 기회
+                """)
+            .user(u -> u.text("""
+                파일: {filename}
+                변경 내용:
+                {patch}
+                
+                프로젝트 컨텍스트:
+                {context}
+                
+                이 코드의 품질을 검토하고 개선사항을 제안해주세요.
+                """)
+                .param("filename", filename)
+                .param("patch", analysis.getPatch())
+                .param("context", context.getSummary()))
+            .call()
+            .content();
+        
+        // 2. 보안 취약점 검사
+        List<SecurityIssue> securityIssues = codeAnalysisService.scanSecurity(analysis);
+        for (SecurityIssue issue : securityIssues) {
+            comments.add(ReviewComment.builder()
+                .path(filename)
+                .line(issue.getLine())
+                .body(String.format("🔒 **보안 경고**: %s\n\n%s\n\n추천 수정:\n```%s\n%s\n```",
+                    issue.getTitle(),
+                    issue.getDescription(),
+                    analysis.getLanguage(),
+                    issue.getSuggestedFix()))
+                .severity(ReviewSeverity.HIGH)
+                .build());
+        }
+        
+        // 3. 버그 가능성 검사
+        String bugAnalysis = chatClient.prompt()
+            .system("잠재적 버그나 런타임 에러 가능성을 찾아주세요.")
+            .user(u -> u.text(analysis.getPatch()))
+            .functions("detectBugs", "suggestFixes")
+            .call()
+            .content();
+        
+        // 4. 팀 규칙 검사
+        List<RuleViolation> violations = rulesEngine.check(analysis, context.getTeamRules());
+        for (RuleViolation violation : violations) {
+            comments.add(ReviewComment.builder()
+                .path(filename)
+                .line(violation.getLine())
+                .body(String.format("📏 **스타일 가이드**: %s", violation.getMessage()))
+                .severity(ReviewSeverity.LOW)
+                .build());
+        }
+        
+        // 5. 개선 제안
+        if (!qualityReview.isEmpty()) {
+            comments.add(ReviewComment.builder()
+                .path(filename)
+                .body(qualityReview)
+                .severity(ReviewSeverity.MEDIUM)
+                .build());
+        }
+        
+        return comments;
+    }
+    
+    private String performPRSummaryReview(PRContext context, Map<String, FileAnalysis> analyses) {
+        // 관련 코드베이스 지식 검색
+        List<Document> relatedCode = codebaseKnowledge.similaritySearch(
+            SearchRequest.query(context.getDescription())
+                .withTopK(5)
+        );
+        
+        return chatClient.prompt()
+            .system("""
+                전체 PR을 종합적으로 검토하고 다음을 포함한 요약을 작성하세요:
+                1. 변경사항의 목적과 영향도
+                2. 아키텍처 및 설계 관점의 피드백
+                3. 테스트 커버리지 평가
+                4. 잠재적 위험 요소
+                5. 전반적인 코드 품질 평가
+                """)
+            .user(u -> u.text("""
+                PR 제목: {title}
+                설명: {description}
+                변경 파일 수: {fileCount}
+                추가: +{additions} / 삭제: -{deletions}
+                
+                주요 변경사항:
+                {changeSummary}
+                
+                관련 코드베이스 컨텍스트:
+                {relatedCode}
+                """)
+                .param("title", context.getTitle())
+                .param("description", context.getDescription())
+                .param("fileCount", analyses.size())
+                .param("additions", context.getAdditions())
+                .param("deletions", context.getDeletions())
+                .param("changeSummary", summarizeChanges(analyses))
+                .param("relatedCode", relatedCode))
+            .call()
+            .content();
+    }
+    
+    private void postReviewToGitHub(PullRequest pr, List<ReviewComment> comments, String summary) {
+        // 리뷰 생성
+        Review review = Review.builder()
+            .body(summary)
+            .event(comments.isEmpty() ? "APPROVE" : "REQUEST_CHANGES")
+            .comments(comments.stream()
+                .map(c -> Comment.builder()
+                    .path(c.getPath())
+                    .line(c.getLine())
+                    .body(c.getBody())
+                    .build())
+                .toList())
+            .build();
+        
+        githubService.createReview(
+            pr.getBase().getRepo().getOwner().getLogin(),
+            pr.getBase().getRepo().getName(),
+            pr.getNumber(),
+            review
+        );
+        
+        // 중요 이슈는 별도 이슈로 생성
+        comments.stream()
+            .filter(c -> c.getSeverity() == ReviewSeverity.HIGH)
+            .forEach(c -> githubService.createIssue(
+                pr.getBase().getRepo().getOwner().getLogin(),
+                pr.getBase().getRepo().getName(),
+                Issue.builder()
+                    .title("🚨 " + extractIssueTitle(c))
+                    .body(c.getBody() + "\n\nFound in PR #" + pr.getNumber())
+                    .labels(List.of("security", "automated-review"))
+                    .build()
+            ));
+    }
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div id="review-github" class="tab-content">
+                            <div class="code-block p-4 relative">
+                                <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                        onclick="copyCode('review-github-code')">
+                                    <i class="fas fa-copy"></i> 복사
+                                </button>
+                                <pre id="review-github-code"><code class="language-java">@RestController
+@RequestMapping("/webhooks/github")
+@Slf4j
+public class GitHubWebhookController {
+    
+    private final AICodeReviewService codeReviewService;
+    private final String webhookSecret;
+    
+    public GitHubWebhookController(
+            AICodeReviewService codeReviewService,
+            @Value("${github.webhook.secret}") String webhookSecret) {
+        this.codeReviewService = codeReviewService;
+        this.webhookSecret = webhookSecret;
+    }
+    
+    @PostMapping
+    public ResponseEntity<Void> handleWebhook(
+            @RequestHeader("X-GitHub-Event") String eventType,
+            @RequestHeader("X-Hub-Signature-256") String signature,
+            @RequestBody String payload) {
+        
+        // 1. 서명 검증
+        if (!verifySignature(payload, signature)) {
+            log.warn("Invalid GitHub webhook signature");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        // 2. 이벤트 타입별 처리
+        try {
+            switch (eventType) {
+                case "pull_request" -> handlePullRequestEvent(payload);
+                case "pull_request_review_comment" -> handleReviewCommentEvent(payload);
+                case "issue_comment" -> handleIssueCommentEvent(payload);
+                default -> log.debug("Ignoring event type: {}", eventType);
+            }
+            
+            return ResponseEntity.ok().build();
+            
+        } catch (Exception e) {
+            log.error("Failed to process webhook", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    private void handlePullRequestEvent(String payload) {
+        PullRequestEvent event = parseJson(payload, PullRequestEvent.class);
+        
+        // PR이 열리거나 업데이트될 때만 리뷰
+        if (event.getAction().equals("opened") || 
+            event.getAction().equals("synchronize")) {
+            
+            // 봇이 만든 PR은 무시
+            if (!event.getPullRequest().getUser().getType().equals("Bot")) {
+                codeReviewService.reviewPullRequest(event);
+            }
+        }
+    }
+    
+    private void handleReviewCommentEvent(String payload) {
+        ReviewCommentEvent event = parseJson(payload, ReviewCommentEvent.class);
+        
+        // AI 리뷰에 대한 피드백 처리
+        if (event.getComment().getBody().contains("@ai-reviewer")) {
+            String feedback = extractFeedback(event.getComment().getBody());
+            codeReviewService.processFeedback(
+                event.getPullRequest(),
+                event.getComment(),
+                feedback
+            );
+        }
+    }
+    
+    private boolean verifySignature(String payload, String signature) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            SecretKeySpec secretKey = new SecretKeySpec(
+                webhookSecret.getBytes(StandardCharsets.UTF_8), 
+                "HmacSHA256"
+            );
+            mac.init(secretKey);
+            
+            byte[] hash = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
+            String computed = "sha256=" + bytesToHex(hash);
+            
+            return MessageDigest.isEqual(
+                computed.getBytes(StandardCharsets.UTF_8),
+                signature.getBytes(StandardCharsets.UTF_8)
+            );
+        } catch (Exception e) {
+            log.error("Failed to verify signature", e);
+            return false;
+        }
+    }
+}
+
+// GitHub 서비스
+@Service
+public class GitHubService {
+    
+    private final GitHub github;
+    private final GitHubMetrics metrics;
+    
+    public GitHubService(@Value("${github.token}") String token) throws IOException {
+        this.github = new GitHubBuilder()
+            .withOAuthToken(token)
+            .build();
+    }
+    
+    public void createReview(String owner, String repo, int prNumber, Review review) {
+        try {
+            GHRepository repository = github.getRepository(owner + "/" + repo);
+            GHPullRequest pr = repository.getPullRequest(prNumber);
+            
+            GHPullRequestReviewBuilder reviewBuilder = pr.createReview()
+                .body(review.getBody());
+            
+            // 라인별 코멘트 추가
+            for (Comment comment : review.getComments()) {
+                reviewBuilder.comment(
+                    comment.getBody(),
+                    comment.getPath(),
+                    comment.getLine()
+                );
+            }
+            
+            // 리뷰 상태 설정
+            switch (review.getEvent()) {
+                case "APPROVE" -> reviewBuilder.approve();
+                case "REQUEST_CHANGES" -> reviewBuilder.requestChanges();
+                default -> reviewBuilder.comment();
+            }
+            
+            reviewBuilder.create();
+            metrics.incrementReviewsPosted();
+            
+        } catch (IOException e) {
+            log.error("Failed to create review", e);
+            metrics.incrementReviewErrors();
+            throw new GitHubException("Failed to create review", e);
+        }
+    }
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div id="review-rules" class="tab-content">
+                            <div class="code-block p-4 relative">
+                                <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                        onclick="copyCode('review-rules-code')">
+                                    <i class="fas fa-copy"></i> 복사
+                                </button>
+                                <pre id="review-rules-code"><code class="language-yaml"># 팀별 코드 리뷰 규칙 설정
+team:
+  name: "Backend Team"
+  language: "java"
+  
+rules:
+  # 코드 스타일
+  style:
+    - id: "naming-convention"
+      description: "클래스명은 PascalCase, 메서드명은 camelCase"
+      severity: "low"
+      
+    - id: "max-line-length"
+      description: "한 줄은 120자를 넘지 않아야 함"
+      severity: "low"
+      
+  # 보안 규칙
+  security:
+    - id: "no-hardcoded-secrets"
+      description: "하드코딩된 시크릿 키 금지"
+      severity: "high"
+      patterns:
+        - "password\\s*=\\s*[\"'][^\"']+[\"']"
+        - "api[_-]?key\\s*=\\s*[\"'][^\"']+[\"']"
+        
+    - id: "sql-injection"
+      description: "SQL 인젝션 취약점 검사"
+      severity: "high"
+      
+  # 성능 규칙
+  performance:
+    - id: "n-plus-one-query"
+      description: "N+1 쿼리 문제 검사"
+      severity: "medium"
+      
+    - id: "unnecessary-object-creation"
+      description: "불필요한 객체 생성 방지"
+      severity: "low"
+      
+  # 테스트 규칙
+  testing:
+    - id: "test-coverage"
+      description: "새 코드는 80% 이상 테스트 커버리지"
+      severity: "medium"
+      threshold: 80
+      
+    - id: "test-naming"
+      description: "테스트 메서드는 should로 시작"
+      severity: "low"
+      
+# AI 리뷰어 설정
+ai_reviewer:
+  enabled: true
+  
+  # 리뷰 포커스 영역
+  focus_areas:
+    - "security"
+    - "performance"
+    - "code_quality"
+    - "best_practices"
+    
+  # 자동 승인 조건
+  auto_approve:
+    enabled: true
+    conditions:
+      - max_lines_changed: 50
+      - only_documentation: true
+      - only_tests: true
+      
+  # 리뷰 제외 패턴
+  ignore_patterns:
+    - "*.generated.java"
+    - "*/test/resources/*"
+    - "*.md"
+    
+  # 커스텀 프롬프트
+  custom_prompts:
+    security_review: |
+      다음 보안 취약점을 중점적으로 검토하세요:
+      - OWASP Top 10 취약점
+      - 인증/인가 문제
+      - 데이터 유출 가능성
+      - 암호화 미적용 영역
+      
+    performance_review: |
+      다음 성능 이슈를 검토하세요:
+      - 데이터베이스 쿼리 최적화
+      - 메모리 누수 가능성
+      - 동시성 문제
+      - 캐싱 기회</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Example 4: Multi-modal Analysis -->
+                <div class="example-card bg-white rounded-lg shadow-lg overflow-hidden" data-category="analysis">
+                    <div class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-6">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-2xl font-bold flex items-center">
+                                <i class="fas fa-images mr-3"></i>
+                                멀티모달 콘텐츠 분석
+                            </h3>
+                            <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm">
+                                난이도: ⭐⭐⭐
+                            </span>
+                        </div>
+                        <p class="mt-2 text-orange-100">이미지, 오디오, 비디오를 포함한 다양한 미디어를 분석하는 시스템</p>
+                    </div>
+                    
+                    <div class="p-6">
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('multimodal-code')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="multimodal-code"><code class="language-java">@Service
+public class MultiModalAnalysisService {
+    
+    private final ChatClient chatClient;
+    private final ImageAnalyzer imageAnalyzer;
+    private final AudioTranscriber audioTranscriber;
+    private final VideoProcessor videoProcessor;
+    
+    public MultiModalAnalysisResult analyzeContent(MultipartFile file) {
+        MediaType mediaType = detectMediaType(file);
+        
+        return switch (mediaType) {
+            case IMAGE -> analyzeImage(file);
+            case AUDIO -> analyzeAudio(file);
+            case VIDEO -> analyzeVideo(file);
+            default -> throw new UnsupportedMediaException(mediaType);
+        };
+    }
+    
+    private ImageAnalysisResult analyzeImage(MultipartFile file) {
+        // 1. 이미지 전처리
+        BufferedImage image = preprocessImage(file);
+        
+        // 2. AI 분석
+        String analysis = chatClient.prompt()
+            .user(u -> u.text("이 이미지를 상세히 분석해주세요.")
+                       .media(MimeTypeUtils.IMAGE_PNG, image))
+            .call()
+            .content();
+        
+        // 3. 객체 감지, 텍스트 추출 등
+        List<DetectedObject> objects = imageAnalyzer.detectObjects(image);
+        String extractedText = imageAnalyzer.extractText(image);
+        
+        return ImageAnalysisResult.builder()
+            .description(analysis)
+            .objects(objects)
+            .text(extractedText)
+            .metadata(extractMetadata(image))
+            .build();
+    }
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Example 5: Real-time Dashboard -->
+                <div class="example-card bg-white rounded-lg shadow-lg overflow-hidden" data-category="integration">
+                    <div class="bg-gradient-to-r from-red-500 to-red-600 text-white p-6">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-2xl font-bold flex items-center">
+                                <i class="fas fa-chart-line mr-3"></i>
+                                AI 운영 대시보드
+                            </h3>
+                            <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm">
+                                난이도: ⭐⭐
+                            </span>
+                        </div>
+                        <p class="mt-2 text-red-100">실시간으로 AI 시스템의 성능과 비용을 모니터링하는 대시보드</p>
+                    </div>
+                    
+                    <div class="p-6">
+                        <div class="code-block p-4 relative">
+                            <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                    onclick="copyCode('dashboard-code')">
+                                <i class="fas fa-copy"></i> 복사
+                            </button>
+                            <pre id="dashboard-code"><code class="language-java">@RestController
+@RequestMapping("/api/dashboard")
+public class AIDashboardController {
+    
+    private final MetricsService metricsService;
+    private final CostCalculator costCalculator;
+    
+    @GetMapping(value = "/metrics/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<DashboardMetrics>> streamMetrics() {
+        return Flux.interval(Duration.ofSeconds(1))
+            .map(tick -> {
+                DashboardMetrics metrics = DashboardMetrics.builder()
+                    .timestamp(Instant.now())
+                    .requestsPerSecond(metricsService.getRequestRate())
+                    .averageLatency(metricsService.getAverageLatency())
+                    .tokenUsage(metricsService.getTokenUsage())
+                    .errorRate(metricsService.getErrorRate())
+                    .activeSessions(metricsService.getActiveSessions())
+                    .estimatedCost(costCalculator.getCurrentCost())
+                    .build();
+                
+                return ServerSentEvent.<DashboardMetrics>builder()
+                    .data(metrics)
+                    .event("metrics")
+                    .build();
+            });
+    }
+    
+    @GetMapping("/alerts")
+    public List<Alert> getActiveAlerts() {
+        return metricsService.getActiveAlerts();
+    }
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Resources -->
+            <section class="mt-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-8 text-white">
+                <h2 class="text-2xl font-bold mb-4">🎓 더 많은 리소스</h2>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="bg-white bg-opacity-10 rounded-lg p-4">
+                        <h3 class="font-semibold mb-2">고급 패턴</h3>
+                        <p class="text-sm mb-3">복잡한 비즈니스 로직을 위한 고급 패턴과 아키텍처</p>
+                        <a href="patterns.html" class="text-white underline">패턴 라이브러리 →</a>
+                    </div>
+                    <div class="bg-white bg-opacity-10 rounded-lg p-4">
+                        <h3 class="font-semibold mb-2">성능 최적화</h3>
+                        <p class="text-sm mb-3">대규모 트래픽을 처리하기 위한 최적화 가이드</p>
+                        <a href="performance.html" class="text-white underline">최적화 가이드 →</a>
+                    </div>
+                    <div class="bg-white bg-opacity-10 rounded-lg p-4">
+                        <h3 class="font-semibold mb-2">문제 해결</h3>
+                        <p class="text-sm mb-3">자주 발생하는 문제와 해결 방법</p>
+                        <a href="troubleshooting.html" class="text-white underline">트러블슈팅 →</a>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <script>
+        // Copy code functionality
+        function copyCode(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('코드가 복사되었습니다!');
+            });
+        }
+
+        // Show notification
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg z-50';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 2000);
+        }
+
+        // Tab functionality
+        function showTab(button, tabId) {
+            // Find the parent card
+            const card = button.closest('.example-card');
+            
+            // Update tab navigation
+            card.querySelectorAll('.tab-nav').forEach(nav => {
+                nav.classList.remove('border-blue-500', 'text-blue-600');
+                nav.classList.add('border-transparent', 'text-gray-500');
+            });
+            button.classList.remove('border-transparent', 'text-gray-500');
+            button.classList.add('border-blue-500', 'text-blue-600');
+            
+            // Update tab content
+            card.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            card.querySelector(`#${tabId}`).classList.add('active');
+        }
+
+        // Example filtering
+        document.querySelectorAll('.example-filter').forEach(button => {
+            button.addEventListener('click', function() {
+                // Update active button
+                document.querySelectorAll('.example-filter').forEach(b => {
+                    b.classList.remove('active', 'bg-blue-600', 'text-white');
+                    b.classList.add('bg-gray-200', 'text-gray-700');
+                });
+                this.classList.add('active', 'bg-blue-600', 'text-white');
+                this.classList.remove('bg-gray-200', 'text-gray-700');
+
+                // Filter examples
+                const category = this.dataset.category;
+                document.querySelectorAll('.example-card').forEach(card => {
+                    if (category === 'all' || card.dataset.category.includes(category)) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // Initialize syntax highlighting
+        Prism.highlightAll();
+    </script>
+</body>
+</html>

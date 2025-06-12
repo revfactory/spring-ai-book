@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring AI 코드 템플릿 모음</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .code-block { background: #2d3748; border-radius: 8px; }
+        .copy-button { transition: all 0.2s ease; }
+        .copy-button:hover { background-color: #4a5568; }
+        .template-card { transition: transform 0.2s ease; }
+        .template-card:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <a href="../index.html" class="flex items-center text-xl font-bold text-gray-800">
+                        <i class="fab fa-spring text-green-600 mr-2"></i>
+                        Spring AI Hub
+                    </a>
+                    <span class="mx-3 text-gray-400">/</span>
+                    <span class="text-gray-600">코드 템플릿</span>
+                </div>
+                <a href="../index.html" class="text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-home"></i> 홈으로
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-6xl mx-auto">
+            <h1 class="text-4xl font-bold mb-4">📝 코드 템플릿 모음</h1>
+            <p class="text-gray-600 mb-8">즉시 사용 가능한 검증된 Spring AI 코드 템플릿</p>
+
+            <!-- Template Categories -->
+            <div class="flex flex-wrap gap-4 mb-8">
+                <button class="template-filter active bg-blue-600 text-white px-4 py-2 rounded-lg" data-category="all">
+                    전체
+                </button>
+                <button class="template-filter bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300" data-category="basic">
+                    기본 설정
+                </button>
+                <button class="template-filter bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300" data-category="rag">
+                    RAG 시스템
+                </button>
+                <button class="template-filter bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300" data-category="tools">
+                    Tool Calling
+                </button>
+                <button class="template-filter bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300" data-category="agents">
+                    에이전트
+                </button>
+                <button class="template-filter bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300" data-category="monitoring">
+                    모니터링
+                </button>
+            </div>
+
+            <!-- Template Grid -->
+            <div class="space-y-8">
+                
+                <!-- Basic ChatClient -->
+                <div class="template-card bg-white rounded-lg shadow-lg p-6" data-category="basic">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-semibold flex items-center">
+                            <i class="fas fa-comments text-blue-500 mr-3"></i>
+                            기본 ChatClient
+                        </h3>
+                        <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-sm">기본</span>
+                    </div>
+                    <p class="text-gray-600 mb-4">가장 기본적인 ChatClient 설정과 사용법</p>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('basic-chatclient')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="basic-chatclient"><code class="language-java">@Service
+public class BasicChatService {
+    
+    private final ChatClient chatClient;
+    
+    public BasicChatService(ChatClient.Builder builder) {
+        this.chatClient = builder
+            .defaultOptions(OpenAiChatOptions.builder()
+                .withModel(OpenAiApi.ChatModel.GPT_4_O)
+                .withTemperature(0.7f)
+                .build())
+            .build();
+    }
+    
+    public String chat(String message) {
+        return chatClient.prompt()
+            .user(message)
+            .call()
+            .content();
+    }
+    
+    public Flux&lt;String&gt; chatStream(String message) {
+        return chatClient.prompt()
+            .user(message)
+            .stream()
+            .content();
+    }
+}</code></pre>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        ✅ 동기/비동기 지원 ✅ 설정 간단 ✅ 프로덕션 준비
+                    </div>
+                </div>
+
+                <!-- RAG System -->
+                <div class="template-card bg-white rounded-lg shadow-lg p-6" data-category="rag">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-semibold flex items-center">
+                            <i class="fas fa-search text-green-500 mr-3"></i>
+                            완전한 RAG 시스템
+                        </h3>
+                        <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-sm">RAG</span>
+                    </div>
+                    <p class="text-gray-600 mb-4">문서 임베딩부터 검색까지 완전한 RAG 구현</p>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('complete-rag')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="complete-rag"><code class="language-java">@Service
+public class RAGService {
+    
+    private final ChatClient chatClient;
+    private final VectorStore vectorStore;
+    private final DocumentReader documentReader;
+    
+    // 문서 임베딩 및 저장
+    public void ingestDocuments(Resource[] documents) {
+        List&lt;Document&gt; docs = Arrays.stream(documents)
+            .flatMap(resource -&gt; documentReader.read(resource).stream())
+            .map(document -&gt; {
+                document.getMetadata().put("source", resource.getFilename());
+                return document;
+            })
+            .toList();
+        
+        vectorStore.add(docs);
+    }
+    
+    // RAG 기반 질문 답변
+    public String askQuestion(String question) {
+        List&lt;Document&gt; relevantDocs = vectorStore
+            .similaritySearch(SearchRequest.query(question).withTopK(5));
+        
+        String context = relevantDocs.stream()
+            .map(Document::getContent)
+            .collect(Collectors.joining("\n\n"));
+        
+        return chatClient.prompt()
+            .system("다음 문서들을 참고하여 질문에 답변하세요:\n{context}")
+            .user(question)
+            .param("context", context)
+            .call()
+            .content();
+    }
+    
+    // 하이브리드 검색 (키워드 + 벡터)
+    public String hybridSearch(String query) {
+        // 벡터 검색
+        List&lt;Document&gt; vectorResults = vectorStore
+            .similaritySearch(SearchRequest.query(query).withTopK(3));
+        
+        // 키워드 검색 (메타데이터 기반)
+        List&lt;Document&gt; keywordResults = vectorStore
+            .similaritySearch(SearchRequest.query(query)
+                .withFilterExpression("source LIKE '" + extractKeywords(query) + "'")
+                .withTopK(2));
+        
+        List&lt;Document&gt; allResults = new ArrayList&lt;&gt;(vectorResults);
+        allResults.addAll(keywordResults);
+        
+        String context = allResults.stream()
+            .distinct()
+            .map(Document::getContent)
+            .collect(Collectors.joining("\n\n"));
+        
+        return chatClient.prompt()
+            .system("검색된 문서를 바탕으로 답변하세요:\n{context}")
+            .user(query)
+            .param("context", context)
+            .call()
+            .content();
+    }
+}</code></pre>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        ✅ 문서 임베딩 ✅ 하이브리드 검색 ✅ 메타데이터 활용
+                    </div>
+                </div>
+
+                <!-- Tool Calling -->
+                <div class="template-card bg-white rounded-lg shadow-lg p-6" data-category="tools">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-semibold flex items-center">
+                            <i class="fas fa-tools text-purple-500 mr-3"></i>
+                            고급 Tool Calling
+                        </h3>
+                        <span class="bg-purple-100 text-purple-700 px-2 py-1 rounded text-sm">도구</span>
+                    </div>
+                    <p class="text-gray-600 mb-4">실제 서비스와 연동하는 Tool Calling 구현</p>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('advanced-tools')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="advanced-tools"><code class="language-java">@Component
+public class BusinessTools {
+    
+    private final WeatherService weatherService;
+    private final DatabaseService databaseService;
+    
+    @Tool("현재 날씨 정보를 가져옵니다")
+    public WeatherInfo getCurrentWeather(
+        @ToolParam("도시명") String city,
+        @ToolParam("단위 (celsius/fahrenheit)") String unit) {
+        
+        return weatherService.getWeather(city, unit);
+    }
+    
+    @Tool("고객 정보를 조회합니다")
+    public CustomerInfo getCustomerInfo(
+        @ToolParam("고객 ID") String customerId) {
+        
+        return databaseService.findCustomerById(customerId);
+    }
+    
+    @Tool("주문 상태를 확인합니다")
+    public OrderStatus checkOrderStatus(
+        @ToolParam("주문 번호") String orderNumber) {
+        
+        return databaseService.getOrderStatus(orderNumber);
+    }
+    
+    @Tool("이메일을 발송합니다")
+    public EmailResult sendEmail(
+        @ToolParam("받는 사람") String recipient,
+        @ToolParam("제목") String subject,
+        @ToolParam("내용") String content) {
+        
+        // 이메일 발송 로직
+        emailService.send(recipient, subject, content);
+        return new EmailResult(true, "이메일이 성공적으로 발송되었습니다.");
+    }
+}
+
+@Service
+public class ToolCallingService {
+    
+    private final ChatClient chatClient;
+    
+    public ToolCallingService(ChatClient.Builder builder) {
+        this.chatClient = builder
+            .defaultFunctions(
+                "getCurrentWeather",
+                "getCustomerInfo", 
+                "checkOrderStatus",
+                "sendEmail"
+            )
+            .build();
+    }
+    
+    public String processRequest(String userMessage) {
+        return chatClient.prompt()
+            .user(userMessage)
+            .call()
+            .content();
+    }
+}</code></pre>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        ✅ 실제 서비스 연동 ✅ 복합 도구 호출 ✅ 에러 처리
+                    </div>
+                </div>
+
+                <!-- Multi-Agent System -->
+                <div class="template-card bg-white rounded-lg shadow-lg p-6" data-category="agents">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-semibold flex items-center">
+                            <i class="fas fa-robot text-red-500 mr-3"></i>
+                            멀티 에이전트 오케스트레이터
+                        </h3>
+                        <span class="bg-red-100 text-red-700 px-2 py-1 rounded text-sm">에이전트</span>
+                    </div>
+                    <p class="text-gray-600 mb-4">복잡한 작업을 처리하는 에이전트 시스템</p>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('multi-agent')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="multi-agent"><code class="language-java">@Service
+public class MultiAgentOrchestrator {
+    
+    private final Map&lt;String, Agent&gt; agents;
+    private final TaskRouter taskRouter;
+    
+    public MultiAgentOrchestrator() {
+        this.agents = Map.of(
+            "research", new ResearchAgent(),
+            "analysis", new AnalysisAgent(),
+            "writing", new WritingAgent(),
+            "review", new ReviewAgent()
+        );
+        this.taskRouter = new TaskRouter();
+    }
+    
+    // 순차 처리 (Chain Workflow)
+    public AgentResponse processChain(TaskRequest request) {
+        var research = agents.get("research").execute(request);
+        var analysis = agents.get("analysis").execute(research.toRequest());
+        var writing = agents.get("writing").execute(analysis.toRequest());
+        return agents.get("review").execute(writing.toRequest());
+    }
+    
+    // 병렬 처리 (Parallel Workflow)
+    public AgentResponse processParallel(TaskRequest request) {
+        CompletableFuture&lt;AgentResponse&gt; researchTask = 
+            CompletableFuture.supplyAsync(() -&gt; 
+                agents.get("research").execute(request));
+        
+        CompletableFuture&lt;AgentResponse&gt; analysisTask = 
+            CompletableFuture.supplyAsync(() -&gt; 
+                agents.get("analysis").execute(request));
+        
+        // 병렬 결과 수집
+        List&lt;AgentResponse&gt; results = CompletableFuture.allOf(
+            researchTask, analysisTask
+        ).thenApply(v -&gt; List.of(
+            researchTask.join(), 
+            analysisTask.join()
+        )).join();
+        
+        // 결과 종합
+        TaskRequest synthesisRequest = TaskRequest.builder()
+            .content("다음 결과들을 종합하여 답변하세요:")
+            .context(results)
+            .build();
+        
+        return agents.get("writing").execute(synthesisRequest);
+    }
+    
+    // 지능형 라우팅 (Routing Workflow)
+    public AgentResponse processWithRouting(TaskRequest request) {
+        String selectedAgent = taskRouter.route(request);
+        Agent agent = agents.get(selectedAgent);
+        
+        AgentResponse response = agent.execute(request);
+        
+        // 품질 검증
+        if (response.getQualityScore() &lt; 0.7) {
+            // 다른 에이전트로 재시도
+            String fallbackAgent = taskRouter.getFallback(selectedAgent);
+            response = agents.get(fallbackAgent).execute(request);
+        }
+        
+        return response;
+    }
+}
+
+// 기본 에이전트 인터페이스
+public interface Agent {
+    AgentResponse execute(TaskRequest request);
+    String getName();
+    double getConfidenceThreshold();
+}
+
+// 연구 전문 에이전트
+@Component
+public class ResearchAgent implements Agent {
+    
+    private final ChatClient chatClient;
+    private final VectorStore vectorStore;
+    
+    @Override
+    public AgentResponse execute(TaskRequest request) {
+        // 관련 문서 검색
+        List&lt;Document&gt; docs = vectorStore.similaritySearch(request.getContent());
+        
+        String response = chatClient.prompt()
+            .system("당신은 연구 전문가입니다. 주어진 문서를 바탕으로 철저한 조사를 수행하세요.")
+            .user(request.getContent())
+            .param("documents", docs)
+            .call()
+            .content();
+        
+        return AgentResponse.builder()
+            .content(response)
+            .agentName("research")
+            .qualityScore(calculateQualityScore(response))
+            .build();
+    }
+}</code></pre>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        ✅ 워크플로우 패턴 ✅ 지능형 라우팅 ✅ 품질 검증
+                    </div>
+                </div>
+
+                <!-- Monitoring Template -->
+                <div class="template-card bg-white rounded-lg shadow-lg p-6" data-category="monitoring">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-semibold flex items-center">
+                            <i class="fas fa-chart-line text-orange-500 mr-3"></i>
+                            모니터링 및 메트릭
+                        </h3>
+                        <span class="bg-orange-100 text-orange-700 px-2 py-1 rounded text-sm">모니터링</span>
+                    </div>
+                    <p class="text-gray-600 mb-4">프로덕션 환경을 위한 포괄적인 모니터링</p>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('monitoring-setup')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="monitoring-setup"><code class="language-java">@Component
+public class AIMetricsCollector {
+    
+    private final MeterRegistry meterRegistry;
+    private final Counter requestCounter;
+    private final Timer responseTimer;
+    private final Gauge tokenUsageGauge;
+    
+    public AIMetricsCollector(MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
+        this.requestCounter = Counter.builder("ai.requests.total")
+            .description("Total AI requests")
+            .register(meterRegistry);
+        this.responseTimer = Timer.builder("ai.response.duration")
+            .description("AI response time")
+            .register(meterRegistry);
+        this.tokenUsageGauge = Gauge.builder("ai.tokens.used")
+            .description("Tokens used")
+            .register(meterRegistry, this, AIMetricsCollector::getTokenUsage);
+    }
+    
+    @EventListener
+    public void handleChatEvent(ChatModelObservationEvent event) {
+        requestCounter.increment(
+            Tags.of(
+                "model", event.getModel(),
+                "provider", event.getProvider(),
+                "status", event.isSuccess() ? "success" : "error"
+            )
+        );
+        
+        if (event.getResponseTime() != null) {
+            responseTimer.record(event.getResponseTime(), TimeUnit.MILLISECONDS);
+        }
+        
+        if (event.getTokenUsage() != null) {
+            recordTokenUsage(event.getTokenUsage());
+        }
+    }
+    
+    private void recordTokenUsage(Usage tokenUsage) {
+        Gauge.builder("ai.tokens.input")
+            .description("Input tokens used")
+            .register(meterRegistry, tokenUsage, Usage::getInputTokens);
+        
+        Gauge.builder("ai.tokens.output")
+            .description("Output tokens used")
+            .register(meterRegistry, tokenUsage, Usage::getOutputTokens);
+    }
+}
+
+@Component
+public class AlertManager {
+    
+    private final NotificationService notificationService;
+    private final MeterRegistry meterRegistry;
+    
+    @Scheduled(fixedRate = 60000) // 1분마다 체크
+    public void checkAlerts() {
+        checkErrorRate();
+        checkResponseTime();
+        checkTokenUsage();
+        checkCostThreshold();
+    }
+    
+    private void checkErrorRate() {
+        double errorRate = calculateErrorRate();
+        if (errorRate > 0.05) { // 5% 초과
+            sendAlert("High Error Rate", 
+                String.format("Error rate: %.2f%%", errorRate * 100));
+        }
+    }
+    
+    private void checkResponseTime() {
+        Timer timer = meterRegistry.timer("ai.response.duration");
+        double p95 = timer.takeSnapshot().percentileValue(0.95);
+        
+        if (p95 > 10000) { // 10초 초과
+            sendAlert("Slow Response Time", 
+                String.format("P95 response time: %.2fs", p95 / 1000));
+        }
+    }
+    
+    private void sendAlert(String title, String message) {
+        notificationService.send(Alert.builder()
+            .title(title)
+            .message(message)
+            .timestamp(LocalDateTime.now())
+            .severity(AlertSeverity.WARNING)
+            .build());
+    }
+}</code></pre>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        ✅ 실시간 메트릭 ✅ 자동 알림 ✅ 성능 추적
+                    </div>
+                </div>
+
+                <!-- Streaming Response -->
+                <div class="template-card bg-white rounded-lg shadow-lg p-6" data-category="basic">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-semibold flex items-center">
+                            <i class="fas fa-stream text-indigo-500 mr-3"></i>
+                            실시간 스트리밍 응답
+                        </h3>
+                        <span class="bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-sm">스트리밍</span>
+                    </div>
+                    <p class="text-gray-600 mb-4">Server-Sent Events를 활용한 실시간 응답</p>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('streaming-response')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="streaming-response"><code class="language-java">@RestController
+@RequestMapping("/api/stream")
+public class StreamingChatController {
+    
+    private final ChatClient chatClient;
+    
+    @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux&lt;ServerSentEvent&lt;String&gt;&gt; streamChat(@RequestBody ChatRequest request) {
+        
+        return chatClient.prompt()
+            .user(request.getMessage())
+            .stream()
+            .content()
+            .map(content -&gt; ServerSentEvent.&lt;String&gt;builder()
+                .data(content)
+                .event("message")
+                .build())
+            .concatWith(Mono.just(ServerSentEvent.&lt;String&gt;builder()
+                .event("end")
+                .data("[DONE]")
+                .build()));
+    }
+    
+    @PostMapping(value = "/chat-with-metadata", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux&lt;ServerSentEvent&lt;Object&gt;&gt; streamChatWithMetadata(@RequestBody ChatRequest request) {
+        
+        return chatClient.prompt()
+            .user(request.getMessage())
+            .stream()
+            .chatResponse()
+            .map(response -&gt; {
+                StreamResponse streamResponse = StreamResponse.builder()
+                    .content(response.getResult().getOutput().getText())
+                    .tokenUsage(response.getMetadata().getUsage())
+                    .finishReason(response.getResult().getMetadata().getFinishReason())
+                    .build();
+                
+                return ServerSentEvent.&lt;Object&gt;builder()
+                    .data(streamResponse)
+                    .event("message")
+                    .build();
+            })
+            .concatWith(Mono.just(ServerSentEvent.&lt;Object&gt;builder()
+                .event("end")
+                .data(Map.of("status", "completed"))
+                .build()));
+    }
+    
+    @Data
+    @Builder
+    public static class StreamResponse {
+        private String content;
+        private Usage tokenUsage;
+        private String finishReason;
+    }
+}
+
+// 클라이언트 측 JavaScript 예제
+/*
+const eventSource = new EventSource('/api/stream/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: '안녕하세요!' })
+});
+
+eventSource.addEventListener('message', (event) =&gt; {
+    const data = event.data;
+    document.getElementById('response').innerHTML += data;
+});
+
+eventSource.addEventListener('end', () =&gt; {
+    eventSource.close();
+    console.log('Stream completed');
+});
+*/</code></pre>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        ✅ 실시간 UI 업데이트 ✅ 메타데이터 포함 ✅ 클라이언트 예제
+                    </div>
+                </div>
+
+                <!-- Vector Store Configuration -->
+                <div class="template-card bg-white rounded-lg shadow-lg p-6" data-category="rag">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-semibold flex items-center">
+                            <i class="fas fa-database text-teal-500 mr-3"></i>
+                            벡터 스토어 설정 모음
+                        </h3>
+                        <span class="bg-teal-100 text-teal-700 px-2 py-1 rounded text-sm">벡터DB</span>
+                    </div>
+                    <p class="text-gray-600 mb-4">주요 벡터 데이터베이스 설정 및 사용법</p>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('vector-configs')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="vector-configs"><code class="language-yaml"># === 로컬 개발: Chroma ===
+spring:
+  ai:
+    vectorstore:
+      chroma:
+        host: localhost
+        port: 8000
+
+---
+# === 프로덕션: PostgreSQL + pgvector ===
+spring:
+  ai:
+    vectorstore:
+      pgvector:
+        url: jdbc:postgresql://localhost:5432/vectordb
+        username: ${DB_USERNAME}
+        password: ${DB_PASSWORD}
+        schema-name: public
+        table-name: vector_store
+        distance-type: COSINE_DISTANCE
+
+---
+# === 클라우드: Pinecone ===
+spring:
+  ai:
+    vectorstore:
+      pinecone:
+        api-key: ${PINECONE_API_KEY}
+        environment: ${PINECONE_ENV}
+        project-id: ${PINECONE_PROJECT_ID}
+        index-name: spring-ai-index
+
+---
+# === 오픈소스: Qdrant ===
+spring:
+  ai:
+    vectorstore:
+      qdrant:
+        host: localhost
+        port: 6334
+        collection-name: documents
+        use-tls: false</code></pre>
+                    </div>
+
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('vector-service')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="vector-service"><code class="language-java">@Service
+public class VectorStoreService {
+    
+    private final VectorStore vectorStore;
+    private final EmbeddingModel embeddingModel;
+    
+    // 문서 추가 (배치 처리)
+    public void addDocuments(List&lt;Document&gt; documents) {
+        // 메타데이터 보강
+        documents.forEach(doc -&gt; {
+            doc.getMetadata().put("timestamp", Instant.now().toString());
+            doc.getMetadata().put("source", "api");
+        });
+        
+        vectorStore.add(documents);
+    }
+    
+    // 유사도 검색 (기본)
+    public List&lt;Document&gt; search(String query, int topK) {
+        return vectorStore.similaritySearch(
+            SearchRequest.query(query).withTopK(topK)
+        );
+    }
+    
+    // 필터링 검색
+    public List&lt;Document&gt; searchWithFilter(String query, String source, int topK) {
+        FilterExpressionBuilder filterBuilder = new FilterExpressionBuilder();
+        Expression filter = filterBuilder.eq("source", source).build();
+        
+        return vectorStore.similaritySearch(
+            SearchRequest.query(query)
+                .withTopK(topK)
+                .withFilterExpression(filter)
+        );
+    }
+    
+    // 임계값 기반 검색
+    public List&lt;Document&gt; searchWithThreshold(String query, double threshold) {
+        return vectorStore.similaritySearch(
+            SearchRequest.query(query)
+                .withTopK(20)
+                .withSimilarityThreshold(threshold)
+        );
+    }
+    
+    // 메타데이터 업데이트
+    public void updateDocumentMetadata(String documentId, Map&lt;String, Object&gt; metadata) {
+        // 기존 문서 조회
+        List&lt;Document&gt; docs = vectorStore.similaritySearch(
+            SearchRequest.query("").withFilterExpression(
+                new FilterExpressionBuilder().eq("id", documentId).build()
+            )
+        );
+        
+        if (!docs.isEmpty()) {
+            Document doc = docs.get(0);
+            doc.getMetadata().putAll(metadata);
+            
+            // 삭제 후 재추가 (일부 벡터 스토어는 업데이트 미지원)
+            vectorStore.delete(List.of(documentId));
+            vectorStore.add(List.of(doc));
+        }
+    }
+}</code></pre>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        ✅ 다중 벡터DB 지원 ✅ 메타데이터 활용 ✅ 고급 검색
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Download All Templates -->
+            <div class="text-center mt-12">
+                <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-8 text-white">
+                    <h3 class="text-2xl font-bold mb-4">모든 템플릿 다운로드</h3>
+                    <p class="mb-6">ZIP 파일로 모든 코드 템플릿을 한 번에 받아보세요</p>
+                    <button class="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                        <i class="fas fa-download mr-2"></i>
+                        전체 템플릿 다운로드
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <script>
+        function copyCode(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('코드가 복사되었습니다!');
+            });
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg z-50';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 2000);
+        }
+
+        // Template filtering
+        document.querySelectorAll('.template-filter').forEach(button => {
+            button.addEventListener('click', function() {
+                // Update active button
+                document.querySelectorAll('.template-filter').forEach(b => {
+                    b.classList.remove('active', 'bg-blue-600', 'text-white');
+                    b.classList.add('bg-gray-200', 'text-gray-700');
+                });
+                this.classList.add('active', 'bg-blue-600', 'text-white');
+                this.classList.remove('bg-gray-200', 'text-gray-700');
+
+                // Filter templates
+                const category = this.dataset.category;
+                document.querySelectorAll('.template-card').forEach(card => {
+                    if (category === 'all' || card.dataset.category === category) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring AI 에이전트 구축 가이드</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .code-block { background: #2d3748; border-radius: 8px; }
+        .copy-button { transition: all 0.2s ease; }
+        .copy-button:hover { background-color: #4a5568; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <a href="../index.html" class="flex items-center text-xl font-bold text-gray-800">
+                        <i class="fab fa-spring text-green-600 mr-2"></i>
+                        Spring AI Hub
+                    </a>
+                    <span class="mx-3 text-gray-400">/</span>
+                    <span class="text-gray-600">AI 에이전트 가이드</span>
+                </div>
+                <a href="../index.html" class="text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-home"></i> 홈으로
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-4xl font-bold mb-4">🤖 AI 에이전트 구축 가이드</h1>
+            <p class="text-gray-600 mb-8">자율적으로 작업을 수행하는 AI 에이전트를 Spring AI로 구현하는 방법</p>
+
+            <!-- Table of Contents -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+                <h2 class="text-xl font-semibold mb-4">목차</h2>
+                <ul class="space-y-2 text-blue-600">
+                    <li><a href="#agent-basics" class="hover:underline">1. AI 에이전트 기초</a></li>
+                    <li><a href="#agent-architecture" class="hover:underline">2. 에이전트 아키텍처</a></li>
+                    <li><a href="#simple-agent" class="hover:underline">3. 단순 에이전트 구현</a></li>
+                    <li><a href="#multi-agent" class="hover:underline">4. 멀티 에이전트 시스템</a></li>
+                    <li><a href="#memory-planning" class="hover:underline">5. 메모리와 계획</a></li>
+                    <li><a href="#production" class="hover:underline">6. 프로덕션 고려사항</a></li>
+                </ul>
+            </div>
+
+            <!-- Section 1: Agent Basics -->
+            <section id="agent-basics" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">1. AI 에이전트 기초</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">AI 에이전트란?</h3>
+                    <p class="mb-4">
+                        AI 에이전트는 목표를 달성하기 위해 자율적으로 행동하는 시스템입니다. 
+                        환경을 인식하고, 계획을 세우며, 도구를 사용하여 작업을 수행합니다.
+                    </p>
+                    
+                    <div class="bg-blue-50 p-4 rounded-lg mb-4">
+                        <h4 class="font-semibold mb-2">에이전트의 핵심 구성요소:</h4>
+                        <ul class="space-y-1">
+                            <li>🧠 <strong>두뇌 (LLM)</strong>: 추론과 의사결정</li>
+                            <li>🔧 <strong>도구</strong>: 실제 작업 수행</li>
+                            <li>💾 <strong>메모리</strong>: 컨텍스트 유지</li>
+                            <li>📋 <strong>계획</strong>: 작업 단계 설정</li>
+                            <li>🔄 <strong>실행 루프</strong>: 관찰-사고-행동 반복</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-gray-100 p-4 rounded-lg">
+                        <h4 class="font-semibold mb-2">에이전트 작동 과정:</h4>
+                        <pre class="text-sm font-mono">1. 목표 수신
+    ↓
+2. 현재 상태 관찰
+    ↓
+3. 다음 행동 계획
+    ↓
+4. 도구 선택 및 실행
+    ↓
+5. 결과 평가
+    ↓
+6. 목표 달성까지 2-5 반복</pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: Agent Architecture -->
+            <section id="agent-architecture" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">2. 에이전트 아키텍처</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">기본 아키텍처</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <pre class="font-mono"><code class="language-text">┌─────────────────────────────────────────────┐
+│             Agent Controller                 │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐    │
+│  │ Planner │  │ Memory  │  │Executor │    │
+│  └────┬────┘  └────┬────┘  └────┬────┘    │
+│       │            │             │          │
+│       └────────────┴─────────────┘          │
+│                    │                        │
+│              ┌─────▼─────┐                 │
+│              │    LLM    │                 │
+│              └─────┬─────┘                 │
+└────────────────────┼───────────────────────┘
+                     │
+              ┌──────▼──────┐
+              │    Tools    │
+              │ • Database  │
+              │ • APIs      │
+              │ • Files     │
+              └─────────────┘</code></pre>
+                    </div>
+
+                    <h3 class="text-lg font-semibold mb-3">Spring AI 에이전트 인터페이스</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('agent-interface')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="agent-interface"><code class="language-java">public interface Agent {
+    // 에이전트 실행
+    AgentResponse execute(AgentRequest request);
+    
+    // 에이전트 메타데이터
+    String getName();
+    String getDescription();
+    List&lt;String&gt; getCapabilities();
+}
+
+public interface AgentRequest {
+    String getGoal();
+    Map&lt;String, Object&gt; getContext();
+    int getMaxIterations();
+}
+
+public interface AgentResponse {
+    String getResult();
+    List&lt;AgentAction&gt; getActions();
+    AgentStatus getStatus();
+    Map&lt;String, Object&gt; getMetadata();
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: Simple Agent -->
+            <section id="simple-agent" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">3. 단순 에이전트 구현</h2>
+                
+                <!-- Basic Agent -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">기본 에이전트</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('basic-agent')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="basic-agent"><code class="language-java">@Component
+@Slf4j
+public class SimpleTaskAgent implements Agent {
+    
+    private final ChatClient chatClient;
+    private final List&lt;Object&gt; tools;
+    private final AgentMemory memory;
+    
+    public SimpleTaskAgent(ChatClient.Builder chatClientBuilder, 
+                          List&lt;Object&gt; tools) {
+        this.chatClient = chatClientBuilder
+            .defaultOptions(OpenAiChatOptions.builder()
+                .withModel("gpt-4o")
+                .withTemperature(0.3f)
+                .build())
+            .defaultFunctions(extractToolNames(tools))
+            .build();
+        this.tools = tools;
+        this.memory = new InMemoryAgentMemory();
+    }
+    
+    @Override
+    public AgentResponse execute(AgentRequest request) {
+        log.info("Agent executing goal: {}", request.getGoal());
+        
+        List&lt;AgentAction&gt; actions = new ArrayList&lt;&gt;();
+        String currentGoal = request.getGoal();
+        int iteration = 0;
+        
+        while (iteration &lt; request.getMaxIterations()) {
+            iteration++;
+            
+            // 1. 현재 상태 관찰
+            String observation = observeCurrentState(request, actions);
+            
+            // 2. 다음 행동 결정
+            AgentThought thought = think(currentGoal, observation);
+            
+            if (thought.isGoalAchieved()) {
+                return AgentResponse.success(
+                    thought.getFinalAnswer(),
+                    actions
+                );
+            }
+            
+            // 3. 행동 실행
+            AgentAction action = executeAction(thought);
+            actions.add(action);
+            
+            // 4. 메모리 업데이트
+            memory.remember(thought, action);
+        }
+        
+        return AgentResponse.partial(
+            "최대 반복 횟수에 도달했습니다.",
+            actions
+        );
+    }
+    
+    private AgentThought think(String goal, String observation) {
+        String prompt = """
+            목표: {goal}
+            
+            현재 관찰: {observation}
+            
+            사용 가능한 도구: {tools}
+            
+            다음 중 하나를 선택하세요:
+            1. 목표가 달성되었다면 "COMPLETE:" 로 시작하여 최종 답변을 제공
+            2. 추가 작업이 필요하다면 "ACTION:" 으로 시작하여 다음 행동을 설명
+            
+            형식:
+            THOUGHT: 현재 상황 분석
+            ACTION: 도구이름(파라미터) 또는 COMPLETE: 최종답변
+            """;
+        
+        String response = chatClient.prompt()
+            .user(u -> u.text(prompt)
+                .param("goal", goal)
+                .param("observation", observation)
+                .param("tools", formatTools(tools)))
+            .call()
+            .content();
+        
+        return parseThought(response);
+    }
+    
+    private AgentAction executeAction(AgentThought thought) {
+        try {
+            // 도구 실행
+            Object result = chatClient.prompt()
+                .user(thought.getAction())
+                .call()
+                .content();
+            
+            return AgentAction.success(
+                thought.getAction(),
+                result
+            );
+        } catch (Exception e) {
+            log.error("Action execution failed", e);
+            return AgentAction.failure(
+                thought.getAction(),
+                e.getMessage()
+            );
+        }
+    }
+}
+
+// 메모리 구현
+@Component
+public class InMemoryAgentMemory implements AgentMemory {
+    
+    private final List&lt;MemoryEntry&gt; shortTermMemory = new ArrayList&lt;&gt;();
+    private final Map&lt;String, Object&gt; longTermMemory = new HashMap&lt;&gt;();
+    
+    @Override
+    public void remember(AgentThought thought, AgentAction action) {
+        shortTermMemory.add(new MemoryEntry(
+            thought,
+            action,
+            Instant.now()
+        ));
+        
+        // 중요한 정보는 장기 메모리로
+        if (action.isSuccess() && action.hasImportantResult()) {
+            longTermMemory.put(
+                action.getKey(),
+                action.getResult()
+            );
+        }
+    }
+    
+    @Override
+    public String getRelevantMemory(String context) {
+        return shortTermMemory.stream()
+            .filter(entry -> isRelevant(entry, context))
+            .map(MemoryEntry::toString)
+            .collect(Collectors.joining("\n"));
+    }
+}</code></pre>
+                    </div>
+                </div>
+
+                <!-- ReAct Agent -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">ReAct 패턴 에이전트</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('react-agent')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="react-agent"><code class="language-java">@Service
+public class ReActAgent implements Agent {
+    
+    private static final String REACT_PROMPT = """
+        당신은 ReAct (Reasoning and Acting) 방식으로 작동하는 에이전트입니다.
+        
+        목표: {goal}
+        
+        이전 단계들:
+        {history}
+        
+        사용 가능한 도구:
+        {tools}
+        
+        다음 형식으로 응답하세요:
+        Thought: 현재 상황과 다음에 해야 할 일에 대한 추론
+        Action: 도구_이름[파라미터]
+        
+        목표가 달성되었다면:
+        Thought: 목표 달성 확인 및 결과 요약
+        Answer: 최종 답변
+        """;
+    
+    private final ChatClient chatClient;
+    private final ToolRegistry toolRegistry;
+    private final List&lt;ReActStep&gt; history = new ArrayList&lt;&gt;();
+    
+    @Override
+    public AgentResponse execute(AgentRequest request) {
+        String goal = request.getGoal();
+        int maxSteps = request.getMaxIterations();
+        
+        for (int step = 0; step &lt; maxSteps; step++) {
+            // ReAct 단계 실행
+            ReActStep reactStep = performReActStep(goal);
+            history.add(reactStep);
+            
+            if (reactStep.isComplete()) {
+                return AgentResponse.success(
+                    reactStep.getAnswer(),
+                    convertToActions(history)
+                );
+            }
+            
+            // 도구 실행
+            ToolResult toolResult = executeToolAction(reactStep.getAction());
+            reactStep.setObservation(toolResult.getOutput());
+            
+            // 실패 처리
+            if (!toolResult.isSuccess()) {
+                return handleFailure(toolResult, history);
+            }
+        }
+        
+        return AgentResponse.maxIterationsReached(history);
+    }
+    
+    private ReActStep performReActStep(String goal) {
+        String prompt = REACT_PROMPT
+            .replace("{goal}", goal)
+            .replace("{history}", formatHistory())
+            .replace("{tools}", toolRegistry.getToolDescriptions());
+        
+        String response = chatClient.prompt()
+            .user(prompt)
+            .call()
+            .content();
+        
+        return parseReActResponse(response);
+    }
+    
+    private ToolResult executeToolAction(String action) {
+        // 도구 이름과 파라미터 추출
+        Pattern pattern = Pattern.compile("(\\w+)\\[(.*)\\]");
+        Matcher matcher = pattern.matcher(action);
+        
+        if (matcher.find()) {
+            String toolName = matcher.group(1);
+            String params = matcher.group(2);
+            
+            Tool tool = toolRegistry.getTool(toolName);
+            if (tool != null) {
+                return tool.execute(parseParameters(params));
+            }
+        }
+        
+        return ToolResult.error("Invalid action format: " + action);
+    }
+    
+    private String formatHistory() {
+        return history.stream()
+            .map(step -> String.format(
+                "Thought: %s\nAction: %s\nObservation: %s",
+                step.getThought(),
+                step.getAction(),
+                step.getObservation()
+            ))
+            .collect(Collectors.joining("\n\n"));
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 4: Multi-Agent System -->
+            <section id="multi-agent" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">4. 멀티 에이전트 시스템</h2>
+                
+                <!-- Orchestrator -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">에이전트 오케스트레이터</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('agent-orchestrator')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="agent-orchestrator"><code class="language-java">@Service
+@Slf4j
+public class MultiAgentOrchestrator {
+    
+    private final Map&lt;String, Agent&gt; agents;
+    private final ChatClient routingClient;
+    private final AgentCommunicationBus communicationBus;
+    
+    public MultiAgentOrchestrator(ChatClient.Builder builder) {
+        this.agents = new HashMap&lt;&gt;();
+        this.routingClient = builder.build();
+        this.communicationBus = new AgentCommunicationBus();
+        
+        // 에이전트 등록
+        registerAgent("research", new ResearchAgent());
+        registerAgent("analysis", new AnalysisAgent());
+        registerAgent("writer", new WriterAgent());
+        registerAgent("reviewer", new ReviewerAgent());
+    }
+    
+    public OrchestratorResponse executeTask(String task) {
+        log.info("Orchestrator received task: {}", task);
+        
+        // 1. 작업 분석 및 계획
+        TaskPlan plan = analyzeAndPlan(task);
+        
+        // 2. 에이전트 할당
+        Map&lt;String, AgentAssignment&gt; assignments = assignAgents(plan);
+        
+        // 3. 작업 실행
+        return executeWorkflow(plan, assignments);
+    }
+    
+    private TaskPlan analyzeAndPlan(String task) {
+        String planPrompt = """
+            작업: {task}
+            
+            사용 가능한 에이전트:
+            {agents}
+            
+            이 작업을 완료하기 위한 단계별 계획을 세우세요.
+            각 단계에서 어떤 에이전트를 사용할지 명시하세요.
+            
+            형식:
+            1. [에이전트명] 수행할 작업
+            2. [에이전트명] 수행할 작업
+            ...
+            """;
+        
+        String planResponse = routingClient.prompt()
+            .user(u -> u.text(planPrompt)
+                .param("task", task)
+                .param("agents", describeAgents()))
+            .call()
+            .content();
+        
+        return parsePlan(planResponse);
+    }
+    
+    // 병렬 실행
+    public OrchestratorResponse executeParallel(List&lt;String&gt; tasks) {
+        List&lt;CompletableFuture&lt;AgentResponse&gt;&gt; futures = tasks.stream()
+            .map(task -> CompletableFuture.supplyAsync(() -> 
+                executeTask(task)
+            ))
+            .toList();
+        
+        List&lt;AgentResponse&gt; results = CompletableFuture.allOf(
+            futures.toArray(new CompletableFuture[0])
+        ).thenApply(v -> futures.stream()
+            .map(CompletableFuture::join)
+            .toList()
+        ).join();
+        
+        return combineResults(results);
+    }
+    
+    // 순차 실행 (Chain)
+    public OrchestratorResponse executeChain(List&lt;ChainStep&gt; steps) {
+        Object previousResult = null;
+        List&lt;AgentResponse&gt; responses = new ArrayList&lt;&gt;();
+        
+        for (ChainStep step : steps) {
+            Agent agent = agents.get(step.getAgentName());
+            
+            AgentRequest request = AgentRequest.builder()
+                .goal(step.getGoal())
+                .context(Map.of("previousResult", previousResult))
+                .build();
+            
+            AgentResponse response = agent.execute(request);
+            responses.add(response);
+            
+            if (!response.isSuccess()) {
+                return OrchestratorResponse.failure(
+                    "Chain failed at step: " + step.getAgentName()
+                );
+            }
+            
+            previousResult = response.getResult();
+        }
+        
+        return OrchestratorResponse.success(previousResult, responses);
+    }
+}
+
+// 전문 에이전트 예시
+@Component
+public class ResearchAgent extends BaseAgent {
+    
+    @Override
+    public String getName() {
+        return "Research Agent";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "웹 검색, 문서 분석, 정보 수집 전문";
+    }
+    
+    @Override
+    protected String getSystemPrompt() {
+        return """
+            당신은 연구 전문 에이전트입니다.
+            신뢰할 수 있는 출처에서 정보를 수집하고 검증합니다.
+            모든 정보에는 출처를 명시합니다.
+            """;
+    }
+    
+    @Override
+    protected List&lt;String&gt; getToolNames() {
+        return List.of(
+            "webSearch",
+            "academicSearch",
+            "documentAnalysis",
+            "factCheck"
+        );
+    }
+}
+
+@Component  
+public class AnalysisAgent extends BaseAgent {
+    
+    @Override
+    public String getName() {
+        return "Analysis Agent";
+    }
+    
+    @Override
+    protected String getSystemPrompt() {
+        return """
+            당신은 데이터 분석 전문 에이전트입니다.
+            주어진 정보를 분석하여 통찰력 있는 결론을 도출합니다.
+            통계적 근거와 논리적 추론을 사용합니다.
+            """;
+    }
+    
+    @Override
+    protected List&lt;String&gt; getToolNames() {
+        return List.of(
+            "statisticalAnalysis",
+            "dataVisualization",
+            "trendAnalysis",
+            "comparativeAnalysis"
+        );
+    }
+}</code></pre>
+                    </div>
+                </div>
+
+                <!-- Communication -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">에이전트 간 통신</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('agent-communication')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="agent-communication"><code class="language-java">@Component
+public class AgentCommunicationBus {
+    
+    private final Map&lt;String, BlockingQueue&lt;AgentMessage&gt;&gt; messageQueues;
+    private final Map&lt;String, AgentProfile&gt; agentProfiles;
+    
+    public AgentCommunicationBus() {
+        this.messageQueues = new ConcurrentHashMap&lt;&gt;();
+        this.agentProfiles = new ConcurrentHashMap&lt;&gt;();
+    }
+    
+    // 에이전트 등록
+    public void registerAgent(String agentId, AgentProfile profile) {
+        messageQueues.put(agentId, new LinkedBlockingQueue&lt;&gt;());
+        agentProfiles.put(agentId, profile);
+        log.info("Agent registered: {}", agentId);
+    }
+    
+    // 메시지 전송
+    public void sendMessage(AgentMessage message) {
+        String recipientId = message.getRecipientId();
+        BlockingQueue&lt;AgentMessage&gt; queue = messageQueues.get(recipientId);
+        
+        if (queue != null) {
+            try {
+                queue.offer(message, 5, TimeUnit.SECONDS);
+                log.debug("Message sent from {} to {}", 
+                    message.getSenderId(), recipientId);
+            } catch (InterruptedException e) {
+                log.error("Failed to send message", e);
+            }
+        }
+    }
+    
+    // 브로드캐스트
+    public void broadcast(String senderId, String content, MessageType type) {
+        agentProfiles.keySet().stream()
+            .filter(id -> !id.equals(senderId))
+            .forEach(recipientId -> {
+                AgentMessage message = AgentMessage.builder()
+                    .senderId(senderId)
+                    .recipientId(recipientId)
+                    .content(content)
+                    .type(type)
+                    .timestamp(Instant.now())
+                    .build();
+                sendMessage(message);
+            });
+    }
+    
+    // 메시지 수신
+    public AgentMessage receiveMessage(String agentId, long timeout, TimeUnit unit) {
+        BlockingQueue&lt;AgentMessage&gt; queue = messageQueues.get(agentId);
+        if (queue != null) {
+            try {
+                return queue.poll(timeout, unit);
+            } catch (InterruptedException e) {
+                log.error("Message receive interrupted", e);
+            }
+        }
+        return null;
+    }
+}
+
+// 협업 프로토콜
+@Component
+public class CollaborationProtocol {
+    
+    // 작업 위임
+    public DelegationResult delegateTask(
+            String fromAgent, 
+            String toAgent, 
+            Task task) {
+        
+        AgentMessage delegation = AgentMessage.builder()
+            .senderId(fromAgent)
+            .recipientId(toAgent)
+            .type(MessageType.TASK_DELEGATION)
+            .content(task.toJson())
+            .metadata(Map.of(
+                "priority", task.getPriority(),
+                "deadline", task.getDeadline()
+            ))
+            .build();
+        
+        communicationBus.sendMessage(delegation);
+        
+        // 응답 대기
+        AgentMessage response = communicationBus.receiveMessage(
+            fromAgent, 30, TimeUnit.SECONDS
+        );
+        
+        if (response != null && response.getType() == MessageType.TASK_ACCEPTED) {
+            return DelegationResult.accepted(response.getMetadata());
+        }
+        
+        return DelegationResult.rejected("No response or task rejected");
+    }
+    
+    // 정보 요청
+    public Information requestInformation(
+            String requestingAgent,
+            String providerAgent,
+            String query) {
+        
+        AgentMessage request = AgentMessage.builder()
+            .senderId(requestingAgent)
+            .recipientId(providerAgent)
+            .type(MessageType.INFORMATION_REQUEST)
+            .content(query)
+            .build();
+        
+        communicationBus.sendMessage(request);
+        
+        AgentMessage response = communicationBus.receiveMessage(
+            requestingAgent, 10, TimeUnit.SECONDS
+        );
+        
+        if (response != null) {
+            return Information.fromJson(response.getContent());
+        }
+        
+        return Information.notAvailable();
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 5: Memory and Planning -->
+            <section id="memory-planning" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">5. 메모리와 계획</h2>
+                
+                <!-- Memory System -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">고급 메모리 시스템</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('advanced-memory')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="advanced-memory"><code class="language-java">@Component
+public class HierarchicalAgentMemory implements AgentMemory {
+    
+    // 작업 메모리 (현재 작업)
+    private final WorkingMemory workingMemory;
+    
+    // 단기 메모리 (최근 상호작용)
+    private final ShortTermMemory shortTermMemory;
+    
+    // 장기 메모리 (중요한 정보)
+    private final LongTermMemory longTermMemory;
+    
+    // 에피소드 메모리 (경험)
+    private final EpisodicMemory episodicMemory;
+    
+    public HierarchicalAgentMemory(VectorStore vectorStore) {
+        this.workingMemory = new WorkingMemory(10); // 10개 항목
+        this.shortTermMemory = new ShortTermMemory(100); // 100개 항목
+        this.longTermMemory = new LongTermMemory(vectorStore);
+        this.episodicMemory = new EpisodicMemory();
+    }
+    
+    @Override
+    public void store(MemoryItem item) {
+        // 중요도에 따라 저장 위치 결정
+        if (item.getImportance() &gt; 0.8) {
+            longTermMemory.store(item);
+        }
+        
+        shortTermMemory.store(item);
+        
+        if (item.isCurrentlyRelevant()) {
+            workingMemory.store(item);
+        }
+        
+        // 경험으로 저장
+        if (item.isExperience()) {
+            episodicMemory.store(item.toEpisode());
+        }
+    }
+    
+    @Override
+    public List&lt;MemoryItem&gt; retrieve(String query, MemoryContext context) {
+        List&lt;MemoryItem&gt; results = new ArrayList&lt;&gt;();
+        
+        // 1. 작업 메모리에서 검색
+        results.addAll(workingMemory.retrieveAll());
+        
+        // 2. 단기 메모리에서 관련 항목
+        results.addAll(shortTermMemory.retrieve(query, 5));
+        
+        // 3. 장기 메모리에서 시맨틱 검색
+        results.addAll(longTermMemory.semanticSearch(query, 10));
+        
+        // 4. 에피소드 메모리에서 유사 경험
+        results.addAll(episodicMemory.findSimilarEpisodes(context, 3));
+        
+        return consolidateAndRank(results, query);
+    }
+    
+    // 메모리 통합 및 정리
+    @Scheduled(fixedDelay = 3600000) // 1시간마다
+    public void consolidateMemory() {
+        // 단기 -> 장기 메모리 이동
+        List&lt;MemoryItem&gt; importantItems = shortTermMemory.getItemsAboveImportance(0.7);
+        importantItems.forEach(longTermMemory::store);
+        
+        // 오래된 항목 정리
+        workingMemory.evictOldest();
+        shortTermMemory.evictLeastUsed();
+        
+        // 메모리 압축
+        episodicMemory.compressOldEpisodes();
+    }
+}
+
+// 계획 시스템
+@Component
+public class AdaptivePlanner {
+    
+    private final ChatClient planningClient;
+    private final PlanValidator validator;
+    private final PlanOptimizer optimizer;
+    
+    public Plan createPlan(String goal, AgentContext context) {
+        // 1. 초기 계획 생성
+        Plan initialPlan = generateInitialPlan(goal, context);
+        
+        // 2. 계획 검증
+        ValidationResult validation = validator.validate(initialPlan);
+        if (!validation.isValid()) {
+            initialPlan = refinePlan(initialPlan, validation.getIssues());
+        }
+        
+        // 3. 계획 최적화
+        Plan optimizedPlan = optimizer.optimize(initialPlan);
+        
+        // 4. 대안 계획 생성
+        List&lt;Plan&gt; alternatives = generateAlternatives(optimizedPlan);
+        
+        return selectBestPlan(optimizedPlan, alternatives, context);
+    }
+    
+    private Plan generateInitialPlan(String goal, AgentContext context) {
+        String planPrompt = """
+            목표: {goal}
+            
+            컨텍스트:
+            - 사용 가능한 리소스: {resources}
+            - 제약 사항: {constraints}
+            - 이전 경험: {experience}
+            
+            단계별 계획을 생성하세요:
+            1. 각 단계는 구체적이고 실행 가능해야 함
+            2. 의존성을 명시
+            3. 예상 시간과 리소스 포함
+            """;
+        
+        String planResponse = planningClient.prompt()
+            .user(u -> u.text(planPrompt)
+                .param("goal", goal)
+                .param("resources", context.getResources())
+                .param("constraints", context.getConstraints())
+                .param("experience", context.getRelevantExperience()))
+            .call()
+            .content();
+        
+        return parsePlan(planResponse);
+    }
+    
+    // 동적 재계획
+    public Plan replan(Plan currentPlan, ExecutionFeedback feedback) {
+        if (feedback.isOnTrack()) {
+            return currentPlan;
+        }
+        
+        // 실패한 단계 분석
+        PlanStep failedStep = feedback.getFailedStep();
+        String failureReason = feedback.getFailureReason();
+        
+        // 재계획 전략 선택
+        ReplanningStrategy strategy = selectStrategy(failureReason);
+        
+        return switch (strategy) {
+            case RETRY_WITH_MODIFICATION -> modifyAndRetry(currentPlan, failedStep);
+            case SKIP_AND_CONTINUE -> skipStep(currentPlan, failedStep);
+            case ALTERNATIVE_PATH -> findAlternativePath(currentPlan, failedStep);
+            case COMPLETE_REPLAN -> createPlan(currentPlan.getGoal(), feedback.getContext());
+        };
+    }
+}</code></pre>
+                    </div>
+                </div>
+
+                <!-- Learning System -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">학습 시스템</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('learning-system')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="learning-system"><code class="language-java">@Component
+public class AgentLearningSystem {
+    
+    private final ExperienceRepository experienceRepo;
+    private final PerformanceAnalyzer analyzer;
+    private final StrategyOptimizer optimizer;
+    
+    // 경험에서 학습
+    public void learnFromExperience(AgentExecution execution) {
+        // 1. 실행 결과 분석
+        PerformanceMetrics metrics = analyzer.analyze(execution);
+        
+        // 2. 성공/실패 패턴 추출
+        List&lt;Pattern&gt; patterns = extractPatterns(execution, metrics);
+        
+        // 3. 전략 업데이트
+        patterns.forEach(pattern -> {
+            if (pattern.isSuccessful()) {
+                reinforceStrategy(pattern);
+            } else {
+                weakenStrategy(pattern);
+            }
+        });
+        
+        // 4. 경험 저장
+        Experience experience = Experience.builder()
+            .goal(execution.getGoal())
+            .actions(execution.getActions())
+            .outcome(execution.getOutcome())
+            .metrics(metrics)
+            .patterns(patterns)
+            .timestamp(Instant.now())
+            .build();
+        
+        experienceRepo.save(experience);
+    }
+    
+    // 유사 상황에서 최적 전략 추천
+    public Strategy recommendStrategy(String goal, AgentContext context) {
+        // 유사한 과거 경험 검색
+        List&lt;Experience&gt; similarExperiences = experienceRepo
+            .findSimilar(goal, context, 10);
+        
+        if (similarExperiences.isEmpty()) {
+            return Strategy.DEFAULT;
+        }
+        
+        // 성공률 기반 전략 선택
+        Map&lt;Strategy, Double&gt; strategyScores = new HashMap&lt;&gt;();
+        
+        for (Experience exp : similarExperiences) {
+            Strategy strategy = exp.getStrategy();
+            double score = exp.getSuccessScore() * calculateSimilarity(goal, exp.getGoal());
+            strategyScores.merge(strategy, score, Double::sum);
+        }
+        
+        return strategyScores.entrySet().stream()
+            .max(Map.Entry.comparingByValue())
+            .map(Map.Entry::getKey)
+            .orElse(Strategy.DEFAULT);
+    }
+    
+    // 자기 개선
+    @Scheduled(cron = "0 0 * * * *") // 매시간
+    public void selfImprove() {
+        // 1. 최근 성능 분석
+        PerformanceSummary summary = analyzer.getRecentPerformance();
+        
+        // 2. 개선 영역 식별
+        List&lt;ImprovementArea&gt; areas = identifyImprovementAreas(summary);
+        
+        // 3. 각 영역에 대한 개선 계획
+        areas.forEach(area -> {
+            ImprovementPlan plan = createImprovementPlan(area);
+            applyImprovements(plan);
+        });
+        
+        // 4. 메타 학습 - 학습 전략 자체를 개선
+        optimizeLearningStrategy(summary);
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 6: Production Considerations -->
+            <section id="production" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">6. 프로덕션 고려사항</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">모니터링 및 관찰가능성</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('agent-monitoring')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="agent-monitoring"><code class="language-java">@Component
+@Slf4j
+public class AgentMonitor {
+    
+    private final MeterRegistry meterRegistry;
+    private final AgentEventPublisher eventPublisher;
+    
+    // 에이전트 실행 추적
+    @EventListener
+    public void handleAgentExecution(AgentExecutionEvent event) {
+        // 메트릭 기록
+        meterRegistry.counter("agent.executions",
+            "agent", event.getAgentName(),
+            "status", event.getStatus().toString()
+        ).increment();
+        
+        meterRegistry.timer("agent.execution.duration",
+            "agent", event.getAgentName()
+        ).record(event.getDuration());
+        
+        // 도구 사용 추적
+        event.getToolUsage().forEach((tool, count) -> {
+            meterRegistry.counter("agent.tool.usage",
+                "agent", event.getAgentName(),
+                "tool", tool
+            ).increment(count);
+        });
+        
+        // 비용 추적
+        meterRegistry.gauge("agent.cost",
+            Tags.of("agent", event.getAgentName()),
+            event.getEstimatedCost()
+        );
+    }
+    
+    // 에이전트 건강 상태 체크
+    @Component
+    public class AgentHealthIndicator implements HealthIndicator {
+        
+        @Override
+        public Health health() {
+            Map&lt;String, AgentHealth&gt; agentHealthMap = checkAllAgents();
+            
+            boolean allHealthy = agentHealthMap.values().stream()
+                .allMatch(AgentHealth::isHealthy);
+            
+            Health.Builder status = allHealthy ? Health.up() : Health.down();
+            
+            agentHealthMap.forEach((name, health) -> {
+                status.withDetail(name, Map.of(
+                    "status", health.getStatus(),
+                    "lastActive", health.getLastActiveTime(),
+                    "errorRate", health.getErrorRate(),
+                    "avgResponseTime", health.getAvgResponseTime()
+                ));
+            });
+            
+            return status.build();
+        }
+    }
+    
+    // 이상 감지
+    @Scheduled(fixedRate = 60000) // 1분마다
+    public void detectAnomalies() {
+        agents.forEach((name, agent) -> {
+            AgentMetrics metrics = collectMetrics(agent);
+            
+            // 비정상적인 패턴 감지
+            if (metrics.getErrorRate() &gt; 0.1) {
+                alertManager.sendAlert(Alert.high(
+                    "Agent " + name + " error rate above threshold: " + 
+                    metrics.getErrorRate()
+                ));
+            }
+            
+            if (metrics.getAvgExecutionTime() &gt; Duration.ofMinutes(5)) {
+                alertManager.sendAlert(Alert.medium(
+                    "Agent " + name + " execution time above threshold"
+                ));
+            }
+            
+            // 비용 이상 감지
+            if (metrics.getHourlyCost() &gt; costThreshold) {
+                alertManager.sendAlert(Alert.high(
+                    "Agent " + name + " cost exceeding budget"
+                ));
+            }
+        });
+    }
+}</code></pre>
+                    </div>
+
+                    <h3 class="text-lg font-semibold mb-3">안전장치 및 제어</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('agent-safety')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="agent-safety"><code class="language-java">@Component
+public class AgentSafetyController {
+    
+    // 실행 제한
+    private final RateLimiter rateLimiter = RateLimiter.create(10.0); // 초당 10회
+    private final CircuitBreaker circuitBreaker;
+    
+    // 권한 관리
+    private final AgentPermissionManager permissionManager;
+    
+    // 감사 로깅
+    private final AuditLogger auditLogger;
+    
+    public SafeExecutionResult executeWithSafety(
+            Agent agent, 
+            AgentRequest request) {
+        
+        // 1. Rate limiting
+        if (!rateLimiter.tryAcquire()) {
+            return SafeExecutionResult.rateLimited();
+        }
+        
+        // 2. Circuit breaker
+        if (circuitBreaker.isOpen()) {
+            return SafeExecutionResult.circuitOpen();
+        }
+        
+        // 3. 권한 확인
+        if (!permissionManager.hasPermission(agent, request)) {
+            auditLogger.logUnauthorizedAttempt(agent, request);
+            return SafeExecutionResult.unauthorized();
+        }
+        
+        // 4. 입력 검증
+        ValidationResult validation = validateRequest(request);
+        if (!validation.isValid()) {
+            return SafeExecutionResult.invalidInput(validation.getErrors());
+        }
+        
+        // 5. 샌드박스 실행
+        try {
+            return circuitBreaker.executeSupplier(() -> {
+                AgentResponse response = executeInSandbox(agent, request);
+                
+                // 출력 검증
+                if (containsSensitiveData(response)) {
+                    auditLogger.logSensitiveDataAttempt(agent, response);
+                    return SafeExecutionResult.sensitiveDataBlocked();
+                }
+                
+                auditLogger.logSuccessfulExecution(agent, request, response);
+                return SafeExecutionResult.success(response);
+            });
+        } catch (Exception e) {
+            circuitBreaker.recordFailure();
+            return SafeExecutionResult.executionError(e);
+        }
+    }
+    
+    // 킬 스위치
+    @Component
+    public class AgentKillSwitch {
+        
+        private final Map&lt;String, AtomicBoolean&gt; killSwitches = new ConcurrentHashMap&lt;&gt;();
+        
+        public void emergencyStop(String agentName) {
+            killSwitches.computeIfAbsent(agentName, k -> new AtomicBoolean(false))
+                       .set(true);
+            log.warn("Emergency stop activated for agent: {}", agentName);
+        }
+        
+        public void emergencyStopAll() {
+            agents.keySet().forEach(this::emergencyStop);
+            log.warn("Emergency stop activated for ALL agents");
+        }
+        
+        public boolean isKilled(String agentName) {
+            return killSwitches.getOrDefault(agentName, new AtomicBoolean(false))
+                              .get();
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Best Practices -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">🎯 Best Practices</h2>
+                
+                <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">에이전트 설계 원칙</h3>
+                    
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-semibold mb-2">설계 원칙</h4>
+                            <ul class="space-y-1 text-sm">
+                                <li>✅ 단일 책임 원칙 준수</li>
+                                <li>✅ 명확한 목표 정의</li>
+                                <li>✅ 실패 처리 계획 수립</li>
+                                <li>✅ 관찰가능성 내장</li>
+                                <li>✅ 테스트 가능한 구조</li>
+                            </ul>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-semibold mb-2">운영 고려사항</h4>
+                            <ul class="space-y-1 text-sm">
+                                <li>✅ 비용 모니터링 및 제한</li>
+                                <li>✅ 성능 메트릭 추적</li>
+                                <li>✅ 감사 로그 유지</li>
+                                <li>✅ 긴급 중지 메커니즘</li>
+                                <li>✅ 정기적인 성능 리뷰</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Next Steps -->
+            <section class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4">다음 단계</h2>
+                
+                <div class="grid md:grid-cols-3 gap-4">
+                    <a href="patterns.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-blue-600 mb-2">에이전트 패턴</h3>
+                        <p class="text-sm text-gray-600">검증된 에이전트 설계 패턴 모음</p>
+                    </a>
+                    
+                    <a href="monitoring.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-green-600 mb-2">모니터링</h3>
+                        <p class="text-sm text-gray-600">에이전트 시스템 모니터링 구축</p>
+                    </a>
+                    
+                    <a href="examples.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-purple-600 mb-2">실전 예제</h3>
+                        <p class="text-sm text-gray-600">다양한 에이전트 구현 예제</p>
+                    </a>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <script>
+        function copyCode(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('코드가 복사되었습니다!');
+            });
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg z-50';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

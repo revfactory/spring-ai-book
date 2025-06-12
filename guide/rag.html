@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring AI RAG 시스템 구축 가이드</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .code-block { background: #2d3748; border-radius: 8px; }
+        .copy-button { transition: all 0.2s ease; }
+        .copy-button:hover { background-color: #4a5568; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <a href="../index.html" class="flex items-center text-xl font-bold text-gray-800">
+                        <i class="fab fa-spring text-green-600 mr-2"></i>
+                        Spring AI Hub
+                    </a>
+                    <span class="mx-3 text-gray-400">/</span>
+                    <span class="text-gray-600">RAG 시스템 가이드</span>
+                </div>
+                <a href="../index.html" class="text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-home"></i> 홈으로
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-4xl font-bold mb-4">🔍 RAG 시스템 구축 가이드</h1>
+            <p class="text-gray-600 mb-8">Retrieval-Augmented Generation 시스템을 Spring AI로 구현하는 완전한 가이드</p>
+
+            <!-- Table of Contents -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+                <h2 class="text-xl font-semibold mb-4">목차</h2>
+                <ul class="space-y-2 text-blue-600">
+                    <li><a href="#what-is-rag" class="hover:underline">1. RAG란 무엇인가?</a></li>
+                    <li><a href="#architecture" class="hover:underline">2. RAG 아키텍처 설계</a></li>
+                    <li><a href="#implementation" class="hover:underline">3. 단계별 구현</a></li>
+                    <li><a href="#vector-store" class="hover:underline">4. 벡터 스토어 설정</a></li>
+                    <li><a href="#optimization" class="hover:underline">5. 검색 최적화</a></li>
+                    <li><a href="#production" class="hover:underline">6. 프로덕션 고려사항</a></li>
+                </ul>
+            </div>
+
+            <!-- Section 1: What is RAG -->
+            <section id="what-is-rag" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">1. RAG란 무엇인가?</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <p class="mb-4">
+                        RAG (Retrieval-Augmented Generation)는 대규모 언어 모델(LLM)의 한계를 극복하기 위한 기술로,
+                        외부 지식 베이스에서 관련 정보를 검색하여 더 정확하고 최신의 답변을 생성합니다.
+                    </p>
+                    
+                    <div class="bg-blue-50 p-4 rounded-lg mb-4">
+                        <h3 class="font-semibold mb-2">RAG의 장점:</h3>
+                        <ul class="space-y-1">
+                            <li>✅ 최신 정보 제공 가능</li>
+                            <li>✅ 도메인 특화 지식 활용</li>
+                            <li>✅ 환각(Hallucination) 감소</li>
+                            <li>✅ 소스 추적 가능</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-gray-100 p-4 rounded-lg">
+                        <h3 class="font-semibold mb-2">RAG 프로세스:</h3>
+                        <pre class="text-sm font-mono">
+1. 사용자 질문 수신
+    ↓
+2. 질문을 임베딩으로 변환
+    ↓
+3. 벡터 DB에서 유사한 문서 검색
+    ↓
+4. 검색된 문서를 컨텍스트로 포함
+    ↓
+5. LLM이 컨텍스트 기반 답변 생성
+                        </pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: Architecture -->
+            <section id="architecture" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">2. RAG 아키텍처 설계</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">기본 아키텍처</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <pre class="font-mono"><code class="language-text">
+┌─────────────┐     ┌───────────────┐     ┌─────────────┐
+│   사용자     │────▶│  Spring Boot   │────▶│    LLM      │
+└─────────────┘     │  Application   │     │  (OpenAI)   │
+                    └───────┬────────┘     └─────────────┘
+                            │
+                    ┌───────▼────────┐
+                    │  Vector Store   │
+                    │  (PGVector)     │
+                    └────────────────┘
+                        </code></pre>
+                    </div>
+
+                    <h3 class="text-lg font-semibold mb-3">컴포넌트 설명</h3>
+                    <ul class="space-y-2">
+                        <li><strong>Document Loader</strong>: PDF, Word, 웹페이지 등 다양한 소스에서 문서 로드</li>
+                        <li><strong>Text Splitter</strong>: 문서를 적절한 크기의 청크로 분할</li>
+                        <li><strong>Embedding Model</strong>: 텍스트를 벡터로 변환</li>
+                        <li><strong>Vector Store</strong>: 벡터 데이터 저장 및 검색</li>
+                        <li><strong>Retriever</strong>: 질문과 관련된 문서 검색</li>
+                        <li><strong>LLM</strong>: 검색된 문서를 바탕으로 답변 생성</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Section 3: Implementation -->
+            <section id="implementation" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">3. 단계별 구현</h2>
+                
+                <!-- Step 1: Dependencies -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">Step 1: 의존성 추가</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('dependencies')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="dependencies"><code class="language-xml">&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.ai&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-ai-openai-spring-boot-starter&lt;/artifactId&gt;
+&lt;/dependency&gt;
+
+&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.ai&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-ai-pgvector-store-spring-boot-starter&lt;/artifactId&gt;
+&lt;/dependency&gt;
+
+&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.ai&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-ai-pdf-document-reader&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></pre>
+                    </div>
+                </div>
+
+                <!-- Step 2: Document Processing -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">Step 2: 문서 처리 서비스</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('document-service')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="document-service"><code class="language-java">@Service
+@Slf4j
+public class DocumentProcessingService {
+    
+    private final VectorStore vectorStore;
+    private final DocumentReader documentReader;
+    
+    public DocumentProcessingService(VectorStore vectorStore) {
+        this.vectorStore = vectorStore;
+        this.documentReader = new PdfDocumentReader();
+    }
+    
+    public void processDocument(Resource resource) {
+        log.info("Processing document: {}", resource.getFilename());
+        
+        // 1. 문서 읽기
+        List<Document> documents = documentReader.read(resource);
+        
+        // 2. 텍스트 분할 (청크 생성)
+        TextSplitter splitter = new TokenTextSplitter();
+        List<Document> chunks = splitter.apply(documents);
+        
+        // 3. 메타데이터 추가
+        chunks.forEach(chunk -> {
+            chunk.getMetadata().put("source", resource.getFilename());
+            chunk.getMetadata().put("processed_at", Instant.now().toString());
+        });
+        
+        // 4. 벡터 스토어에 저장
+        vectorStore.add(chunks);
+        
+        log.info("Processed {} chunks from {}", chunks.size(), resource.getFilename());
+    }
+    
+    // 다양한 문서 형식 지원
+    public void processMultipleFormats(MultipartFile file) {
+        String contentType = file.getContentType();
+        
+        DocumentReader reader = switch (contentType) {
+            case "application/pdf" -> new PdfDocumentReader();
+            case "text/plain" -> new TextDocumentReader();
+            case "text/markdown" -> new MarkdownDocumentReader();
+            default -> throw new UnsupportedDocumentException(contentType);
+        };
+        
+        List<Document> documents = reader.read(file.getResource());
+        processDocuments(documents);
+    }
+}</code></pre>
+                    </div>
+                </div>
+
+                <!-- Step 3: RAG Service -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">Step 3: RAG 서비스 구현</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('rag-service')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="rag-service"><code class="language-java">@Service
+@Slf4j
+public class RAGService {
+    
+    private final ChatClient chatClient;
+    private final VectorStore vectorStore;
+    
+    public RAGService(ChatClient.Builder chatClientBuilder, VectorStore vectorStore) {
+        this.chatClient = chatClientBuilder
+            .defaultOptions(OpenAiChatOptions.builder()
+                .withModel(OpenAiApi.ChatModel.GPT_4_O)
+                .withTemperature(0.7f)
+                .build())
+            .build();
+        this.vectorStore = vectorStore;
+    }
+    
+    public String askQuestion(String question) {
+        return askQuestion(question, 5, 0.7);
+    }
+    
+    public String askQuestion(String question, int topK, double threshold) {
+        log.debug("Processing question: {}", question);
+        
+        // 1. 관련 문서 검색
+        List<Document> relevantDocuments = vectorStore.similaritySearch(
+            SearchRequest.query(question)
+                .withTopK(topK)
+                .withSimilarityThreshold(threshold)
+        );
+        
+        if (relevantDocuments.isEmpty()) {
+            log.warn("No relevant documents found for: {}", question);
+            return "관련 문서를 찾을 수 없습니다.";
+        }
+        
+        // 2. 컨텍스트 구성
+        String context = relevantDocuments.stream()
+            .map(Document::getContent)
+            .collect(Collectors.joining("\n\n"));
+        
+        // 3. 프롬프트 구성 및 응답 생성
+        return chatClient.prompt()
+            .system("""
+                당신은 주어진 컨텍스트를 바탕으로 정확한 답변을 제공하는 AI 어시스턴트입니다.
+                컨텍스트에 없는 정보는 추측하지 마세요.
+                답변 시 출처를 명시해주세요.
+                """)
+            .user(u -> u.text("""
+                컨텍스트:
+                {context}
+                
+                질문: {question}
+                
+                위 컨텍스트를 바탕으로 질문에 답변해주세요.
+                """)
+                .param("context", context)
+                .param("question", question))
+            .call()
+            .content();
+    }
+    
+    // 스트리밍 응답
+    public Flux<String> askQuestionStream(String question) {
+        List<Document> relevantDocuments = vectorStore.similaritySearch(
+            SearchRequest.query(question).withTopK(5)
+        );
+        
+        String context = relevantDocuments.stream()
+            .map(Document::getContent)
+            .collect(Collectors.joining("\n\n"));
+        
+        return chatClient.prompt()
+            .system("컨텍스트 기반 답변 제공")
+            .user(u -> u.text("컨텍스트: {context}\n\n질문: {question}")
+                .param("context", context)
+                .param("question", question))
+            .stream()
+            .content();
+    }
+    
+    // 출처 포함 응답
+    public AnswerWithSources askQuestionWithSources(String question) {
+        List<Document> relevantDocuments = vectorStore.similaritySearch(
+            SearchRequest.query(question).withTopK(5)
+        );
+        
+        Map<String, List<String>> sourceMap = relevantDocuments.stream()
+            .collect(Collectors.groupingBy(
+                doc -> doc.getMetadata().getOrDefault("source", "Unknown").toString(),
+                Collectors.mapping(Document::getContent, Collectors.toList())
+            ));
+        
+        String context = relevantDocuments.stream()
+            .map(Document::getContent)
+            .collect(Collectors.joining("\n\n"));
+        
+        String answer = chatClient.prompt()
+            .user(u -> u.text("컨텍스트: {context}\n\n질문: {question}")
+                .param("context", context)
+                .param("question", question))
+            .call()
+            .content();
+        
+        return new AnswerWithSources(answer, sourceMap.keySet());
+    }
+}</code></pre>
+                    </div>
+                </div>
+
+                <!-- Step 4: Controller -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">Step 4: REST API 컨트롤러</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('rag-controller')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="rag-controller"><code class="language-java">@RestController
+@RequestMapping("/api/rag")
+@CrossOrigin(origins = "*")
+public class RAGController {
+    
+    private final RAGService ragService;
+    private final DocumentProcessingService documentService;
+    
+    @PostMapping("/documents/upload")
+    public ResponseEntity<UploadResponse> uploadDocument(@RequestParam("file") MultipartFile file) {
+        try {
+            documentService.processDocument(file.getResource());
+            return ResponseEntity.ok(new UploadResponse(
+                "success", 
+                "Document processed successfully"
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new UploadResponse(
+                "error", 
+                e.getMessage()
+            ));
+        }
+    }
+    
+    @PostMapping("/ask")
+    public ResponseEntity<AnswerResponse> askQuestion(@RequestBody QuestionRequest request) {
+        String answer = ragService.askQuestion(request.getQuestion());
+        return ResponseEntity.ok(new AnswerResponse(answer));
+    }
+    
+    @PostMapping(value = "/ask/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<String>> askQuestionStream(@RequestBody QuestionRequest request) {
+        return ragService.askQuestionStream(request.getQuestion())
+            .map(content -> ServerSentEvent.<String>builder()
+                .data(content)
+                .build());
+    }
+    
+    @PostMapping("/ask/sources")
+    public ResponseEntity<AnswerWithSources> askWithSources(@RequestBody QuestionRequest request) {
+        return ResponseEntity.ok(ragService.askQuestionWithSources(request.getQuestion()));
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 4: Vector Store -->
+            <section id="vector-store" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">4. 벡터 스토어 설정</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">PostgreSQL + PGVector</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('pgvector-config')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="pgvector-config"><code class="language-yaml">spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ragdb
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  
+  ai:
+    vectorstore:
+      pgvector:
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        dimensions: 1536
+        # HNSW 인덱스 설정
+        initialization-timeout: 60s
+        create-extension: true</code></pre>
+                    </div>
+
+                    <div class="bg-blue-50 p-4 rounded-lg mb-4">
+                        <h4 class="font-semibold mb-2">PGVector 설치 (Docker)</h4>
+                        <div class="code-block p-3">
+                            <pre><code class="language-bash">docker run -d \
+  --name pgvector \
+  -e POSTGRES_PASSWORD=password \
+  -e POSTGRES_DB=ragdb \
+  -p 5432:5432 \
+  ankane/pgvector</code></pre>
+                        </div>
+                    </div>
+
+                    <h3 class="text-lg font-semibold mb-3 mt-6">다른 벡터 스토어 옵션</h3>
+                    
+                    <div class="grid gap-4">
+                        <div class="border rounded-lg p-4">
+                            <h4 class="font-semibold">Chroma (로컬 개발)</h4>
+                            <div class="code-block p-3 mt-2">
+                                <pre><code class="language-yaml">spring:
+  ai:
+    vectorstore:
+      chroma:
+        host: localhost
+        port: 8000</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="border rounded-lg p-4">
+                            <h4 class="font-semibold">Pinecone (클라우드)</h4>
+                            <div class="code-block p-3 mt-2">
+                                <pre><code class="language-yaml">spring:
+  ai:
+    vectorstore:
+      pinecone:
+        api-key: ${PINECONE_API_KEY}
+        environment: ${PINECONE_ENV}
+        index-name: spring-ai-index</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 5: Optimization -->
+            <section id="optimization" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">5. 검색 최적화</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">하이브리드 검색 구현</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('hybrid-search')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="hybrid-search"><code class="language-java">@Service
+public class HybridSearchService {
+    
+    private final VectorStore vectorStore;
+    private final FullTextSearchService fullTextSearch;
+    
+    public List<Document> hybridSearch(String query, float vectorWeight, float keywordWeight) {
+        // 1. 벡터 검색
+        List<Document> vectorResults = vectorStore.similaritySearch(
+            SearchRequest.query(query).withTopK(20)
+        );
+        
+        // 2. 키워드 검색
+        List<Document> keywordResults = fullTextSearch.search(query);
+        
+        // 3. 결과 병합 및 재순위화
+        Map<String, Double> scoreMap = new HashMap<>();
+        
+        // 벡터 검색 점수
+        for (int i = 0; i < vectorResults.size(); i++) {
+            Document doc = vectorResults.get(i);
+            double score = (1.0 - i * 0.05) * vectorWeight;
+            scoreMap.put(doc.getId(), score);
+        }
+        
+        // 키워드 검색 점수 추가
+        for (int i = 0; i < keywordResults.size(); i++) {
+            Document doc = keywordResults.get(i);
+            double score = (1.0 - i * 0.05) * keywordWeight;
+            scoreMap.merge(doc.getId(), score, Double::sum);
+        }
+        
+        // 최종 정렬
+        return scoreMap.entrySet().stream()
+            .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
+            .limit(10)
+            .map(entry -> findDocumentById(entry.getKey()))
+            .collect(Collectors.toList());
+    }
+}</code></pre>
+                    </div>
+
+                    <h3 class="text-lg font-semibold mb-3">청크 최적화</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('chunk-optimization')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="chunk-optimization"><code class="language-java">@Configuration
+public class ChunkingConfiguration {
+    
+    @Bean
+    public TextSplitter textSplitter() {
+        return new TokenTextSplitter(
+            512,    // 청크 크기
+            100,    // 오버랩
+            true    // 문장 경계 유지
+        );
+    }
+    
+    // 커스텀 청크 전략
+    public List<Document> smartChunking(String text) {
+        List<Document> chunks = new ArrayList<>();
+        
+        // 1. 섹션별 분할
+        String[] sections = text.split("\\n\\n#+\\s");
+        
+        for (String section : sections) {
+            // 2. 각 섹션을 적절한 크기로 분할
+            if (section.length() > 1000) {
+                // 긴 섹션은 추가 분할
+                List<String> subChunks = splitByParagraph(section, 500);
+                for (String chunk : subChunks) {
+                    chunks.add(new Document(chunk));
+                }
+            } else {
+                chunks.add(new Document(section));
+            }
+        }
+        
+        return chunks;
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 6: Production -->
+            <section id="production" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">6. 프로덕션 고려사항</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">성능 모니터링</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('monitoring')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="monitoring"><code class="language-java">@Component
+public class RAGMetrics {
+    
+    private final MeterRegistry meterRegistry;
+    
+    public void recordSearchLatency(long duration) {
+        meterRegistry.timer("rag.search.latency").record(duration, TimeUnit.MILLISECONDS);
+    }
+    
+    public void recordDocumentCount(int count) {
+        meterRegistry.gauge("rag.documents.retrieved", count);
+    }
+    
+    public void recordRelevanceScore(double score) {
+        meterRegistry.summary("rag.relevance.score").record(score);
+    }
+}
+
+@Aspect
+@Component
+public class RAGMonitoringAspect {
+    
+    private final RAGMetrics metrics;
+    
+    @Around("@annotation(MonitorRAG)")
+    public Object monitorRAGOperation(ProceedingJoinPoint joinPoint) throws Throwable {
+        long start = System.currentTimeMillis();
+        
+        try {
+            Object result = joinPoint.proceed();
+            
+            if (result instanceof List<?> documents) {
+                metrics.recordDocumentCount(documents.size());
+            }
+            
+            return result;
+        } finally {
+            metrics.recordSearchLatency(System.currentTimeMillis() - start);
+        }
+    }
+}</code></pre>
+                    </div>
+
+                    <h3 class="text-lg font-semibold mb-3">보안 고려사항</h3>
+                    
+                    <ul class="space-y-2 mb-4">
+                        <li>✅ 문서 접근 권한 관리</li>
+                        <li>✅ PII 데이터 필터링</li>
+                        <li>✅ 질의 로깅 및 감사</li>
+                        <li>✅ Rate limiting 적용</li>
+                    </ul>
+
+                    <h3 class="text-lg font-semibold mb-3">확장성</h3>
+                    
+                    <div class="bg-gray-100 p-4 rounded-lg">
+                        <h4 class="font-semibold mb-2">대규모 문서 처리를 위한 팁:</h4>
+                        <ul class="space-y-1 text-sm">
+                            <li>• 배치 처리로 문서 임베딩</li>
+                            <li>• 벡터 인덱스 최적화 (HNSW, IVF)</li>
+                            <li>• 캐싱 전략 적용</li>
+                            <li>• 비동기 처리 활용</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Best Practices -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">🎯 Best Practices</h2>
+                
+                <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">RAG 시스템 구축 시 권장사항</h3>
+                    
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <h4 class="font-semibold mb-2">문서 처리</h4>
+                            <ul class="space-y-1 text-sm">
+                                <li>• 적절한 청크 크기 선택 (300-800 토큰)</li>
+                                <li>• 의미 있는 메타데이터 추가</li>
+                                <li>• 중복 문서 제거</li>
+                                <li>• 정기적인 재인덱싱</li>
+                            </ul>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-semibold mb-2">검색 최적화</h4>
+                            <ul class="space-y-1 text-sm">
+                                <li>• 하이브리드 검색 활용</li>
+                                <li>• 동적 임계값 조정</li>
+                                <li>• 쿼리 확장 기법 적용</li>
+                                <li>• 결과 재순위화</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Next Steps -->
+            <section class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4">다음 단계</h2>
+                
+                <div class="grid md:grid-cols-3 gap-4">
+                    <a href="tools.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-blue-600 mb-2">Tool Calling 추가</h3>
+                        <p class="text-sm text-gray-600">RAG에 함수 호출 기능을 추가하여 더 강력한 시스템 구축</p>
+                    </a>
+                    
+                    <a href="agents.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-green-600 mb-2">에이전트 시스템</h3>
+                        <p class="text-sm text-gray-600">RAG를 활용한 자율 에이전트 구현</p>
+                    </a>
+                    
+                    <a href="vectorstore.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-purple-600 mb-2">벡터 스토어 심화</h3>
+                        <p class="text-sm text-gray-600">다양한 벡터 데이터베이스 비교 및 최적화</p>
+                    </a>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <script>
+        function copyCode(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('코드가 복사되었습니다!');
+            });
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg z-50';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

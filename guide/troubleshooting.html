@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring AI 문제 해결 가이드</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .code-block { background: #2d3748; border-radius: 8px; }
+        .copy-button { transition: all 0.2s ease; }
+        .copy-button:hover { background-color: #4a5568; }
+        .problem-card { transition: all 0.3s ease; }
+        .problem-card:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <a href="../index.html" class="flex items-center text-xl font-bold text-gray-800">
+                        <i class="fab fa-spring text-green-600 mr-2"></i>
+                        Spring AI Hub
+                    </a>
+                    <span class="mx-3 text-gray-400">/</span>
+                    <span class="text-gray-600">문제 해결 가이드</span>
+                </div>
+                <a href="../index.html" class="text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-home"></i> 홈으로
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-6xl mx-auto">
+            <h1 class="text-4xl font-bold mb-4">🔧 Spring AI 문제 해결 가이드</h1>
+            <p class="text-gray-600 mb-8">일반적인 문제와 해결 방법, 디버깅 기법</p>
+
+            <!-- Table of Contents -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+                <h2 class="text-xl font-semibold mb-4">목차</h2>
+                <ul class="space-y-2 text-blue-600">
+                    <li><a href="#common-errors" class="hover:underline">1. 일반적인 오류와 해결법</a></li>
+                    <li><a href="#api-issues" class="hover:underline">2. API 관련 문제</a></li>
+                    <li><a href="#performance-issues" class="hover:underline">3. 성능 문제</a></li>
+                    <li><a href="#memory-issues" class="hover:underline">4. 메모리 문제</a></li>
+                    <li><a href="#vectorstore-issues" class="hover:underline">5. 벡터 스토어 문제</a></li>
+                    <li><a href="#debugging-techniques" class="hover:underline">6. 디버깅 기법</a></li>
+                    <li><a href="#production-issues" class="hover:underline">7. 프로덕션 문제</a></li>
+                    <li><a href="#troubleshooting-tools" class="hover:underline">8. 문제 해결 도구</a></li>
+                </ul>
+            </div>
+
+            <!-- Section 1: Common Errors -->
+            <section id="common-errors" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">1. 일반적인 오류와 해결법</h2>
+                
+                <!-- Rate Limit Error -->
+                <div class="problem-card bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-exclamation-circle text-red-500 text-xl mr-3"></i>
+                        <h3 class="text-lg font-semibold">Rate Limit 초과 오류</h3>
+                    </div>
+                    
+                    <div class="bg-red-50 p-3 rounded mb-4">
+                        <p class="text-sm font-mono">
+                            RateLimitException: Rate limit reached for requests-per-minute (RPM): Limit 60
+                        </p>
+                    </div>
+                    
+                    <h4 class="font-semibold mb-2">해결 방법:</h4>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('rate-limit-solution')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="rate-limit-solution"><code class="language-java">@Configuration
+public class RateLimitConfig {
+    
+    @Bean
+    public RateLimiter rateLimiter() {
+        return RateLimiter.create(50.0); // 초당 50개 요청
+    }
+    
+    @Bean
+    public RetryTemplate retryTemplate() {
+        RetryTemplate template = new RetryTemplate();
+        
+        // 지수 백오프 전략
+        ExponentialBackOffPolicy backOffPolicy = new ExponentialBackOffPolicy();
+        backOffPolicy.setInitialInterval(1000);
+        backOffPolicy.setMultiplier(2);
+        backOffPolicy.setMaxInterval(60000);
+        
+        template.setBackOffPolicy(backOffPolicy);
+        
+        // 재시도 정책
+        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
+        retryPolicy.setMaxAttempts(5);
+        template.setRetryPolicy(retryPolicy);
+        
+        return template;
+    }
+}
+
+@Service
+public class RateLimitedAIService {
+    
+    private final ChatClient chatClient;
+    private final RateLimiter rateLimiter;
+    private final RetryTemplate retryTemplate;
+    
+    public String callWithRateLimit(String prompt) {
+        return retryTemplate.execute(context -> {
+            // Rate limiting
+            rateLimiter.acquire();
+            
+            try {
+                return chatClient.prompt()
+                    .user(prompt)
+                    .call()
+                    .content();
+            } catch (RateLimitException e) {
+                log.warn("Rate limit hit, attempt {}", context.getRetryCount());
+                throw e;
+            }
+        });
+    }
+}</code></pre>
+                    </div>
+                    
+                    <div class="bg-blue-50 p-3 rounded">
+                        <p class="text-sm">
+                            <strong>추가 팁:</strong> 여러 API 키를 로테이션하거나, 요청을 배치로 처리하여 
+                            Rate Limit을 효율적으로 사용하세요.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Token Limit Error -->
+                <div class="problem-card bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-exclamation-circle text-red-500 text-xl mr-3"></i>
+                        <h3 class="text-lg font-semibold">토큰 제한 초과</h3>
+                    </div>
+                    
+                    <div class="bg-red-50 p-3 rounded mb-4">
+                        <p class="text-sm font-mono">
+                            InvalidRequestError: This model's maximum context length is 4096 tokens
+                        </p>
+                    </div>
+                    
+                    <h4 class="font-semibold mb-2">해결 방법:</h4>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('token-limit-solution')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="token-limit-solution"><code class="language-java">@Service
+public class TokenManagementService {
+    
+    private final TokenCounter tokenCounter;
+    private static final int MAX_TOKENS = 4096;
+    private static final int RESPONSE_BUFFER = 1000;
+    
+    public String processLongText(String text) {
+        int tokenCount = tokenCounter.count(text);
+        
+        if (tokenCount > MAX_TOKENS - RESPONSE_BUFFER) {
+            // 옵션 1: 텍스트 분할
+            return processInChunks(text);
+            
+            // 옵션 2: 텍스트 요약
+            // return summarizeAndProcess(text);
+            
+            // 옵션 3: 모델 변경
+            // return processWithLargerModel(text);
+        }
+        
+        return processNormally(text);
+    }
+    
+    private String processInChunks(String text) {
+        List<String> chunks = splitIntoChunks(text, MAX_TOKENS - RESPONSE_BUFFER);
+        StringBuilder result = new StringBuilder();
+        
+        for (String chunk : chunks) {
+            String response = chatClient.prompt()
+                .system("이전 내용을 이어서 처리합니다.")
+                .user(chunk)
+                .call()
+                .content();
+            
+            result.append(response).append("\n");
+        }
+        
+        return result.toString();
+    }
+    
+    // 스마트 청킹 - 문장 경계 유지
+    private List<String> splitIntoChunks(String text, int maxTokensPerChunk) {
+        List<String> chunks = new ArrayList<>();
+        String[] sentences = text.split("(?<=[.!?])\\s+");
+        
+        StringBuilder currentChunk = new StringBuilder();
+        int currentTokens = 0;
+        
+        for (String sentence : sentences) {
+            int sentenceTokens = tokenCounter.count(sentence);
+            
+            if (currentTokens + sentenceTokens > maxTokensPerChunk) {
+                chunks.add(currentChunk.toString());
+                currentChunk = new StringBuilder();
+                currentTokens = 0;
+            }
+            
+            currentChunk.append(sentence).append(" ");
+            currentTokens += sentenceTokens;
+        }
+        
+        if (currentChunk.length() > 0) {
+            chunks.add(currentChunk.toString());
+        }
+        
+        return chunks;
+    }
+}</code></pre>
+                    </div>
+                </div>
+
+                <!-- Connection Timeout -->
+                <div class="problem-card bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-exclamation-circle text-red-500 text-xl mr-3"></i>
+                        <h3 class="text-lg font-semibold">연결 타임아웃</h3>
+                    </div>
+                    
+                    <div class="bg-red-50 p-3 rounded mb-4">
+                        <p class="text-sm font-mono">
+                            SocketTimeoutException: Read timed out
+                        </p>
+                    </div>
+                    
+                    <h4 class="font-semibold mb-2">해결 방법:</h4>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('timeout-solution')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="timeout-solution"><code class="language-java">@Configuration
+public class TimeoutConfiguration {
+    
+    @Bean
+    public RestClient restClient() {
+        return RestClient.builder()
+            .requestFactory(createRequestFactory())
+            .build();
+    }
+    
+    private ClientHttpRequestFactory createRequestFactory() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(10000);  // 연결 타임아웃: 10초
+        factory.setReadTimeout(60000);     // 읽기 타임아웃: 60초
+        return factory;
+    }
+    
+    // WebClient 설정
+    @Bean
+    public WebClient webClient() {
+        HttpClient httpClient = HttpClient.create()
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
+            .doOnConnected(conn -> 
+                conn.addHandlerLast(new ReadTimeoutHandler(60))
+                    .addHandlerLast(new WriteTimeoutHandler(60)));
+        
+        return WebClient.builder()
+            .clientConnector(new ReactorClientHttpConnector(httpClient))
+            .build();
+    }
+}
+
+// 타임아웃 처리
+@Service
+public class TimeoutHandlingService {
+    
+    public String callWithTimeout(String prompt, Duration timeout) {
+        try {
+            return CompletableFuture
+                .supplyAsync(() -> chatClient.prompt()
+                    .user(prompt)
+                    .call()
+                    .content())
+                .get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+                
+        } catch (TimeoutException e) {
+            log.error("Request timed out after {}", timeout);
+            // 폴백 처리
+            return handleTimeout(prompt);
+        }
+    }
+    
+    private String handleTimeout(String prompt) {
+        // 옵션 1: 더 빠른 모델로 재시도
+        // 옵션 2: 캐시된 응답 반환
+        // 옵션 3: 에러 메시지 반환
+        return "요청 처리 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.";
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: API Issues -->
+            <section id="api-issues" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">2. API 관련 문제</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">API 키 문제</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('api-key-issues')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="api-key-issues"><code class="language-java">@Component
+@Slf4j
+public class APIKeyValidator {
+    
+    @PostConstruct
+    public void validateAPIKeys() {
+        // 환경 변수 확인
+        validateEnvironmentVariable("OPENAI_API_KEY");
+        validateEnvironmentVariable("ANTHROPIC_API_KEY");
+        
+        // API 키 형식 검증
+        validateAPIKeyFormat();
+        
+        // API 연결 테스트
+        testAPIConnection();
+    }
+    
+    private void validateEnvironmentVariable(String varName) {
+        String value = System.getenv(varName);
+        if (value == null || value.trim().isEmpty()) {
+            log.error("Environment variable {} is not set", varName);
+            throw new ConfigurationException(
+                varName + " is not configured. Please set it in your environment."
+            );
+        }
+        
+        // 마스킹된 값 로그
+        log.info("{} is configured: {}...{}", 
+            varName, 
+            value.substring(0, 4), 
+            value.substring(value.length() - 4)
+        );
+    }
+    
+    private void validateAPIKeyFormat() {
+        String openaiKey = System.getenv("OPENAI_API_KEY");
+        if (openaiKey != null && !openaiKey.startsWith("sk-")) {
+            log.warn("OpenAI API key format seems incorrect");
+        }
+    }
+    
+    private void testAPIConnection() {
+        try {
+            // 간단한 API 호출로 연결 테스트
+            String response = chatClient.prompt()
+                .user("Hi")
+                .call()
+                .content();
+            
+            log.info("API connection test successful");
+        } catch (Exception e) {
+            log.error("API connection test failed", e);
+            throw new APIConnectionException(
+                "Failed to connect to AI API. Please check your API key and network connection."
+            );
+        }
+    }
+}
+
+// API 키 로테이션
+@Service
+public class APIKeyRotationService {
+    
+    private final List<String> apiKeys;
+    private final AtomicInteger currentIndex = new AtomicInteger(0);
+    
+    public APIKeyRotationService(@Value("${api.keys}") List<String> apiKeys) {
+        this.apiKeys = apiKeys;
+    }
+    
+    public String getNextAPIKey() {
+        int index = currentIndex.getAndIncrement() % apiKeys.size();
+        return apiKeys.get(index);
+    }
+    
+    public void markKeyAsInvalid(String key) {
+        apiKeys.remove(key);
+        if (apiKeys.isEmpty()) {
+            throw new NoValidAPIKeysException("All API keys are invalid");
+        }
+    }
+}</code></pre>
+                    </div>
+
+                    <h3 class="text-lg font-semibold mb-3 mt-6">응답 형식 문제</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('response-format-issues')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="response-format-issues"><code class="language-java">@Service
+public class ResponseValidationService {
+    
+    public <T> T parseStructuredResponse(String response, Class<T> targetClass) {
+        try {
+            // JSON 응답 파싱
+            return objectMapper.readValue(response, targetClass);
+        } catch (JsonProcessingException e) {
+            log.error("Failed to parse response as JSON", e);
+            
+            // 대체 파싱 시도
+            return tryAlternativeParsing(response, targetClass);
+        }
+    }
+    
+    private <T> T tryAlternativeParsing(String response, Class<T> targetClass) {
+        // 마크다운 코드 블록 제거
+        String cleaned = response
+            .replaceAll("```json\\n", "")
+            .replaceAll("```", "")
+            .trim();
+        
+        try {
+            return objectMapper.readValue(cleaned, targetClass);
+        } catch (Exception e) {
+            // 텍스트 파싱 시도
+            return parseAsText(cleaned, targetClass);
+        }
+    }
+    
+    // 구조화된 출력 강제
+    public <T> T getStructuredOutput(String prompt, Class<T> outputClass) {
+        String structuredPrompt = String.format("""
+            %s
+            
+            반드시 다음 JSON 형식으로만 응답하세요:
+            %s
+            
+            추가 설명이나 마크다운 없이 순수 JSON만 반환하세요.
+            """, 
+            prompt, 
+            generateJsonSchema(outputClass)
+        );
+        
+        int maxRetries = 3;
+        for (int i = 0; i < maxRetries; i++) {
+            try {
+                String response = chatClient.prompt()
+                    .user(structuredPrompt)
+                    .call()
+                    .content();
+                
+                return objectMapper.readValue(response, outputClass);
+            } catch (Exception e) {
+                log.warn("Attempt {} failed to get structured output", i + 1);
+            }
+        }
+        
+        throw new StructuredOutputException("Failed to get valid structured output");
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: Performance Issues -->
+            <section id="performance-issues" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">3. 성능 문제</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">느린 응답 시간</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('slow-response-fix')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="slow-response-fix"><code class="language-java">@Service
+@Slf4j
+public class PerformanceDiagnostics {
+    
+    private final MeterRegistry meterRegistry;
+    
+    public void diagnoseSlowResponse(String operation) {
+        // 1. 병목 지점 찾기
+        Timer.Sample sample = Timer.start(meterRegistry);
+        
+        try {
+            // 각 단계별 시간 측정
+            long promptTime = measurePromptPreparation();
+            long apiCallTime = measureAPICall();
+            long postProcessTime = measurePostProcessing();
+            
+            log.info("Performance breakdown - Prompt: {}ms, API: {}ms, PostProcess: {}ms",
+                promptTime, apiCallTime, postProcessTime);
+            
+            // 병목 지점 식별
+            if (apiCallTime > 5000) {
+                optimizeAPICall();
+            } else if (promptTime > 1000) {
+                optimizePromptPreparation();
+            }
+            
+        } finally {
+            sample.stop(Timer.builder("performance.diagnosis")
+                .tag("operation", operation)
+                .register(meterRegistry));
+        }
+    }
+    
+    private void optimizeAPICall() {
+        // 모델 변경 제안
+        log.info("Consider using a faster model like gpt-4o-mini");
+        
+        // 스트리밍 활성화
+        log.info("Enable streaming for better perceived performance");
+        
+        // 캐싱 활성화
+        log.info("Enable response caching for repeated queries");
+    }
+    
+    // 프로파일링
+    @Component
+    @EnableScheduling
+    public class PerformanceProfiler {
+        
+        private final Map<String, OperationStats> operationStats = new ConcurrentHashMap<>();
+        
+        @Around("@annotation(Profiled)")
+        public Object profile(ProceedingJoinPoint pjp) throws Throwable {
+            String operation = pjp.getSignature().toShortString();
+            long startTime = System.currentTimeMillis();
+            
+            try {
+                Object result = pjp.proceed();
+                recordSuccess(operation, System.currentTimeMillis() - startTime);
+                return result;
+            } catch (Exception e) {
+                recordFailure(operation, System.currentTimeMillis() - startTime);
+                throw e;
+            }
+        }
+        
+        @Scheduled(fixedRate = 60000) // 1분마다
+        public void reportStats() {
+            operationStats.forEach((operation, stats) -> {
+                if (stats.getAverageTime() > 1000) {
+                    log.warn("Slow operation detected: {} avg={}ms",
+                        operation, stats.getAverageTime());
+                }
+            });
+        }
+    }
+}</code></pre>
+                    </div>
+
+                    <h3 class="text-lg font-semibold mb-3 mt-6">높은 지연 시간</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('high-latency-fix')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="high-latency-fix"><code class="language-java">@Service
+public class LatencyOptimizer {
+    
+    // 지연 시간 최소화 전략
+    public CompletableFuture<String> optimizedCall(String prompt) {
+        // 1. 병렬 요청 (다중 모델)
+        CompletableFuture<String> primary = callPrimaryModel(prompt);
+        CompletableFuture<String> fallback = callFallbackModel(prompt);
+        
+        // 먼저 완료되는 것 사용
+        return CompletableFuture.anyOf(primary, fallback)
+            .thenApply(result -> (String) result);
+    }
+    
+    // 2. 연결 재사용
+    @Bean
+    public ConnectionProvider connectionProvider() {
+        return ConnectionProvider.builder("custom")
+            .maxConnections(100)
+            .pendingAcquireMaxCount(500)
+            .pendingAcquireTimeout(Duration.ofSeconds(45))
+            .maxIdleTime(Duration.ofSeconds(20))
+            .build();
+    }
+    
+    // 3. 지리적 라우팅
+    public String routeToNearestEndpoint(String prompt) {
+        String region = determineUserRegion();
+        String endpoint = selectEndpoint(region);
+        
+        return callWithEndpoint(prompt, endpoint);
+    }
+    
+    // 4. 프리페칭
+    @Component
+    public class PrefetchService {
+        
+        private final Map<String, CompletableFuture<String>> prefetchCache = 
+            new ConcurrentHashMap<>();
+        
+        public void prefetch(String prompt) {
+            CompletableFuture<String> future = CompletableFuture
+                .supplyAsync(() -> chatClient.prompt()
+                    .user(prompt)
+                    .call()
+                    .content());
+            
+            prefetchCache.put(prompt, future);
+        }
+        
+        public String getWithPrefetch(String prompt) {
+            CompletableFuture<String> cached = prefetchCache.remove(prompt);
+            
+            if (cached != null && !cached.isCompletedExceptionally()) {
+                try {
+                    return cached.get(100, TimeUnit.MILLISECONDS);
+                } catch (TimeoutException e) {
+                    // 캐시 미스로 처리
+                }
+            }
+            
+            return callNormally(prompt);
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 4: Memory Issues -->
+            <section id="memory-issues" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">4. 메모리 문제</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">메모리 누수</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('memory-leak-fix')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="memory-leak-fix"><code class="language-java">@Component
+@Slf4j
+public class MemoryManagement {
+    
+    // 약한 참조를 사용한 캐시
+    private final Map<String, WeakReference<EmbeddingResult>> embeddingCache = 
+        new ConcurrentHashMap<>();
+    
+    // 크기 제한이 있는 캐시
+    private final LoadingCache<String, String> responseCache = Caffeine.newBuilder()
+        .maximumSize(1000)
+        .expireAfterWrite(10, TimeUnit.MINUTES)
+        .removalListener((key, value, cause) -> 
+            log.debug("Cache entry removed: {}", cause))
+        .recordStats()
+        .build(this::loadResponse);
+    
+    // 대용량 데이터 스트리밍 처리
+    public void processLargeDataset(Path filePath) {
+        try (Stream<String> lines = Files.lines(filePath)) {
+            lines.parallel()
+                .map(this::processLine)
+                .forEach(this::saveResult);
+        } catch (IOException e) {
+            log.error("Error processing file", e);
+        }
+    }
+    
+    // 메모리 모니터링
+    @Scheduled(fixedRate = 60000) // 1분마다
+    public void monitorMemory() {
+        MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
+        MemoryUsage heapUsage = memoryBean.getHeapMemoryUsage();
+        
+        long used = heapUsage.getUsed() / (1024 * 1024); // MB
+        long max = heapUsage.getMax() / (1024 * 1024);
+        double percentage = (double) used / max * 100;
+        
+        if (percentage > 80) {
+            log.warn("High memory usage: {}% ({}/{}MB)", 
+                String.format("%.1f", percentage), used, max);
+            
+            // 메모리 정리 시도
+            cleanupMemory();
+        }
+        
+        // 메트릭 기록
+        meterRegistry.gauge("jvm.memory.used.percentage", percentage);
+    }
+    
+    private void cleanupMemory() {
+        // 캐시 정리
+        responseCache.invalidateAll();
+        embeddingCache.entrySet().removeIf(entry -> 
+            entry.getValue().get() == null);
+        
+        // 명시적 GC 제안 (주의해서 사용)
+        System.gc();
+    }
+    
+    // 메모리 효율적인 임베딩 처리
+    public void processEmbeddingsEfficiently(List<String> texts) {
+        int batchSize = 100;
+        
+        for (int i = 0; i < texts.size(); i += batchSize) {
+            List<String> batch = texts.subList(
+                i, 
+                Math.min(i + batchSize, texts.size())
+            );
+            
+            // 배치 처리
+            List<float[]> embeddings = embeddingModel.embed(batch);
+            
+            // 즉시 저장하고 메모리에서 제거
+            saveEmbeddings(embeddings);
+            embeddings.clear(); // 명시적 정리
+        }
+    }
+}</code></pre>
+                    </div>
+
+                    <div class="bg-yellow-50 p-4 rounded-lg">
+                        <h4 class="font-semibold mb-2">메모리 최적화 팁</h4>
+                        <ul class="space-y-1 text-sm">
+                            <li>• 적절한 JVM 힙 크기 설정 (-Xmx, -Xms)</li>
+                            <li>• 스트리밍 처리로 대용량 데이터 처리</li>
+                            <li>• 약한 참조(WeakReference) 활용</li>
+                            <li>• 정기적인 캐시 정리</li>
+                            <li>• 메모리 프로파일링 도구 사용</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 5: Vector Store Issues -->
+            <section id="vectorstore-issues" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">5. 벡터 스토어 문제</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">벡터 검색 정확도 문제</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('vector-search-accuracy')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="vector-search-accuracy"><code class="language-java">@Service
+public class VectorSearchTroubleshooting {
+    
+    private final VectorStore vectorStore;
+    private final EmbeddingModel embeddingModel;
+    
+    // 검색 정확도 진단
+    public SearchDiagnostics diagnoseSearchAccuracy(String query) {
+        // 1. 쿼리 임베딩 검증
+        float[] queryEmbedding = embeddingModel.embed(query);
+        validateEmbedding(queryEmbedding);
+        
+        // 2. 다양한 임계값으로 테스트
+        Map<Float, List<Document>> resultsByThreshold = new HashMap<>();
+        float[] thresholds = {0.5f, 0.7f, 0.8f, 0.9f};
+        
+        for (float threshold : thresholds) {
+            List<Document> results = vectorStore.similaritySearch(
+                SearchRequest.query(query)
+                    .withTopK(10)
+                    .withSimilarityThreshold(threshold)
+            );
+            resultsByThreshold.put(threshold, results);
+        }
+        
+        // 3. 결과 분석
+        return analyzeResults(query, resultsByThreshold);
+    }
+    
+    private void validateEmbedding(float[] embedding) {
+        // 임베딩 정규화 확인
+        double norm = calculateNorm(embedding);
+        if (Math.abs(norm - 1.0) > 0.01) {
+            log.warn("Embedding is not normalized. Norm: {}", norm);
+        }
+        
+        // 제로 벡터 확인
+        boolean isZero = Arrays.stream(embedding).allMatch(v -> v == 0);
+        if (isZero) {
+            throw new InvalidEmbeddingException("Zero embedding detected");
+        }
+    }
+    
+    // 검색 개선 전략
+    public List<Document> improvedSearch(String query) {
+        // 1. 쿼리 확장
+        String expandedQuery = expandQuery(query);
+        
+        // 2. 하이브리드 검색
+        List<Document> vectorResults = vectorStore.similaritySearch(
+            SearchRequest.query(expandedQuery).withTopK(20)
+        );
+        
+        List<Document> keywordResults = performKeywordSearch(query);
+        
+        // 3. 결과 재순위화
+        return rerankResults(vectorResults, keywordResults, query);
+    }
+    
+    // 인덱스 문제 해결
+    @Component
+    public class VectorIndexOptimizer {
+        
+        public void optimizeIndex() {
+            // PGVector HNSW 인덱스 재구축
+            jdbcTemplate.execute("""
+                REINDEX INDEX CONCURRENTLY vector_embedding_idx;
+                
+                -- 인덱스 파라미터 조정
+                ALTER INDEX vector_embedding_idx SET (
+                    m = 16,
+                    ef_construction = 64
+                );
+                
+                -- 통계 업데이트
+                ANALYZE vector_store;
+            """);
+        }
+        
+        public void diagnoseIndexPerformance() {
+            // 인덱스 사용 확인
+            List<Map<String, Object>> explainResult = jdbcTemplate.queryForList("""
+                EXPLAIN (ANALYZE, BUFFERS) 
+                SELECT * FROM vector_store 
+                ORDER BY embedding <-> '[0.1, 0.2, ...]'::vector 
+                LIMIT 10;
+            """);
+            
+            log.info("Query plan: {}", explainResult);
+        }
+    }
+}</code></pre>
+                    </div>
+
+                    <h3 class="text-lg font-semibold mb-3 mt-6">벡터 스토어 연결 문제</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('vector-connection-issues')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="vector-connection-issues"><code class="language-java">@Component
+public class VectorStoreConnectionDiagnostics {
+    
+    @Autowired
+    private VectorStore vectorStore;
+    
+    @PostConstruct
+    public void validateConnection() {
+        try {
+            // 연결 테스트
+            testBasicOperations();
+            log.info("Vector store connection validated successfully");
+        } catch (Exception e) {
+            log.error("Vector store connection failed", e);
+            diagnoseConnectionIssue(e);
+        }
+    }
+    
+    private void testBasicOperations() {
+        // 1. 쓰기 테스트
+        Document testDoc = new Document("test content");
+        testDoc.getMetadata().put("test", true);
+        vectorStore.add(List.of(testDoc));
+        
+        // 2. 읽기 테스트
+        List<Document> results = vectorStore.similaritySearch(
+            SearchRequest.query("test").withTopK(1)
+        );
+        
+        if (results.isEmpty()) {
+            throw new VectorStoreException("Read test failed");
+        }
+        
+        // 3. 삭제 테스트 (정리)
+        // vectorStore.delete(List.of(testDoc.getId()));
+    }
+    
+    private void diagnoseConnectionIssue(Exception e) {
+        if (e.getMessage().contains("connection refused")) {
+            log.error("Vector store is not running. Check if the service is started.");
+            log.error("For PGVector: sudo systemctl status postgresql");
+            log.error("For Chroma: chroma run --host localhost --port 8000");
+        } else if (e.getMessage().contains("extension")) {
+            log.error("PGVector extension not installed. Run: CREATE EXTENSION vector;");
+        } else if (e.getMessage().contains("authentication")) {
+            log.error("Authentication failed. Check credentials in application.yml");
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 6: Debugging Techniques -->
+            <section id="debugging-techniques" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">6. 디버깅 기법</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">요청/응답 로깅</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('request-response-logging')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="request-response-logging"><code class="language-java">@Component
+@Slf4j
+public class AIDebugInterceptor {
+    
+    @EventListener
+    public void onChatRequest(ChatRequestEvent event) {
+        if (log.isDebugEnabled()) {
+            log.debug("=== AI Request ===");
+            log.debug("Model: {}", event.getModel());
+            log.debug("Temperature: {}", event.getTemperature());
+            log.debug("System: {}", truncate(event.getSystemMessage(), 200));
+            log.debug("User: {}", truncate(event.getUserMessage(), 200));
+            log.debug("Timestamp: {}", Instant.now());
+            log.debug("==================");
+        }
+    }
+    
+    @EventListener
+    public void onChatResponse(ChatResponseEvent event) {
+        if (log.isDebugEnabled()) {
+            log.debug("=== AI Response ===");
+            log.debug("Request ID: {}", event.getRequestId());
+            log.debug("Duration: {}ms", event.getDuration());
+            log.debug("Tokens: {}", event.getTokensUsed());
+            log.debug("Response: {}", truncate(event.getResponse(), 500));
+            log.debug("===================");
+        }
+    }
+    
+    // 조건부 상세 로깅
+    @Component
+    public class ConditionalLogger {
+        
+        private final Set<String> debugUsers = new HashSet<>();
+        
+        public void enableDebugForUser(String userId) {
+            debugUsers.add(userId);
+        }
+        
+        public void logIfEnabled(String userId, String message, Object... args) {
+            if (debugUsers.contains(userId)) {
+                log.info("[DEBUG-USER:{}] " + message, userId, args);
+            }
+        }
+    }
+    
+    // 프롬프트 추적
+    @Aspect
+    @Component
+    public class PromptTracingAspect {
+        
+        @Around("@annotation(TracePrompt)")
+        public Object tracePrompt(ProceedingJoinPoint pjp) throws Throwable {
+            String traceId = UUID.randomUUID().toString();
+            MDC.put("traceId", traceId);
+            
+            try {
+                log.info("Prompt trace started");
+                
+                Object result = pjp.proceed();
+                
+                log.info("Prompt trace completed");
+                return result;
+            } finally {
+                MDC.remove("traceId");
+            }
+        }
+    }
+}</code></pre>
+                    </div>
+
+                    <h3 class="text-lg font-semibold mb-3 mt-6">상태 덤프</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('state-dump')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="state-dump"><code class="language-java">@RestController
+@RequestMapping("/debug")
+public class DebugController {
+    
+    @Autowired
+    private ApplicationContext context;
+    
+    @Autowired
+    private MeterRegistry meterRegistry;
+    
+    @GetMapping("/state")
+    public ResponseEntity<SystemState> getSystemState() {
+        SystemState state = SystemState.builder()
+            .timestamp(Instant.now())
+            .activeConnections(getActiveConnections())
+            .cacheStats(getCacheStats())
+            .queueSizes(getQueueSizes())
+            .errorRates(getErrorRates())
+            .memoryUsage(getMemoryUsage())
+            .threadInfo(getThreadInfo())
+            .build();
+        
+        return ResponseEntity.ok(state);
+    }
+    
+    @GetMapping("/config")
+    public Map<String, Object> getConfiguration() {
+        Map<String, Object> config = new HashMap<>();
+        
+        // AI 설정
+        config.put("chatModel", getPropertySafely("spring.ai.openai.chat.model"));
+        config.put("temperature", getPropertySafely("spring.ai.openai.chat.temperature"));
+        config.put("maxTokens", getPropertySafely("spring.ai.openai.chat.max-tokens"));
+        
+        // 벡터 스토어 설정
+        config.put("vectorStore", getVectorStoreConfig());
+        
+        // 성능 설정
+        config.put("connectionPool", getConnectionPoolConfig());
+        
+        return config;
+    }
+    
+    @PostMapping("/test-prompt")
+    public TestResult testPrompt(@RequestBody TestRequest request) {
+        long startTime = System.currentTimeMillis();
+        
+        try {
+            String response = chatClient.prompt()
+                .user(request.getPrompt())
+                .call()
+                .content();
+            
+            return TestResult.success(
+                response,
+                System.currentTimeMillis() - startTime
+            );
+        } catch (Exception e) {
+            return TestResult.failure(
+                e.getMessage(),
+                System.currentTimeMillis() - startTime
+            );
+        }
+    }
+    
+    // 힙 덤프 생성 (주의: 프로덕션에서는 신중히 사용)
+    @PostMapping("/heap-dump")
+    public ResponseEntity<String> createHeapDump() {
+        if (!isDebugMode()) {
+            return ResponseEntity.status(403).body("Not allowed in production");
+        }
+        
+        try {
+            String fileName = "heap-dump-" + System.currentTimeMillis() + ".hprof";
+            MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+            HotSpotDiagnosticMXBean mxBean = ManagementFactory.newPlatformMXBeanProxy(
+                server,
+                "com.sun.management:type=HotSpotDiagnostic",
+                HotSpotDiagnosticMXBean.class
+            );
+            mxBean.dumpHeap(fileName, true);
+            
+            return ResponseEntity.ok("Heap dump created: " + fileName);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Failed: " + e.getMessage());
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 7: Production Issues -->
+            <section id="production-issues" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">7. 프로덕션 문제</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">서비스 중단 대응</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('service-outage')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="service-outage"><code class="language-java">@Service
+@Slf4j
+public class OutageHandlingService {
+    
+    private final CircuitBreaker circuitBreaker;
+    private final FallbackService fallbackService;
+    
+    public OutageHandlingService() {
+        this.circuitBreaker = CircuitBreaker.ofDefaults("ai-service");
+        circuitBreaker.getEventPublisher()
+            .onStateTransition(event -> 
+                log.warn("Circuit breaker state transition: {}", event));
+    }
+    
+    public String handleRequest(String prompt) {
+        return circuitBreaker.executeSupplier(
+            () -> callAIService(prompt),
+            throwable -> {
+                log.error("AI service call failed, using fallback", throwable);
+                return fallbackService.getFallbackResponse(prompt);
+            }
+        );
+    }
+    
+    // 다중 프로바이더 폴백
+    @Component
+    public class MultiProviderFallback {
+        
+        private final List<AIProvider> providers = List.of(
+            new OpenAIProvider(),
+            new AnthropicProvider(),
+            new LocalModelProvider()
+        );
+        
+        public String executeWithFallback(String prompt) {
+            for (AIProvider provider : providers) {
+                try {
+                    if (provider.isAvailable()) {
+                        return provider.execute(prompt);
+                    }
+                } catch (Exception e) {
+                    log.warn("Provider {} failed", provider.getName(), e);
+                }
+            }
+            
+            // 모든 프로바이더 실패
+            return getCachedOrDefaultResponse(prompt);
+        }
+    }
+    
+    // 장애 자동 복구
+    @Component
+    public class AutoRecoveryService {
+        
+        @Scheduled(fixedDelay = 60000) // 1분마다
+        public void checkAndRecover() {
+            if (circuitBreaker.getState() == CircuitBreaker.State.OPEN) {
+                log.info("Attempting to recover from outage");
+                
+                // 헬스 체크
+                if (performHealthCheck()) {
+                    circuitBreaker.reset();
+                    log.info("Service recovered, circuit breaker reset");
+                    
+                    // 알림 발송
+                    notificationService.sendRecoveryNotification();
+                }
+            }
+        }
+        
+        private boolean performHealthCheck() {
+            try {
+                String response = chatClient.prompt()
+                    .user("ping")
+                    .call()
+                    .content();
+                return response != null && !response.isEmpty();
+            } catch (Exception e) {
+                return false;
+            }
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 8: Troubleshooting Tools -->
+            <section id="troubleshooting-tools" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">8. 문제 해결 도구</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">진단 도구 모음</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('diagnostic-tools')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="diagnostic-tools"><code class="language-java">@Component
+public class DiagnosticToolkit {
+    
+    // 종합 진단 리포트
+    public DiagnosticReport runFullDiagnostics() {
+        DiagnosticReport report = new DiagnosticReport();
+        
+        // 1. API 연결 테스트
+        report.addSection("API Connectivity", testAPIConnectivity());
+        
+        // 2. 성능 메트릭
+        report.addSection("Performance Metrics", collectPerformanceMetrics());
+        
+        // 3. 에러 분석
+        report.addSection("Error Analysis", analyzeRecentErrors());
+        
+        // 4. 리소스 사용량
+        report.addSection("Resource Usage", checkResourceUsage());
+        
+        // 5. 설정 검증
+        report.addSection("Configuration", validateConfiguration());
+        
+        return report;
+    }
+    
+    // 실시간 모니터링 대시보드
+    @RestController
+    @RequestMapping("/diagnostics")
+    public class DiagnosticsDashboard {
+        
+        @GetMapping("/live")
+        public ResponseEntity<LiveMetrics> getLiveMetrics() {
+            return ResponseEntity.ok(LiveMetrics.builder()
+                .requestsPerSecond(getCurrentRPS())
+                .averageLatency(getAverageLatency())
+                .errorRate(getErrorRate())
+                .activeConnections(getActiveConnections())
+                .queueDepth(getQueueDepth())
+                .build());
+        }
+        
+        @PostMapping("/trace")
+        public TraceResult traceRequest(@RequestBody TraceRequest request) {
+            // 요청 추적 활성화
+            enableTracing(request.getTraceId());
+            
+            try {
+                // 추적된 요청 실행
+                String result = executeWithTracing(request);
+                
+                // 추적 결과 수집
+                return collectTraceResult(request.getTraceId());
+            } finally {
+                disableTracing(request.getTraceId());
+            }
+        }
+    }
+    
+    // 자동 문제 감지
+    @Component
+    public class AutomaticIssueDetecion {
+        
+        private final List<IssueDetector> detectors = List.of(
+            new SlowResponseDetector(),
+            new HighErrorRateDetector(),
+            new MemoryLeakDetector(),
+            new ConnectionPoolExhaustionDetector()
+        );
+        
+        @Scheduled(fixedRate = 30000) // 30초마다
+        public void detectIssues() {
+            for (IssueDetector detector : detectors) {
+                Optional<Issue> issue = detector.detect();
+                
+                if (issue.isPresent()) {
+                    handleDetectedIssue(issue.get());
+                }
+            }
+        }
+        
+        private void handleDetectedIssue(Issue issue) {
+            log.error("Issue detected: {}", issue);
+            
+            // 자동 해결 시도
+            if (issue.hasAutoFix()) {
+                issue.applyAutoFix();
+            }
+            
+            // 알림 발송
+            alertManager.sendIssueAlert(issue);
+            
+            // 메트릭 기록
+            meterRegistry.counter("issues.detected",
+                "type", issue.getType(),
+                "severity", issue.getSeverity()
+            ).increment();
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Best Practices -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">🎯 문제 해결 Best Practices</h2>
+                
+                <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="font-semibold mb-3">예방 조치</h3>
+                            <ul class="space-y-1 text-sm">
+                                <li>✅ 포괄적인 에러 처리 구현</li>
+                                <li>✅ 적절한 타임아웃 설정</li>
+                                <li>✅ 재시도 로직 구현</li>
+                                <li>✅ 서킷 브레이커 패턴 적용</li>
+                                <li>✅ 정기적인 헬스 체크</li>
+                            </ul>
+                        </div>
+                        
+                        <div>
+                            <h3 class="font-semibold mb-3">진단 전략</h3>
+                            <ul class="space-y-1 text-sm">
+                                <li>✅ 상세한 로깅 구현</li>
+                                <li>✅ 분산 추적 활용</li>
+                                <li>✅ 메트릭 수집 및 분석</li>
+                                <li>✅ 정기적인 성능 프로파일링</li>
+                                <li>✅ 자동화된 문제 감지</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6">
+                        <h3 class="font-semibold mb-3">문제 해결 체크리스트</h3>
+                        <div class="bg-white p-4 rounded-lg">
+                            <ul class="space-y-1 text-sm">
+                                <li>□ 에러 로그 확인</li>
+                                <li>□ API 키 및 환경 변수 검증</li>
+                                <li>□ 네트워크 연결 상태 확인</li>
+                                <li>□ 리소스 사용량 점검</li>
+                                <li>□ 최근 변경사항 검토</li>
+                                <li>□ 의존성 버전 확인</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Next Steps -->
+            <section class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4">다음 단계</h2>
+                
+                <div class="grid md:grid-cols-3 gap-4">
+                    <a href="monitoring.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-blue-600 mb-2">모니터링</h3>
+                        <p class="text-sm text-gray-600">문제 예방을 위한 모니터링 구축</p>
+                    </a>
+                    
+                    <a href="performance.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-green-600 mb-2">성능 최적화</h3>
+                        <p class="text-sm text-gray-600">성능 문제 해결 및 최적화</p>
+                    </a>
+                    
+                    <a href="patterns.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-purple-600 mb-2">안정성 패턴</h3>
+                        <p class="text-sm text-gray-600">장애 대응 패턴 구현</p>
+                    </a>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <script>
+        function copyCode(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('코드가 복사되었습니다!');
+            });
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg z-50';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

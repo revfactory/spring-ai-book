@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parallel Processing 패턴 - Spring AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .code-block { background: #2d3748; border-radius: 8px; }
+        .copy-button { transition: all 0.2s ease; }
+        .copy-button:hover { background-color: #4a5568; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <a href="../../index.html" class="flex items-center text-xl font-bold text-gray-800">
+                        <i class="fab fa-spring text-green-600 mr-2"></i>
+                        Spring AI Hub
+                    </a>
+                    <span class="mx-3 text-gray-400">/</span>
+                    <a href="../patterns.html" class="text-gray-600 hover:text-gray-800">패턴 가이드</a>
+                    <span class="mx-3 text-gray-400">/</span>
+                    <span class="text-gray-600">Parallel Processing</span>
+                </div>
+                <a href="../../index.html" class="text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-home"></i> 홈으로
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-4xl font-bold mb-4">⚡ Parallel Processing 패턴</h1>
+            <p class="text-gray-600 mb-8">병렬 처리로 성능을 극대화하는 멀티 태스크 패턴</p>
+
+            <!-- Overview -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">개요</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <p class="mb-4">
+                        Parallel Processing 패턴은 독립적인 여러 AI 작업을 동시에 실행하여 전체 처리 시간을 단축하는 패턴입니다. 
+                        작업 간 의존성이 없을 때 최대 효과를 발휘하며, 시스템 자원을 효율적으로 활용합니다.
+                    </p>
+                    
+                    <div class="bg-green-50 p-4 rounded-lg mb-4">
+                        <h3 class="font-semibold mb-2">주요 특징:</h3>
+                        <ul class="space-y-1">
+                            <li>✅ 다중 작업 동시 실행으로 시간 단축</li>
+                            <li>✅ CPU/메모리 자원 효율적 활용</li>
+                            <li>✅ 일부 작업 실패 시에도 다른 작업 계속 진행</li>
+                            <li>✅ 동적 작업 분배 및 부하 분산</li>
+                            <li>✅ 결과 집계 및 병합 유연성</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-gray-100 p-4 rounded-lg">
+                        <h3 class="font-semibold mb-2">병렬 처리 다이어그램:</h3>
+                        <pre class="text-sm font-mono">
+입력 데이터
+    │
+    ├───────┬───────┬───────┐
+    ▼       ▼       ▼       ▼
+┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐
+│ Task 1 │ │ Task 2 │ │ Task 3 │ │ Task N │
+│  검색   │ │  분석   │ │  요약   │ │  ...   │
+└────────┘ └────────┘ └────────┘ └────────┘
+    │       │       │       │
+    └───────┴───────┴───────┘
+            ▼
+        결과 병합
+            ▼
+        최종 결과
+                        </pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Basic Implementation -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">기본 구현</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">병렬 처리기 구현</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('parallel-processor')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="parallel-processor"><code class="language-java">@Service
+@Slf4j
+public class ParallelAIProcessor {
+    
+    private final ExecutorService executorService;
+    private final ChatClient chatClient;
+    
+    public ParallelAIProcessor() {
+        this.executorService = new ForkJoinPool(
+            Runtime.getRuntime().availableProcessors(),
+            ForkJoinPool.defaultForkJoinWorkerThreadFactory,
+            null, true
+        );
+    }
+    
+    public <T, R> List<R> processInParallel(
+            List<T> inputs, 
+            Function<T, R> processor) {
+        
+        List<CompletableFuture<R>> futures = inputs.stream()
+            .map(input -> CompletableFuture.supplyAsync(
+                () -> processor.apply(input), 
+                executorService
+            ))
+            .toList();
+        
+        // 모든 작업이 완료될 때까지 대기
+        CompletableFuture<Void> allFutures = CompletableFuture.allOf(
+            futures.toArray(new CompletableFuture[0])
+        );
+        
+        try {
+            allFutures.get(30, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            log.warn("Some tasks timed out");
+            // 완료된 작업들만 수집
+        }
+        
+        return futures.stream()
+            .map(future -> {
+                try {
+                    return future.getNow(null);
+                } catch (Exception e) {
+                    log.error("Task failed", e);
+                    return null;
+                }
+            })
+            .filter(Objects::nonNull)
+            .toList();
+    }
+}
+
+// 다중 소스 검색 예제
+@Service
+public class MultiSourceSearchService {
+    
+    private final ParallelAIProcessor parallelProcessor;
+    private final List<SearchProvider> searchProviders;
+    
+    public SearchResult searchAllSources(String query) {
+        // 모든 검색 소스에 병렬로 쿼리
+        List<CompletableFuture<List<Document>>> searchFutures = 
+            searchProviders.stream()
+                .map(provider -> CompletableFuture.supplyAsync(() -> 
+                    provider.search(query)
+                ))
+                .toList();
+        
+        // 결과 수집 및 병합
+        CompletableFuture<List<Document>> combinedFuture = 
+            CompletableFuture.allOf(searchFutures.toArray(new CompletableFuture[0]))
+                .thenApply(v -> searchFutures.stream()
+                    .map(CompletableFuture::join)
+                    .flatMap(List::stream)
+                    .toList()
+                );
+        
+        List<Document> allDocuments = combinedFuture.join();
+        
+        // 결과 순위 재정렬
+        return SearchResult.builder()
+            .query(query)
+            .documents(rankDocuments(allDocuments))
+            .sourceCount(searchProviders.size())
+            .totalResults(allDocuments.size())
+            .build();
+    }
+}</code></pre>
+                    </div>
+                </div>
+
+                <!-- Multi-Model Parallel Processing -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">멀티 모델 병렬 처리</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('multi-model-parallel')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="multi-model-parallel"><code class="language-java">@Service
+public class MultiModelService {
+    
+    private final Map<String, ChatClient> modelClients;
+    
+    public MultiModelService() {
+        this.modelClients = Map.of(
+            "gpt-4o", createOpenAIClient(),
+            "claude-3", createAnthropicClient(),
+            "llama-3", createOllamaClient()
+        );
+    }
+    
+    public ModelComparisonResult compareModels(String prompt) {
+        Map<String, CompletableFuture<ModelResponse>> futures = 
+            modelClients.entrySet().stream()
+                .collect(Collectors.toMap(
+                    Map.Entry::getKey,
+                    entry -> queryModelAsync(entry.getKey(), entry.getValue(), prompt)
+                ));
+        
+        // 첫 번째 응답 반환 (가장 빠른 모델)
+        CompletableFuture<ModelResponse> firstResponse = 
+            CompletableFuture.anyOf(futures.values().toArray(new CompletableFuture[0]))
+                .thenApply(result -> (ModelResponse) result);
+        
+        // 모든 응답 수집
+        Map<String, ModelResponse> allResponses = futures.entrySet().stream()
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                entry -> {
+                    try {
+                        return entry.getValue().get(10, TimeUnit.SECONDS);
+                    } catch (Exception e) {
+                        return ModelResponse.error(entry.getKey(), e);
+                    }
+                }
+            ));
+        
+        return ModelComparisonResult.builder()
+            .prompt(prompt)
+            .fastestResponse(firstResponse.join())
+            .allResponses(allResponses)
+            .consensusAnswer(findConsensus(allResponses))
+            .performanceMetrics(calculateMetrics(allResponses))
+            .build();
+    }
+    
+    private CompletableFuture<ModelResponse> queryModelAsync(
+            String modelName, 
+            ChatClient client, 
+            String prompt) {
+        
+        return CompletableFuture.supplyAsync(() -> {
+            long startTime = System.currentTimeMillis();
+            
+            try {
+                String response = client.prompt()
+                    .user(prompt)
+                    .call()
+                    .content();
+                
+                return ModelResponse.builder()
+                    .modelName(modelName)
+                    .content(response)
+                    .latency(System.currentTimeMillis() - startTime)
+                    .success(true)
+                    .build();
+                    
+            } catch (Exception e) {
+                return ModelResponse.builder()
+                    .modelName(modelName)
+                    .error(e.getMessage())
+                    .latency(System.currentTimeMillis() - startTime)
+                    .success(false)
+                    .build();
+            }
+        });
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Advanced Patterns -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">고급 패턴</h2>
+                
+                <!-- Map-Reduce Pattern -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">Map-Reduce 패턴</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('map-reduce-pattern')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="map-reduce-pattern"><code class="language-java">@Service
+public class AIMapReduceService {
+    
+    private final ParallelAIProcessor parallelProcessor;
+    private final ChatClient chatClient;
+    
+    // 대용량 문서 분석 예제
+    public DocumentAnalysis analyzelargeDocument(String document) {
+        // 1. Map: 문서를 청크로 분할하고 병렬 분석
+        List<String> chunks = splitIntoChunks(document, 1000);
+        
+        List<ChunkAnalysis> chunkAnalyses = parallelProcessor.processInParallel(
+            chunks,
+            chunk -> analyzeChunk(chunk)
+        );
+        
+        // 2. Reduce: 분석 결과 통합
+        return reduceAnalyses(chunkAnalyses);
+    }
+    
+    private ChunkAnalysis analyzeChunk(String chunk) {
+        String analysis = chatClient.prompt()
+            .system("문서 청크를 분석하여 핵심 정보를 추출하세요.")
+            .user(u -> u.text("""
+                다음 텍스트에서 추출하세요:
+                1. 주요 주제
+                2. 핵심 개념
+                3. 중요한 사실
+                4. 감정 톤
+                
+                텍스트: {chunk}
+                """)
+                .param("chunk", chunk))
+            .call()
+            .content();
+        
+        return parseChunkAnalysis(analysis);
+    }
+    
+    private DocumentAnalysis reduceAnalyses(List<ChunkAnalysis> analyses) {
+        // 주제 빈도 계산
+        Map<String, Integer> topicFrequency = analyses.stream()
+            .flatMap(a -> a.getTopics().stream())
+            .collect(Collectors.groupingBy(
+                Function.identity(),
+                Collectors.summingInt(e -> 1)
+            ));
+        
+        // 전체 요약 생성
+        String consolidatedSummary = chatClient.prompt()
+            .system("여러 분석 결과를 통합하여 전체 요약을 생성하세요.")
+            .user(u -> u.text("""
+                다음 청크별 분석 결과를 통합하세요:
+                {analyses}
+                
+                통합 요약에는 다음이 포함되어야 합니다:
+                - 전체 문서의 주요 주제
+                - 핵심 결론
+                - 중요한 통찰
+                """)
+                .param("analyses", formatAnalyses(analyses)))
+            .call()
+            .content();
+        
+        return DocumentAnalysis.builder()
+            .mainTopics(extractTopTopics(topicFrequency))
+            .summary(consolidatedSummary)
+            .concepts(mergeConc epts(analyses))
+            .overallSentiment(calculateOverallSentiment(analyses))
+            .chunkCount(analyses.size())
+            .build();
+    }
+}
+
+// Fork-Join 패턴
+@Component
+public class ForkJoinAITask extends RecursiveTask<AnalysisResult> {
+    
+    private static final int THRESHOLD = 100;
+    private final List<DataItem> items;
+    private final AIAnalyzer analyzer;
+    
+    @Override
+    protected AnalysisResult compute() {
+        if (items.size() <= THRESHOLD) {
+            // 직접 처리
+            return analyzer.analyzeItems(items);
+        }
+        
+        // 작업 분할
+        int mid = items.size() / 2;
+        ForkJoinAITask leftTask = new ForkJoinAITask(
+            items.subList(0, mid), analyzer
+        );
+        ForkJoinAITask rightTask = new ForkJoinAITask(
+            items.subList(mid, items.size()), analyzer
+        );
+        
+        // 병렬 실행
+        leftTask.fork();
+        AnalysisResult rightResult = rightTask.compute();
+        AnalysisResult leftResult = leftTask.join();
+        
+        // 결과 병합
+        return mergeResults(leftResult, rightResult);
+    }
+}</code></pre>
+                    </div>
+                </div>
+
+                <!-- Dynamic Work Distribution -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">동적 작업 분배</h3>
+                    
+                    <div class="code-block p-4 relative mb-4">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('dynamic-distribution')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="dynamic-distribution"><code class="language-java">@Service
+public class DynamicWorkDistributor {
+    
+    private final ThreadPoolExecutor executorService;
+    private final WorkQueue<AITask> workQueue;
+    private final LoadBalancer loadBalancer;
+    
+    public DynamicWorkDistributor() {
+        this.executorService = new ThreadPoolExecutor(
+            10, 50,
+            60L, TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(100),
+            new ThreadFactoryBuilder()
+                .setNameFormat("ai-worker-%d")
+                .build()
+        );
+        
+        // 실시간 모니터링
+        executorService.prestartAllCoreThreads();
+    }
+    
+    public void distributeWork(List<AITask> tasks) {
+        // 작업 복잡도에 따라 우선순위 설정
+        PriorityQueue<AITask> prioritizedTasks = new PriorityQueue<>(
+            Comparator.comparing(AITask::getComplexity).reversed()
+        );
+        prioritizedTasks.addAll(tasks);
+        
+        // 동적 워커 할당
+        while (!prioritizedTasks.isEmpty()) {
+            AITask task = prioritizedTasks.poll();
+            
+            // 현재 부하 상태 확인
+            WorkerNode bestWorker = loadBalancer.selectWorker(
+                task.getRequiredResources()
+            );
+            
+            CompletableFuture<TaskResult> future = CompletableFuture
+                .supplyAsync(() -> bestWorker.execute(task), executorService)
+                .orTimeout(task.getTimeout(), TimeUnit.SECONDS);
+            
+            // 실패 시 재할당
+            future.exceptionally(ex -> {
+                log.warn("Task failed, redistributing: {}", task.getId());
+                redistributeTask(task);
+                return null;
+            });
+        }
+    }
+    
+    // 적응형 스레드 풀 크기 조정
+    @Scheduled(fixedDelay = 5000)
+    public void adjustPoolSize() {
+        int activeCount = executorService.getActiveCount();
+        int queueSize = executorService.getQueue().size();
+        double cpuUsage = getCpuUsage();
+        
+        if (queueSize > 50 && cpuUsage < 0.7) {
+            // 대기 작업이 많고 CPU 여유가 있으면 스레드 증가
+            int newSize = Math.min(
+                executorService.getMaximumPoolSize(),
+                executorService.getCorePoolSize() + 5
+            );
+            executorService.setCorePoolSize(newSize);
+            log.info("Increased pool size to: {}", newSize);
+            
+        } else if (queueSize < 10 && activeCount < executorService.getCorePoolSize() / 2) {
+            // 대기 작업이 적고 활성 스레드가 적으면 스레드 감소
+            int newSize = Math.max(
+                10,
+                executorService.getCorePoolSize() - 5
+            );
+            executorService.setCorePoolSize(newSize);
+            log.info("Decreased pool size to: {}", newSize);
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+
+                <!-- Result Aggregation -->
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">결과 집계 전략</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('result-aggregation')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="result-aggregation"><code class="language-java">@Component
+public class ResultAggregator {
+    
+    // 투표 기반 집계
+    public <T> T aggregateByVoting(List<T> results) {
+        Map<T, Long> voteCounts = results.stream()
+            .collect(Collectors.groupingBy(
+                Function.identity(),
+                Collectors.counting()
+            ));
+        
+        return voteCounts.entrySet().stream()
+            .max(Map.Entry.comparingByValue())
+            .map(Map.Entry::getKey)
+            .orElseThrow();
+    }
+    
+    // 가중치 기반 집계
+    public AggregatedResult aggregateWithWeights(
+            List<WeightedResult> results) {
+        
+        // 신뢰도 기반 가중치 계산
+        double totalWeight = results.stream()
+            .mapToDouble(r -> r.getConfidence())
+            .sum();
+        
+        Map<String, Double> weightedScores = new HashMap<>();
+        
+        for (WeightedResult result : results) {
+            double normalizedWeight = result.getConfidence() / totalWeight;
+            
+            result.getScores().forEach((key, value) -> 
+                weightedScores.merge(key, value * normalizedWeight, Double::sum)
+            );
+        }
+        
+        return AggregatedResult.builder()
+            .aggregatedScores(weightedScores)
+            .participantCount(results.size())
+            .confidenceLevel(calculateOverallConfidence(results))
+            .build();
+    }
+    
+    // 스트리밍 집계
+    public Flux<IntermediateResult> streamingAggregate(
+            List<Flux<PartialResult>> resultStreams) {
+        
+        return Flux.merge(resultStreams)
+            .buffer(Duration.ofMillis(100))
+            .map(batch -> {
+                // 배치별 중간 결과 생성
+                IntermediateResult intermediate = IntermediateResult.builder()
+                    .timestamp(Instant.now())
+                    .partialResults(batch)
+                    .progress(calculateProgress(batch))
+                    .build();
+                
+                // 실시간 업데이트 전송
+                publishUpdate(intermediate);
+                
+                return intermediate;
+            });
+    }
+    
+    // 앙상블 집계
+    public EnsembleResult ensembleAggregate(
+            Map<String, ModelResult> modelResults) {
+        
+        // 각 모델의 강점을 활용한 앙상블
+        String bestAccuracyModel = findBestModel(modelResults, "accuracy");
+        String bestSpeedModel = findBestModel(modelResults, "speed");
+        String bestCreativityModel = findBestModel(modelResults, "creativity");
+        
+        // 상황별 최적 결과 선택
+        return EnsembleResult.builder()
+            .factualAnswer(modelResults.get(bestAccuracyModel).getContent())
+            .creativeAnswer(modelResults.get(bestCreativityModel).getContent())
+            .quickAnswer(modelResults.get(bestSpeedModel).getContent())
+            .consensusAnswer(buildConsensus(modelResults))
+            .confidence(calculateEnsembleConfidence(modelResults))
+            .build();
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Real-World Examples -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">실전 예제</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">실시간 번역 시스템</h3>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('translation-system')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="translation-system"><code class="language-java">@Service
+public class RealTimeTranslationService {
+    
+    private final ParallelAIProcessor parallelProcessor;
+    private final Map<String, ChatClient> languageClients;
+    
+    public TranslationResult translateToMultipleLanguages(
+            String sourceText, 
+            String sourceLanguage,
+            List<String> targetLanguages) {
+        
+        // 각 언어별 번역 병렬 실행
+        Map<String, CompletableFuture<Translation>> translationFutures = 
+            targetLanguages.stream()
+                .collect(Collectors.toMap(
+                    lang -> lang,
+                    lang -> translateAsync(sourceText, sourceLanguage, lang)
+                ));
+        
+        // 스트리밍 결과 반환
+        return TranslationResult.builder()
+            .sourceText(sourceText)
+            .sourceLanguage(sourceLanguage)
+            .translations(collectTranslations(translationFutures))
+            .qualityScores(evaluateQuality(translationFutures))
+            .build();
+    }
+    
+    private CompletableFuture<Translation> translateAsync(
+            String text, 
+            String sourceLang, 
+            String targetLang) {
+        
+        return CompletableFuture.supplyAsync(() -> {
+            // 메인 번역
+            String mainTranslation = performTranslation(text, sourceLang, targetLang);
+            
+            // 병렬로 품질 검증
+            CompletableFuture<Double> qualityScore = 
+                CompletableFuture.supplyAsync(() -> 
+                    evaluateTranslationQuality(text, mainTranslation, targetLang)
+                );
+            
+            // 병렬로 대체 번역 생성
+            CompletableFuture<List<String>> alternatives = 
+                CompletableFuture.supplyAsync(() -> 
+                    generateAlternatives(text, sourceLang, targetLang)
+                );
+            
+            return Translation.builder()
+                .targetLanguage(targetLang)
+                .mainTranslation(mainTranslation)
+                .alternatives(alternatives.join())
+                .qualityScore(qualityScore.join())
+                .timestamp(Instant.now())
+                .build();
+        });
+    }
+}
+
+// 병렬 데이터 분석 서비스
+@Service
+public class ParallelDataAnalysisService {
+    
+    public ComprehensiveAnalysis analyzeDataset(Dataset dataset) {
+        // 다양한 분석을 병렬로 수행
+        CompletableFuture<StatisticalAnalysis> statsF uture = 
+            CompletableFuture.supplyAsync(() -> performStatisticalAnalysis(dataset));
+            
+        CompletableFuture<TrendAnalysis> trendFuture = 
+            CompletableFuture.supplyAsync(() -> performTrendAnalysis(dataset));
+            
+        CompletableFuture<AnomalyDetection> anomalyFuture = 
+            CompletableFuture.supplyAsync(() -> detectAnomalies(dataset));
+            
+        CompletableFuture<PredictiveModel> predictionFuture = 
+            CompletableFuture.supplyAsync(() -> buildPredictiveModel(dataset));
+        
+        // 모든 분석 완료 대기
+        CompletableFuture<Void> allAnalyses = CompletableFuture.allOf(
+            statsFuture, trendFuture, anomalyFuture, predictionFuture
+        );
+        
+        return allAnalyses.thenApply(v -> 
+            ComprehensiveAnalysis.builder()
+                .statistics(statsFuture.join())
+                .trends(trendFuture.join())
+                .anomalies(anomalyFuture.join())
+                .predictions(predictionFuture.join())
+                .summary(generateExecutiveSummary(
+                    statsFuture.join(),
+                    trendFuture.join(),
+                    anomalyFuture.join(),
+                    predictionFuture.join()
+                ))
+                .build()
+        ).join();
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Performance Optimization -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">성능 최적화</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-semibold mb-3">병렬 처리 최적화 전략</h3>
+                    
+                    <div class="bg-yellow-50 p-4 rounded-lg mb-4">
+                        <h4 class="font-semibold mb-2">리소스 관리</h4>
+                        <ul class="space-y-1 text-sm">
+                            <li>• 스레드 풀 크기를 CPU 코어 수에 맞춰 조정</li>
+                            <li>• 메모리 사용량 모니터링 및 제한 설정</li>
+                            <li>• 작업 큐 크기 제한으로 메모리 오버플로우 방지</li>
+                            <li>• 백프레셔(Backpressure) 메커니즘 구현</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h4 class="font-semibold mb-2">작업 분배 전략</h4>
+                        <ul class="space-y-1 text-sm">
+                            <li>• 작업 크기를 균등하게 분할</li>
+                            <li>• 작업 복잡도에 따른 동적 할당</li>
+                            <li>• 지역성(Locality)을 고려한 데이터 분배</li>
+                            <li>• 작업 훔치기(Work Stealing) 알고리즘 활용</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Best Practices -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">🎯 Best Practices</h2>
+                
+                <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">병렬 처리 설계 원칙</h3>
+                    
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-semibold mb-2">설계 원칙</h4>
+                            <ul class="space-y-1 text-sm">
+                                <li>✅ 작업 간 의존성 최소화</li>
+                                <li>✅ 상태 공유 피하고 불변 객체 사용</li>
+                                <li>✅ 실패 격리 및 부분 성공 처리</li>
+                                <li>✅ 타임아웃 설정으로 무한 대기 방지</li>
+                                <li>✅ 적절한 작업 단위 크기 설정</li>
+                            </ul>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-semibold mb-2">모니터링 포인트</h4>
+                            <ul class="space-y-1 text-sm">
+                                <li>✅ 스레드 풀 사용률 추적</li>
+                                <li>✅ 작업 대기 시간 측정</li>
+                                <li>✅ 처리량 및 지연 시간 모니터링</li>
+                                <li>✅ 실패율 및 재시도 횟수 추적</li>
+                                <li>✅ 리소스 사용량 (CPU, 메모리) 감시</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Next Steps -->
+            <section class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4">다음 단계</h2>
+                
+                <div class="grid md:grid-cols-3 gap-4">
+                    <a href="chain.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-blue-600 mb-2">Chain Workflow</h3>
+                        <p class="text-sm text-gray-600">순차 처리 패턴 알아보기</p>
+                    </a>
+                    
+                    <a href="routing.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-purple-600 mb-2">Smart Routing</h3>
+                        <p class="text-sm text-gray-600">지능형 라우팅 패턴</p>
+                    </a>
+                    
+                    <a href="../patterns.html" class="block p-4 border rounded-lg hover:bg-gray-50 transition">
+                        <h3 class="font-semibold text-green-600 mb-2">패턴 목록</h3>
+                        <p class="text-sm text-gray-600">전체 패턴 보기</p>
+                    </a>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <script>
+        function copyCode(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('코드가 복사되었습니다!');
+            });
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg z-50';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

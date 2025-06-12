@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring AI 빠른 시작 가이드</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .code-block { background: #2d3748; border-radius: 8px; }
+        .copy-button { transition: all 0.2s ease; }
+        .copy-button:hover { background-color: #4a5568; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <a href="../index.html" class="flex items-center text-xl font-bold text-gray-800">
+                        <i class="fab fa-spring text-green-600 mr-2"></i>
+                        Spring AI Hub
+                    </a>
+                    <span class="mx-3 text-gray-400">/</span>
+                    <span class="text-gray-600">빠른 시작</span>
+                </div>
+                <a href="../index.html" class="text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-home"></i> 홈으로
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-4xl font-bold mb-8">🚀 Spring AI 빠른 시작 가이드</h1>
+            
+            <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-8">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-info-circle text-blue-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-blue-700">
+                            이 가이드를 따라하면 <strong>5분 내에</strong> Spring AI 기반 애플리케이션을 실행할 수 있습니다.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prerequisites -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">📋 사전 요구사항</h2>
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <ul class="space-y-2">
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-green-500 mr-3"></i>
+                            Java 21 이상
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-green-500 mr-3"></i>
+                            Spring Boot 3.3 이상
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-green-500 mr-3"></i>
+                            OpenAI API 키 (또는 다른 AI 제공자)
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Step 1: Project Setup -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">1️⃣ 프로젝트 설정</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-4">
+                    <h3 class="text-lg font-medium mb-3">Spring Initializr로 프로젝트 생성</h3>
+                    <p class="text-gray-600 mb-4">
+                        <a href="https://start.spring.io" class="text-blue-600 hover:underline" target="_blank">
+                            start.spring.io
+                        </a>에서 다음 설정으로 프로젝트를 생성하세요:
+                    </p>
+                    <ul class="space-y-1 text-sm text-gray-600 mb-4">
+                        <li>• Project: Maven Project</li>
+                        <li>• Language: Java</li>
+                        <li>• Spring Boot: 3.3.x</li>
+                        <li>• Java: 21</li>
+                        <li>• Dependencies: Spring Web</li>
+                    </ul>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-medium mb-3">Maven 의존성 추가</h3>
+                    <p class="text-gray-600 mb-4">생성된 프로젝트의 <code>pom.xml</code>에 Spring AI 의존성을 추가합니다:</p>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('maven-deps')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="maven-deps"><code class="language-xml">&lt;!-- Spring AI BOM --&gt;
+&lt;dependencyManagement&gt;
+    &lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.ai&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-ai-bom&lt;/artifactId&gt;
+            &lt;version&gt;1.0.0&lt;/version&gt;
+            &lt;type&gt;pom&lt;/type&gt;
+            &lt;scope&gt;import&lt;/scope&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;
+&lt;/dependencyManagement&gt;
+
+&lt;!-- Spring AI OpenAI Starter --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.ai&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-ai-openai-spring-boot-starter&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 2: Configuration -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">2️⃣ 설정 파일</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-medium mb-3">application.yml 설정</h3>
+                    <p class="text-gray-600 mb-4">
+                        <code>src/main/resources/application.yml</code> 파일을 생성하고 다음 설정을 추가합니다:
+                    </p>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('app-config')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="app-config"><code class="language-yaml">spring:
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: gpt-4o
+          temperature: 0.7
+          max-tokens: 1000
+
+logging:
+  level:
+    org.springframework.ai: DEBUG</code></pre>
+                    </div>
+
+                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mt-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-yellow-700">
+                                    <strong>중요:</strong> 환경 변수로 API 키를 설정하세요:
+                                    <br><code>export OPENAI_API_KEY="your-api-key-here"</code>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 3: Service Class -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">3️⃣ 서비스 클래스 생성</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-medium mb-3">AIChatService.java</h3>
+                    <p class="text-gray-600 mb-4">AI 채팅 기능을 제공하는 서비스 클래스를 생성합니다:</p>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('service-class')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="service-class"><code class="language-java">package com.example.springai.service;
+
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+
+@Service
+public class AIChatService {
+    
+    private final ChatClient chatClient;
+    
+    public AIChatService(ChatClient.Builder chatClientBuilder) {
+        this.chatClient = chatClientBuilder.build();
+    }
+    
+    /**
+     * 단순 채팅 응답
+     */
+    public String chat(String message) {
+        return chatClient.prompt()
+            .user(message)
+            .call()
+            .content();
+    }
+    
+    /**
+     * 스트리밍 응답 (실시간)
+     */
+    public Flux&lt;String&gt; chatStream(String message) {
+        return chatClient.prompt()
+            .user(message)
+            .stream()
+            .content();
+    }
+    
+    /**
+     * 시스템 프롬프트와 함께 채팅
+     */
+    public String chatWithContext(String systemPrompt, String userMessage) {
+        return chatClient.prompt()
+            .system(systemPrompt)
+            .user(userMessage)
+            .call()
+            .content();
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 4: Controller -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">4️⃣ REST 컨트롤러 생성</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-medium mb-3">ChatController.java</h3>
+                    <p class="text-gray-600 mb-4">AI 채팅 API를 노출하는 컨트롤러를 생성합니다:</p>
+                    
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('controller-class')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="controller-class"><code class="language-java">package com.example.springai.controller;
+
+import com.example.springai.service.AIChatService;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
+
+@RestController
+@RequestMapping("/api/chat")
+@CrossOrigin(origins = "*")
+public class ChatController {
+    
+    private final AIChatService aiChatService;
+    
+    public ChatController(AIChatService aiChatService) {
+        this.aiChatService = aiChatService;
+    }
+    
+    /**
+     * 단순 채팅 API
+     */
+    @PostMapping
+    public String chat(@RequestBody ChatRequest request) {
+        return aiChatService.chat(request.getMessage());
+    }
+    
+    /**
+     * 스트리밍 채팅 API
+     */
+    @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux&lt;String&gt; chatStream(@RequestBody ChatRequest request) {
+        return aiChatService.chatStream(request.getMessage());
+    }
+    
+    /**
+     * 컨텍스트와 함께 채팅
+     */
+    @PostMapping("/context")
+    public String chatWithContext(@RequestBody ContextChatRequest request) {
+        return aiChatService.chatWithContext(
+            request.getSystemPrompt(), 
+            request.getUserMessage()
+        );
+    }
+    
+    // DTO 클래스들
+    public static class ChatRequest {
+        private String message;
+        
+        public String getMessage() { return message; }
+        public void setMessage(String message) { this.message = message; }
+    }
+    
+    public static class ContextChatRequest {
+        private String systemPrompt;
+        private String userMessage;
+        
+        public String getSystemPrompt() { return systemPrompt; }
+        public void setSystemPrompt(String systemPrompt) { this.systemPrompt = systemPrompt; }
+        
+        public String getUserMessage() { return userMessage; }
+        public void setUserMessage(String userMessage) { this.userMessage = userMessage; }
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 5: Test -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">5️⃣ 애플리케이션 실행 및 테스트</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-4">
+                    <h3 class="text-lg font-medium mb-3">애플리케이션 실행</h3>
+                    <div class="code-block p-4 relative">
+                        <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                onclick="copyCode('run-app')">
+                            <i class="fas fa-copy"></i> 복사
+                        </button>
+                        <pre id="run-app"><code class="language-bash"># 환경 변수 설정
+export OPENAI_API_KEY="your-api-key-here"
+
+# 애플리케이션 실행
+./mvnw spring-boot:run</code></pre>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-medium mb-3">API 테스트</h3>
+                    <p class="text-gray-600 mb-4">curl 명령어로 API를 테스트해보세요:</p>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-medium mb-2">1. 단순 채팅 테스트</h4>
+                            <div class="code-block p-4 relative">
+                                <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                        onclick="copyCode('test-1')">
+                                    <i class="fas fa-copy"></i> 복사
+                                </button>
+                                <pre id="test-1"><code class="language-bash">curl -X POST http://localhost:8080/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "안녕하세요! Spring AI에 대해 설명해주세요."}'</code></pre>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 class="font-medium mb-2">2. 컨텍스트 채팅 테스트</h4>
+                            <div class="code-block p-4 relative">
+                                <button class="copy-button absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-xs" 
+                                        onclick="copyCode('test-2')">
+                                    <i class="fas fa-copy"></i> 복사
+                                </button>
+                                <pre id="test-2"><code class="language-bash">curl -X POST http://localhost:8080/api/chat/context \
+  -H "Content-Type: application/json" \
+  -d '{
+    "systemPrompt": "당신은 Spring Framework 전문가입니다. 기술적이고 정확한 답변을 제공하세요.",
+    "userMessage": "Spring AI의 주요 특징은 무엇인가요?"
+  }'</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Next Steps -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">🎯 다음 단계</h2>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-medium mb-3 flex items-center">
+                            <i class="fas fa-search text-blue-500 mr-2"></i>
+                            RAG 시스템 구축
+                        </h3>
+                        <p class="text-gray-600 mb-4">벡터 스토어와 문서 검색을 활용한 RAG 애플리케이션을 만들어보세요.</p>
+                        <a href="rag.html" class="text-blue-600 hover:text-blue-800 font-medium">
+                            RAG 가이드 보기 →
+                        </a>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-medium mb-3 flex items-center">
+                            <i class="fas fa-tools text-green-500 mr-2"></i>
+                            Tool Calling 추가
+                        </h3>
+                        <p class="text-gray-600 mb-4">AI가 외부 함수를 호출할 수 있도록 Tool Calling을 구현해보세요.</p>
+                        <a href="tools.html" class="text-green-600 hover:text-green-800 font-medium">
+                            Tool 가이드 보기 →
+                        </a>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-medium mb-3 flex items-center">
+                            <i class="fas fa-robot text-purple-500 mr-2"></i>
+                            AI 에이전트 구축
+                        </h3>
+                        <p class="text-gray-600 mb-4">복잡한 작업을 수행하는 멀티 에이전트 시스템을 구축해보세요.</p>
+                        <a href="agents.html" class="text-purple-600 hover:text-purple-800 font-medium">
+                            에이전트 가이드 보기 →
+                        </a>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-medium mb-3 flex items-center">
+                            <i class="fas fa-chart-line text-red-500 mr-2"></i>
+                            모니터링 설정
+                        </h3>
+                        <p class="text-gray-600 mb-4">프로덕션 환경을 위한 메트릭과 모니터링을 설정해보세요.</p>
+                        <a href="monitoring.html" class="text-red-600 hover:text-red-800 font-medium">
+                            모니터링 가이드 보기 →
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Troubleshooting -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">🔧 문제 해결</h2>
+                
+                <div class="space-y-4">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h3 class="font-medium text-red-600 mb-2">API 키 오류</h3>
+                        <p class="text-gray-600 mb-2">
+                            <code>401 Unauthorized</code> 에러가 발생하는 경우:
+                        </p>
+                        <ul class="text-sm text-gray-600 space-y-1">
+                            <li>• 환경 변수 <code>OPENAI_API_KEY</code>가 올바르게 설정되었는지 확인</li>
+                            <li>• API 키에 충분한 크레딧이 있는지 확인</li>
+                            <li>• OpenAI 계정의 API 키가 활성화되었는지 확인</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h3 class="font-medium text-red-600 mb-2">의존성 오류</h3>
+                        <p class="text-gray-600 mb-2">
+                            <code>ClassNotFoundException</code> 에러가 발생하는 경우:
+                        </p>
+                        <ul class="text-sm text-gray-600 space-y-1">
+                            <li>• Spring AI BOM 버전이 올바른지 확인</li>
+                            <li>• <code>./mvnw clean install</code> 실행</li>
+                            <li>• Java 21 이상 버전 사용 확인</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h3 class="font-medium text-red-600 mb-2">응답 속도 느림</h3>
+                        <p class="text-gray-600 mb-2">응답이 너무 느린 경우:</p>
+                        <ul class="text-sm text-gray-600 space-y-1">
+                            <li>• <code>max-tokens</code> 값을 줄여보세요</li>
+                            <li>• 더 빠른 모델 (gpt-3.5-turbo)로 변경해보세요</li>
+                            <li>• 스트리밍 응답을 사용해보세요</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <script>
+        function copyCode(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('코드가 복사되었습니다!');
+            });
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg z-50';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
